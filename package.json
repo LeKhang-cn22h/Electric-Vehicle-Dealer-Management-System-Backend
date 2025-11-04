@@ -24,9 +24,12 @@
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
+    "@nestjs/config": "^4.0.2",
     "@nestjs/core": "^11.0.1",
     "@nestjs/microservices": "^11.1.8",
     "@nestjs/platform-express": "^11.0.1",
+    "@supabase/supabase-js": "^2.78.0",
+    "axios": "^1.13.1",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1"
   },
@@ -38,7 +41,7 @@
     "@nestjs/testing": "^11.0.1",
     "@types/express": "^5.0.0",
     "@types/jest": "^30.0.0",
-    "@types/node": "^22.10.7",
+    "@types/node": "^22.19.0",
     "@types/supertest": "^6.0.2",
     "concurrently": "^9.2.1",
     "cross-env": "^10.1.0",
