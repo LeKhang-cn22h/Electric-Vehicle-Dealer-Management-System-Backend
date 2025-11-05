@@ -11,7 +11,9 @@ describe('EvDealerApiGatewayController', () => {
       providers: [EvDealerApiGatewayService],
     }).compile();
 
-    evDealerApiGatewayController = app.get<EvDealerApiGatewayController>(EvDealerApiGatewayController);
+    evDealerApiGatewayController = app.get<EvDealerApiGatewayController>(
+      EvDealerApiGatewayController,
+    );
   });
 
   describe('root', () => {

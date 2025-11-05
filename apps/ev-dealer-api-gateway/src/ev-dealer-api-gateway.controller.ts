@@ -3,7 +3,9 @@ import { EvDealerApiGatewayService } from './ev-dealer-api-gateway.service';
 
 @Controller()
 export class EvDealerApiGatewayController {
-  constructor(private readonly evDealerApiGatewayService: EvDealerApiGatewayService) {}
+  constructor(
+    private readonly evDealerApiGatewayService: EvDealerApiGatewayService,
+  ) {}
 
   @Get()
   getHello(): string {
