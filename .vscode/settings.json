@@ -1,0 +1,20 @@
+{
+  // 🔧 Luôn dùng LF thay vì CRLF
+  "files.eol": "\n",
+  // 💅 Format code tự động khi lưu
+  "editor.formatOnSave": true,
+  // 🧠 Sử dụng Prettier làm formatter mặc định cho TypeScript, JavaScript
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[json]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  // ⚙️ Giữ format đồng nhất (không tự đổi dòng hay thêm dấu cách lạ)
+  "editor.tabSize": 2,
+  "editor.insertSpaces": true,
+  "editor.detectIndentation": false
+}

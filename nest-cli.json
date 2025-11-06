@@ -28,6 +28,15 @@
         "tsConfigPath": "libs/contracts/tsconfig.lib.json"
       }
     },
+    "customer-service": {
+      "type": "application",
+      "root": "apps/customer-service",
+      "entryFile": "main",
+      "sourceRoot": "apps/customer-service/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/customer-service/tsconfig.app.json"
+      }
+    },
     "ev-dealer-api-gateway": {
       "type": "application",
       "root": "apps/ev-dealer-api-gateway",
@@ -35,6 +44,24 @@
       "sourceRoot": "apps/ev-dealer-api-gateway/src",
       "compilerOptions": {
         "tsConfigPath": "apps/ev-dealer-api-gateway/tsconfig.app.json"
+      }
+    },
+    "sales": {
+      "type": "application",
+      "root": "apps/sales",
+      "entryFile": "main",
+      "sourceRoot": "apps/sales/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/sales/tsconfig.app.json"
+      }
+    },
+    "users": {
+      "type": "application",
+      "root": "apps/users",
+      "entryFile": "main",
+      "sourceRoot": "apps/users/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/users/tsconfig.app.json"
       }
     }
   }
