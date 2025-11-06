@@ -2,7 +2,7 @@ services:
   product-service:
     build: ./product-service
     ports:
-      - "3002:3002"
+      - '3002:3002'
     environment:
       - DATABASE_URL=postgres://postgres:YzkwNWJmZTAtNjQ4YS00ZTQzLWFiZjQt@localhost:54322/postgres
     depends_on:
@@ -15,4 +15,4 @@ services:
       POSTGRES_PASSWORD: YzkwNWJmZTAtNjQ4YS00ZTQzLWFiZjQt
       POSTGRES_DB: postgres
     ports:
-      - "5432:5432"
+      - '5432:5432'
