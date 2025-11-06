@@ -1,18 +1,3 @@
-// import { Injectable } from '@nestjs/common';
-// import { createClient, SupabaseClient } from '@supabase/supabase-js';
-// import { ConfigService } from '@nestjs/config';
-
-// @Injectable()
-// export class DealerCoordinationService {
-//   private readonly supabase: SupabaseClient;
-
-//   constructor(private configService: ConfigService) {
-//     this.supabase = createClient(
-//       this.configService.get<string>('SUPABASE_URL')!,
-//       this.configService.get<string>('SUPABASE_KEY')!,
-//     ) as SupabaseClient;
-//   }
-// }
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
@@ -33,7 +18,8 @@ export class DealerCoordinationService {
     dealerId: string,
     vehicleId: string,
     quantity: number,
-    note?: string,
+    note: string,
+    requestType: string, // ✅ thêm tham số này
   ): Promise<any> {
     const { data, error } = await this.supabase
       .from('vehicle_requests')
@@ -43,6 +29,7 @@ export class DealerCoordinationService {
           vehicle_id: vehicleId,
           quantity,
           note,
+          request_type: requestType, // ✅ thêm dòng này
           status: 'pending',
           created_at: new Date().toISOString(),
         },

@@ -12,7 +12,8 @@ export class DealerCoordinationController {
       body.dealer_id,
       body.vehicle_id,
       body.quantity,
-      body.note,
+      body.note || '',
+      body.request_type,
     )) as { id: string; status: string }; // Thay thế với kiểu thực tế
 
     return { message: 'Request created successfully', data: result };
