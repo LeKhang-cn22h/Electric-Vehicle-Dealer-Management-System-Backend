@@ -10,6 +10,15 @@
   "monorepo": true,
   "root": "apps/ev-dealer-api-gateway",
   "projects": {
+    "auth": {
+      "type": "application",
+      "root": "apps/auth",
+      "entryFile": "main",
+      "sourceRoot": "apps/auth/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/auth/tsconfig.app.json"
+      }
+    },
     "contracts": {
       "type": "library",
       "root": "libs/contracts",
@@ -26,15 +35,6 @@
       "sourceRoot": "apps/ev-dealer-api-gateway/src",
       "compilerOptions": {
         "tsConfigPath": "apps/ev-dealer-api-gateway/tsconfig.app.json"
-      }
-    },
-    "users": {
-      "type": "application",
-      "root": "apps/users",
-      "entryFile": "main",
-      "sourceRoot": "apps/users/src",
-      "compilerOptions": {
-        "tsConfigPath": "apps/users/tsconfig.app.json"
       }
     }
   }

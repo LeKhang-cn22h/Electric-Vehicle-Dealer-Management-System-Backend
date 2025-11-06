@@ -1,5 +1,6 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { Injectable, BadRequestException, Logger } from '@nestjs/common';
+import { SupabaseService } from './supabase.service';
 
 function createAnon(): SupabaseClient {
   const url = process.env.SUPABASE_URL!;
@@ -11,7 +12,15 @@ function createAdmin(): SupabaseClient | null {
   const srole = process.env.SUPABASE_SERVICE_ROLE_KEY;
   return srole ? createClient(url, srole) : null;
 }
-
+type SignupDto = {
+  email: string;
+  password: string;
+  role?: 'customer' | 'dealer_staff' | 'dealer_manager' | 'evm_staff' | 'admin';
+  username?: string;
+  phone?: string;
+  full_name?: string;
+  dealer_id?: string;
+};
 @Injectable()
 export class AuthService {
   private sb = createAnon();
@@ -21,14 +30,26 @@ export class AuthService {
     return { ok: true };
   }
 
-  async signup(dto: { email: string; password: string; fullName?: string }) {
-    const { data, error } = await this.sb.auth.signUp({
+  private readonly logger = new Logger(AuthService.name);
+  constructor(private readonly supabase: SupabaseService) {}
+
+  async signup(dto) {
+    const { error, data } = await this.supabase.client.auth.signUp({
       email: dto.email,
       password: dto.password,
-      options: { data: { full_name: dto.fullName ?? '' } },
+      options: {
+        data: {
+          role: dto.role,
+          username: dto.username,
+          phone: dto.phone,
+          dealer_id: dto.dealer_id,
+        },
+      },
     });
-    if (error) throw new BadRequestException(error.message);
-    return { user: data.user, requires_confirm: !data.session };
+
+    if (error) throw error;
+
+    return data;
   }
 
   async signupAdmin(dto: {

@@ -1,11 +1,10 @@
 import { Module } from '@nestjs/common';
-import { EvDealerApiGatewayController } from './ev-dealer-api-gateway.controller';
-import { EvDealerApiGatewayService } from './ev-dealer-api-gateway.service';
-import { UsersModule } from './users/users.module';
-
+import { HttpModule } from '@nestjs/axios';
+import { ServiceClients } from './service-clients';
+import { GatewayAuthController } from './routes/gateway-auth.controller';
 @Module({
-  imports: [UsersModule],
-  controllers: [EvDealerApiGatewayController],
-  providers: [EvDealerApiGatewayService],
+  imports: [HttpModule.register({ timeout: 8000 })],
+  providers: [ServiceClients],
+  controllers: [GatewayAuthController],
 })
 export class EvDealerApiGatewayModule {}
