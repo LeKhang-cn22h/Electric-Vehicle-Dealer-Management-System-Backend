@@ -4,7 +4,7 @@ services:
     ports:
       - "3002:3002"
     environment:
-      - DATABASE_URL=postgres://postgres:YzkwNWJmZTAtNjQ4YS00ZTQzLWFiZjQt@db:5432/postgres
+      - DATABASE_URL=postgres://postgres:YzkwNWJmZTAtNjQ4YS00ZTQzLWFiZjQt@localhost:54322/postgres
     depends_on:
       - product-db
 
