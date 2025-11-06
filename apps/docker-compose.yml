@@ -7,7 +7,14 @@ services:
       - DATABASE_URL=postgres://postgres:YzkwNWJmZTAtNjQ4YS00ZTQzLWFiZjQt@localhost:54322/postgres
     depends_on:
       - product-db
-
+  customer-service:
+    build: ./customer-service
+    ports:
+      - '3005:3005'
+    environment:
+      - DATABASE_URL=postgres://postgres:YzkwNWJmZTAtNjQ4YS00ZTQzLWFiZjQt@localhost:54322/postgres
+    depends_on:
+      - product-db
   product-db:
     image: supabase/postgres
     environment:
