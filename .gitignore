@@ -54,3 +54,18 @@ pids
 
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+node_modules/
+dist/
+.env
+.cache/
+.next/
+.out/
+.nuxt/
+*.local
+*.tsbuildinfo
+.idea/
+.vscode/
+*.iml
+.sass-cache/
+*.log
+npm-debug.log*
