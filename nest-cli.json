@@ -55,6 +55,15 @@
         "tsConfigPath": "apps/ev-dealer-api-gateway/tsconfig.app.json"
       }
     },
+    "evm-staff-coordination-service": {
+      "type": "application",
+      "root": "apps/evm-staff-coordination-service",
+      "entryFile": "main",
+      "sourceRoot": "apps/evm-staff-coordination-service/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/evm-staff-coordination-service/tsconfig.app.json"
+      }
+    },
     "sales": {
       "type": "application",
       "root": "apps/sales",
@@ -62,6 +71,15 @@
       "sourceRoot": "apps/sales/src",
       "compilerOptions": {
         "tsConfigPath": "apps/sales/tsconfig.app.json"
+      }
+    },
+    "service": {
+      "type": "application",
+      "root": "apps/evm-staff-coordination/service",
+      "entryFile": "main",
+      "sourceRoot": "apps/evm-staff-coordination/service/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/evm-staff-coordination/service/tsconfig.app.json"
       }
     },
     "users": {
