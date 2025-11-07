@@ -17,7 +17,7 @@
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "jest --config ./apps/electric-vehicle-dealer-management-system-backend/test/jest-e2e.json",
+    "test:e2e": "jest --config ./apps/electric-vehicle-dealer-management-system-backend/apps/evm-staff-coordination/electric-vehicle-dealer-management-system-backend/test/jest-e2e.json",
     "start:all": "concurrently -n gateway,auth -c blue,green \"npm:start:gateway\" \"npm:start:auth\"",
     "start:auth": "cross-env PORT=4100 nest start auth --watch",
     "start:gateway": "cross-env PORT=4000 nest start ev-dealer-api-gateway --watch"
