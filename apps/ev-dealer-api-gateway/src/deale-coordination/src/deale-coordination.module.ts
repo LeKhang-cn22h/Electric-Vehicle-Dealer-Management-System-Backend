@@ -1,10 +1,11 @@
 import { Module } from '@nestjs/common';
-import { DealeCoordinationController } from './deale-coordination.controller';
-import { DealeCoordinationService } from './deale-coordination.service';
+import { HttpModule } from '@nestjs/axios';
+import { DealerCoordinationController } from './deale-coordination.controller';
+import { DealerCoordinationProxyService } from './dealer-coordination.proxy.service';
 
 @Module({
-  imports: [],
-  controllers: [DealeCoordinationController],
-  providers: [DealeCoordinationService],
+  imports: [HttpModule],
+  controllers: [DealerCoordinationController],
+  providers: [DealerCoordinationProxyService],
 })
-export class DealeCoordinationModule {}
+export class DealerCoordinationModule {}

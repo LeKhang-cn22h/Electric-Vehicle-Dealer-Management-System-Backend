@@ -2,6 +2,9 @@ import { Module } from '@nestjs/common';
 import { EvDealerApiGatewayController } from './ev-dealer-api-gateway.controller';
 import { EvDealerApiGatewayService } from './ev-dealer-api-gateway.service';
 import { UsersModule } from './users/users.module';
+
+import { DealerCoordinationModule } from './deale-coordination/src/deale-coordination.module';
+
 // <<<<<<< KAN-103-create-event-handling-coordination-for-evm-staff-and-dealer-manager
 // import { CoordinationModule } from './coordination/coordination.module';
 
@@ -11,7 +14,7 @@ import { UsersModule } from './users/users.module';
 import { SalesModule } from './sales/sales.module';
 
 @Module({
-  imports: [UsersModule, SalesModule],
+  imports: [UsersModule, SalesModule, DealerCoordinationModule],
 
   controllers: [EvDealerApiGatewayController],
   providers: [EvDealerApiGatewayService],

@@ -2,7 +2,7 @@ import { Body, Controller, Post } from '@nestjs/common';
 import { DealerCoordinationService } from './dealer-coordination.service';
 import { CreateVehicleRequestDto } from './dto/create-vehicle-request.dto';
 
-@Controller('requests')
+@Controller('dealer-coordination')
 export class DealerCoordinationController {
   constructor(private readonly dealerService: DealerCoordinationService) {}
 

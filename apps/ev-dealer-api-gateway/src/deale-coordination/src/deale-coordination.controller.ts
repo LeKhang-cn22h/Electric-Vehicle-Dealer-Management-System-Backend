@@ -1,12 +1,20 @@
-import { Controller, Get } from '@nestjs/common';
-import { DealeCoordinationService } from './deale-coordination.service';
+import { Controller, Get, Post, Body } from '@nestjs/common';
+import { DealerCoordinationProxyService } from './dealer-coordination.proxy.service';
+import { DealerRequest } from './dealer-coordination.types';
 
-@Controller()
-export class DealeCoordinationController {
-  constructor(private readonly dealeCoordinationService: DealeCoordinationService) {}
+@Controller('dealer-coordination')
+export class DealerCoordinationController {
+  constructor(private readonly proxyService: DealerCoordinationProxyService) {}
 
-  @Get()
-  getHello(): string {
-    return this.dealeCoordinationService.getHello();
+  @Get('requests')
+  async getAllRequests(): Promise<DealerRequest[]> {
+    return this.proxyService.forwardGet<DealerRequest[]>('/requests');
+  }
+
+  @Post('requests')
+  async createRequest(
+    @Body() body: Omit<DealerRequest, 'id' | 'created_at'>,
+  ): Promise<DealerRequest> {
+    return this.proxyService.forwardPost<DealerRequest>('/requests', body);
   }
 }
