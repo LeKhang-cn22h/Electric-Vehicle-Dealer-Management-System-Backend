@@ -1,22 +1,10 @@
 import { Module } from '@nestjs/common';
-import { EvDealerApiGatewayController } from './ev-dealer-api-gateway.controller';
-import { EvDealerApiGatewayService } from './ev-dealer-api-gateway.service';
-import { UsersModule } from './users/users.module';
-
-import { DealerCoordinationModule } from './deale-coordination/src/deale-coordination.module';
-
-// <<<<<<< KAN-103-create-event-handling-coordination-for-evm-staff-and-dealer-manager
-// import { CoordinationModule } from './coordination/coordination.module';
-
-// @Module({
-//   imports: [UsersModule, CoordinationModule],
-// =======
-import { SalesModule } from './sales/sales.module';
-
+import { HttpModule } from '@nestjs/axios';
+import { ServiceClients } from './service-clients';
+import { GatewayAuthController } from './routes/gateway-auth.controller';
 @Module({
-  imports: [UsersModule, SalesModule, DealerCoordinationModule],
-
-  controllers: [EvDealerApiGatewayController],
-  providers: [EvDealerApiGatewayService],
+  imports: [HttpModule.register({ timeout: 8000 })],
+  providers: [ServiceClients],
+  controllers: [GatewayAuthController],
 })
 export class EvDealerApiGatewayModule {}
