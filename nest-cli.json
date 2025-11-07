@@ -28,6 +28,15 @@
         "tsConfigPath": "apps/customer-service/tsconfig.app.json"
       }
     },
+    "deale-coordination": {
+      "type": "application",
+      "root": "apps/deale-coordination",
+      "entryFile": "main",
+      "sourceRoot": "apps/deale-coordination/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/deale-coordination/tsconfig.app.json"
+      }
+    },
     "ev-dealer-api-gateway": {
       "type": "application",
       "root": "apps/ev-dealer-api-gateway",

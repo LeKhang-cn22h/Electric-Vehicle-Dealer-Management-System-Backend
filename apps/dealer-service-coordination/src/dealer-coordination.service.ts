@@ -8,7 +8,7 @@ export class DealerCoordinationService {
 
   constructor(private configService: ConfigService) {
     const supabaseUrl = this.configService.get<string>('SUPABASE_URL');
-    const supabaseKey = this.configService.get<string>('SUPABASE_KEY');
+    const supabaseKey = this.configService.get<string>('SUPABASE_SERVICE_ROLE_KEY');
 
     // FIX: Sử dụng type assertion
     this.supabase = createClient(supabaseUrl!, supabaseKey!) as SupabaseClient;
