@@ -3,6 +3,6 @@ import { EvDealerApiGatewayModule } from './ev-dealer-api-gateway.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(EvDealerApiGatewayModule);
-  await app.listen(process.env.port ?? 4000);
+  await app.listen(process.env.port ?? 4001);
 }
 bootstrap();

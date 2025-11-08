@@ -1,0 +1,52 @@
+# version: '3.8'
+
+version: '3.8'
+services:
+  product-service:
+    build: ./apps/product-service
+    ports:
+      - "3002:3002"
+    environment:
+      - DATABASE_URL=postgres://postgres:YzkwNWJmZTAtNjQ4YS00ZTQzLWFiZjQt@product-db:5432/postgres
+    depends_on:
+      - product-db
+
+  dealer-service-coordination:
+    build: ./apps/dealer-service-coordination
+    ports:
+    - "3001:3001" 
+    environment:
+      - SUPABASE_URL=http://host.docker.internal:54321
+      - SUPABASE_SERVICE_ROLE_KEY=sb_secret_N7UND0UgjKTVK-Uodkm0Hg_xSvEMPvz
+      - SUPABASE_ANON_KEY=sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH
+      - DATABASE_URL=postgresql://postgres:postgres@host.docker.internal:54322/postgres
+      - PORT=3001
+    depends_on:
+      - product-db
+    networks:
+      - internal
+
+  product-db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: YzkwNWJmZTAtNjQ4YS00ZTQzLWFiZjQt
+      POSTGRES_DB: postgres
+    ports:
+      - "5432:5432"
+
+  api-gateway:
+    build:
+      context: .                      
+      dockerfile: apps/ev-dealer-api-gateway/Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - PRODUCT_SERVICE_URL=http://product-service:3002
+      - DEALER_SERVICE_URL=http://dealer-service-coordination:3001
+    depends_on:
+      - product-service
+      - dealer-service-coordination
+networks:
+  internal:
+    driver: bridge

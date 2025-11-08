@@ -10,6 +10,15 @@
   "monorepo": true,
   "root": "apps/ev-dealer-api-gateway",
   "projects": {
+    "auth": {
+      "type": "application",
+      "root": "apps/auth",
+      "entryFile": "main",
+      "sourceRoot": "apps/auth/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/auth/tsconfig.app.json"
+      }
+    },
     "contracts": {
       "type": "library",
       "root": "libs/contracts",
@@ -17,6 +26,24 @@
       "sourceRoot": "libs/contracts/src",
       "compilerOptions": {
         "tsConfigPath": "libs/contracts/tsconfig.lib.json"
+      }
+    },
+    "customer-service": {
+      "type": "application",
+      "root": "apps/customer-service",
+      "entryFile": "main",
+      "sourceRoot": "apps/customer-service/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/customer-service/tsconfig.app.json"
+      }
+    },
+    "deale-coordination": {
+      "type": "application",
+      "root": "apps/deale-coordination",
+      "entryFile": "main",
+      "sourceRoot": "apps/deale-coordination/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/deale-coordination/tsconfig.app.json"
       }
     },
     "ev-dealer-api-gateway": {
@@ -28,6 +55,15 @@
         "tsConfigPath": "apps/ev-dealer-api-gateway/tsconfig.app.json"
       }
     },
+    "evm-staff-coordination-service": {
+      "type": "application",
+      "root": "apps/evm-staff-coordination-service",
+      "entryFile": "main",
+      "sourceRoot": "apps/evm-staff-coordination-service/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/evm-staff-coordination-service/tsconfig.app.json"
+      }
+    },
     "sales": {
       "type": "application",
       "root": "apps/sales",
@@ -35,6 +71,15 @@
       "sourceRoot": "apps/sales/src",
       "compilerOptions": {
         "tsConfigPath": "apps/sales/tsconfig.app.json"
+      }
+    },
+    "service": {
+      "type": "application",
+      "root": "apps/evm-staff-coordination/service",
+      "entryFile": "main",
+      "sourceRoot": "apps/evm-staff-coordination/service/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/evm-staff-coordination/service/tsconfig.app.json"
       }
     },
     "users": {
