@@ -33,32 +33,37 @@ export class AuthService {
   private readonly logger = new Logger(AuthService.name);
   constructor(private readonly supabase: SupabaseService) {}
 
-  async signup(dto) {
+  async signup(dto: SignupDto) {
+    if (!dto.email || !dto.password) {
+      throw new BadRequestException('Email and password are required');
+    }
+
+    const metadata: Record<string, string> = {};
+
+    if (
+      dto.role &&
+      ['admin', 'evm_staff', 'dealer_manager', 'dealer_staff', 'customer'].includes(dto.role)
+    ) {
+      metadata.role = dto.role;
+    }
+
+    if (dto.username) metadata.username = dto.username;
+    if (dto.phone) metadata.phone = dto.phone;
+    if (dto.full_name) metadata.full_name = dto.full_name;
+    metadata.dealer_id = dto.dealer_id || '';
+
     const { error, data } = await this.supabase.client.auth.signUp({
       email: dto.email,
       password: dto.password,
-      options: {
-        data: {
-          role: dto.role,
-          username: dto.username,
-          phone: dto.phone,
-          dealer_id: dto.dealer_id,
-        },
-      },
+      options: { data: metadata },
     });
 
-    if (error) throw error;
-
+    if (error) throw new BadRequestException(error.message);
     return data;
   }
 
-  async signupAdmin(dto: {
-    email: string;
-    password: string;
-    fullName?: string;
-  }) {
-    if (!this.admin)
-      throw new BadRequestException('No SERVICE_ROLE_KEY on server');
+  async signupAdmin(dto: { email: string; password: string; fullName?: string }) {
+    if (!this.admin) throw new BadRequestException('No SERVICE_ROLE_KEY on server');
     const { data, error } = await this.admin.auth.admin.createUser({
       email: dto.email,
       password: dto.password,
