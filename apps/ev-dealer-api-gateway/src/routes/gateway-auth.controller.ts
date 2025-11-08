@@ -1,10 +1,18 @@
 import { Body, Controller, Post } from '@nestjs/common';
 import { ServiceClients } from '../service-clients';
+import { Get } from '@nestjs/common';
 
 @Controller('auth')
 export class GatewayAuthController {
-  constructor(private c: ServiceClients) {}
-  @Post('signup') signup(@Body() b: any) {
+  constructor(private readonly c: ServiceClients) {}
+
+  @Get('health')
+  health() {
+    return this.c.auth().get('/auth/health');
+  }
+
+  @Post('signup')
+  signup(@Body() b: any) {
     return this.c.auth().post('/auth/signup', b);
   }
   @Post('signup-admin') signupAdmin(@Body() b: any) {

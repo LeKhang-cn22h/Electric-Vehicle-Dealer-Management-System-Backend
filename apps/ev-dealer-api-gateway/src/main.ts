@@ -3,6 +3,11 @@ import { EvDealerApiGatewayModule } from './ev-dealer-api-gateway.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(EvDealerApiGatewayModule);
-  await app.listen(process.env.port ?? 4001);
+  app.enableCors({
+    origin: 'http://localhost:3000',
+    credentials: true,
+  });
+
+  await app.listen(process.env.PORT ?? 4000);
 }
 bootstrap();
