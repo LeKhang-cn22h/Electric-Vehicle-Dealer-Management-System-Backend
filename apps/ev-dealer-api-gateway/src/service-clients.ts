@@ -40,6 +40,11 @@ export class ServiceClients {
     return this.base(url);
   }
 
+  users(): ServiceClient {
+    const url = process.env.USERS_SERVICE_URL || 'http://localhost:4200';
+    return this.base(url);
+  }
+
   evmCoordination(): ServiceClient {
     const url = process.env.EVM_COORDINATION_SERVICE_URL || 'http://localhost:3002';
     return this.base(url);

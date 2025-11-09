@@ -1,6 +1,8 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import { SupabaseService } from './supabase.service';
+import { UnauthorizedException } from '@nestjs/common/exceptions';
+import { ChangePasswordDto } from './dtos/change-password.dto';
 
 function createAnon(): SupabaseClient {
   const url = process.env.SUPABASE_URL!;
@@ -105,5 +107,40 @@ export class AuthService {
     });
     if (error) throw new BadRequestException(error.message);
     return { sent: true, data };
+  }
+
+  async changePassword(token: string, dto: ChangePasswordDto) {
+    const { data: userData, error: userError } = await this.sb.auth.getUser(token);
+    if (userError || !userData.user) {
+      throw new UnauthorizedException('Invalid token');
+    }
+
+    // Verify current password by attempting to sign in
+    const { error: signInError } = await this.sb.auth.signInWithPassword({
+      email: userData.user.email!,
+      password: dto.currentPassword,
+    });
+
+    if (signInError) {
+      throw new BadRequestException('Mật khẩu hiện tại không đúng');
+    }
+
+    // Update password using admin client
+    if (!this.admin) {
+      throw new BadRequestException('Cannot change password: no admin access');
+    }
+
+    const { error: updateError } = await this.admin.auth.admin.updateUserById(userData.user.id, {
+      password: dto.newPassword,
+    });
+
+    if (updateError) {
+      throw new BadRequestException(updateError.message);
+    }
+
+    return {
+      success: true,
+      message: 'Đổi mật khẩu thành công',
+    };
   }
 }

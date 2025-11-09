@@ -30,4 +30,8 @@ export class GatewayAuthController {
   @Post('resend-confirm') resend(@Body() b: any) {
     return this.c.auth().post('/auth/resend-confirm', b);
   }
+  @Post('change-password')
+  changePassword(@Body() b: any) {
+    return this.c.auth().post('/auth/change-password', b);
+  }
 }
