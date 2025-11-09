@@ -1,6 +1,8 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import { SupabaseService } from './supabase.service';
+import { UnauthorizedException } from '@nestjs/common/exceptions';
+import { ChangePasswordDto } from './dtos/change-password.dto';
 
 function createAnon(): SupabaseClient {
   const url = process.env.SUPABASE_URL!;
@@ -33,32 +35,37 @@ export class AuthService {
   private readonly logger = new Logger(AuthService.name);
   constructor(private readonly supabase: SupabaseService) {}
 
-  async signup(dto) {
+  async signup(dto: SignupDto) {
+    if (!dto.email || !dto.password) {
+      throw new BadRequestException('Email and password are required');
+    }
+
+    const metadata: Record<string, string> = {};
+
+    if (
+      dto.role &&
+      ['admin', 'evm_staff', 'dealer_manager', 'dealer_staff', 'customer'].includes(dto.role)
+    ) {
+      metadata.role = dto.role;
+    }
+
+    if (dto.username) metadata.username = dto.username;
+    if (dto.phone) metadata.phone = dto.phone;
+    if (dto.full_name) metadata.full_name = dto.full_name;
+    metadata.dealer_id = dto.dealer_id || '';
+
     const { error, data } = await this.supabase.client.auth.signUp({
       email: dto.email,
       password: dto.password,
-      options: {
-        data: {
-          role: dto.role,
-          username: dto.username,
-          phone: dto.phone,
-          dealer_id: dto.dealer_id,
-        },
-      },
+      options: { data: metadata },
     });
 
-    if (error) throw error;
-
+    if (error) throw new BadRequestException(error.message);
     return data;
   }
 
-  async signupAdmin(dto: {
-    email: string;
-    password: string;
-    fullName?: string;
-  }) {
-    if (!this.admin)
-      throw new BadRequestException('No SERVICE_ROLE_KEY on server');
+  async signupAdmin(dto: { email: string; password: string; fullName?: string }) {
+    if (!this.admin) throw new BadRequestException('No SERVICE_ROLE_KEY on server');
     const { data, error } = await this.admin.auth.admin.createUser({
       email: dto.email,
       password: dto.password,
@@ -100,5 +107,40 @@ export class AuthService {
     });
     if (error) throw new BadRequestException(error.message);
     return { sent: true, data };
+  }
+
+  async changePassword(token: string, dto: ChangePasswordDto) {
+    const { data: userData, error: userError } = await this.sb.auth.getUser(token);
+    if (userError || !userData.user) {
+      throw new UnauthorizedException('Invalid token');
+    }
+
+    // Verify current password by attempting to sign in
+    const { error: signInError } = await this.sb.auth.signInWithPassword({
+      email: userData.user.email!,
+      password: dto.currentPassword,
+    });
+
+    if (signInError) {
+      throw new BadRequestException('Mật khẩu hiện tại không đúng');
+    }
+
+    // Update password using admin client
+    if (!this.admin) {
+      throw new BadRequestException('Cannot change password: no admin access');
+    }
+
+    const { error: updateError } = await this.admin.auth.admin.updateUserById(userData.user.id, {
+      password: dto.newPassword,
+    });
+
+    if (updateError) {
+      throw new BadRequestException(updateError.message);
+    }
+
+    return {
+      success: true,
+      message: 'Đổi mật khẩu thành công',
+    };
   }
 }

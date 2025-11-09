@@ -1,42 +1,51 @@
 import { Body, Controller, Get, Post } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { SignupDto } from './dtos/signup.dto';
-
+import { LoginDto } from './dtos/login.dto';
+import { BadRequestException } from '@nestjs/common';
+import { ChangePasswordDto } from './dtos/change-password.dto';
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
+
+  @Get('health')
+  health() {
+    return { status: 'ok', ts: new Date().toISOString() };
+  }
 
   @Post('signup')
   async signup(@Body() dto: SignupDto) {
     return this.authService.signup(dto);
   }
-  // authService: any;
-  // constructor(private readonly svc: AuthService) {}
 
-  // @Get('health')
-  // health() {
-  //   return { ok: true };
-  // }
+  @Post('login')
+  login(@Body() dto: LoginDto) {
+    return this.authService.login(dto);
+  }
 
-  // @Post('signup')
-  // async signup(@Body() body: any) {
-  //   return this.authService.signUp(body);
-  // }
-  // @Post('signup-admin') signupAdmin(
-  //   @Body() b: { email: string; password: string; fullName?: string },
-  // ) {
-  //   return this.svc.signupAdmin(b);
-  // }
-  // @Post('login') login(@Body() b: { email: string; password: string }) {
-  //   return this.svc.login(b);
-  // }
-  // @Post('me') me(@Body('access_token') t: string) {
-  //   return this.svc.me(t);
-  // }
-  // @Post('refresh') refresh(@Body('refresh_token') rt: string) {
-  //   return this.svc.refresh(rt);
-  // }
-  // @Post('resend-confirm') resend(@Body('email') email: string) {
-  //   return this.svc.resend(email);
-  // }
+  @Post('me')
+  me(@Body('accessToken') token: string) {
+    return this.authService.me(token);
+  }
+
+  @Post('refresh')
+  refresh(@Body('refreshToken') rt: string) {
+    return this.authService.refresh(rt);
+  }
+
+  @Post('resend-confirm')
+  resend(@Body('email') email: string) {
+    return this.authService.resend(email);
+  }
+  @Post('change-password')
+  async changePassword(@Body('token') token: string, @Body() body: ChangePasswordDto) {
+    if (!token) {
+      throw new BadRequestException('Token is required');
+    }
+
+    if (!body.currentPassword || !body.newPassword) {
+      throw new BadRequestException('Current password and new password are required');
+    }
+    return this.authService.changePassword(token, body);
+  }
 }
