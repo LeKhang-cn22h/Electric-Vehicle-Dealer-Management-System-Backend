@@ -23,12 +23,8 @@
     "strictBindCallApply": false,
     "noFallthroughCasesInSwitch": false,
     "paths": {
-      "contracts/contracts": [
-        "libs/contracts/src"
-      ],
-      "contracts/contracts/*": [
-        "libs/contracts/src/*"
-      ]
+      "contracts/contracts": ["libs/contracts/src"],
+      "contracts/contracts/*": ["libs/contracts/src/*"]
     }
   }
 }
