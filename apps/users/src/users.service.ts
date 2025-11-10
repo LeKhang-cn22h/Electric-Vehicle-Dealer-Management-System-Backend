@@ -1,7 +1,10 @@
 import { Injectable, BadRequestException, UnauthorizedException } from '@nestjs/common';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import * as dotenv from 'dotenv';
-dotenv.config();
+import * as path from 'path';
+
+const envPath = path.resolve(process.cwd(), 'apps/users/.env');
+dotenv.config({ path: envPath });
 
 function createAdmin(): SupabaseClient | null {
   const url = process.env.SUPABASE_URL!;

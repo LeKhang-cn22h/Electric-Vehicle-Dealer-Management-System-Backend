@@ -1,7 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import * as dotenv from 'dotenv';
-dotenv.config();
+import * as path from 'path';
+
+const envPath = path.resolve(process.cwd(), 'apps/auth/.env');
+dotenv.config({ path: envPath });
 
 @Injectable()
 export class SupabaseService {
