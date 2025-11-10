@@ -87,9 +87,20 @@ export class AuthService {
   }
 
   async me(token: string) {
-    const { data, error } = await this.sb.auth.getUser(token);
-    if (error) throw new BadRequestException(error.message);
-    return data.user;
+    const { data: userData, error: tokenError } = await this.sb.auth.getUser(token);
+    if (tokenError || !userData.user) {
+      throw new UnauthorizedException('Token không hợp lệ');
+    }
+    if (this.admin) {
+      const { data: fullUser, error: adminError } = await this.admin.auth.admin.getUserById(
+        userData.user.id,
+      );
+      if (adminError) {
+        throw new BadRequestException(adminError.message);
+      }
+      return fullUser.user;
+    }
+    return userData.user;
   }
 
   async refresh(refresh_token: string) {
