@@ -154,4 +154,51 @@ export class AuthService {
       message: 'Đổi mật khẩu thành công',
     };
   }
+
+  async forgotPassword(email: string) {
+    const { error } = await this.sb.auth.resetPasswordForEmail(email, {
+      redirectTo: `${process.env.APP_URL}/auth/reset-password`,
+    });
+    if (error) throw new BadRequestException(error.message);
+    return { success: true, message: 'If the email exists, a reset link has been sent' };
+  }
+
+  async resetPassword(accessToken: string, newPassword: string) {
+    if (!this.admin) throw new BadRequestException('No SERVICE_ROLE_KEY on server');
+    if (!accessToken) throw new BadRequestException('Missing access token');
+    if (!newPassword || newPassword.length < 8) {
+      throw new BadRequestException('Password must be at least 8 characters');
+    }
+    const parts = accessToken.split('.');
+    if (parts.length !== 3) throw new BadRequestException('Malformed token');
+
+    let payload: any;
+    try {
+      payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf8'));
+    } catch {
+      throw new BadRequestException('Invalid token payload');
+    }
+
+    const userId: string | undefined = payload?.sub;
+    const exp: number | undefined = payload?.exp;
+    const iss: string | undefined = payload?.iss;
+    this.logger.debug({ iss, sub: userId, exp });
+
+    if (!userId) throw new BadRequestException('Token missing subject');
+    const nowSec = Math.floor(Date.now() / 1000);
+    if (typeof exp === 'number' && exp < nowSec) {
+      throw new UnauthorizedException('Reset link has expired');
+    }
+    const expectedIssuerPrefix = `${process.env.SUPABASE_URL?.replace(/\/+$/, '')}/auth/v1`;
+    if (iss && expectedIssuerPrefix && !iss.startsWith(expectedIssuerPrefix)) {
+      throw new UnauthorizedException('Token does not belong to this project');
+    }
+    const { error: updateError } = await this.admin.auth.admin.updateUserById(userId, {
+      password: newPassword,
+    });
+
+    if (updateError) throw new BadRequestException(updateError.message);
+
+    return { success: true, message: 'Password reset successfully', userId };
+  }
 }
