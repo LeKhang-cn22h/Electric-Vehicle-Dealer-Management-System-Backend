@@ -11,6 +11,15 @@ services:
     env_file: ./product-service/.env
     networks:
       - micro-net
+  customer-service:
+    build: ./apps/customer-service
+    expose:
+      - "3000"
+    depends_on:
+      - customer-db
+    env_file: ./customer-service/.env
+    networks:
+      - micro-net
   dealer-service-coordination:
     build: ./apps/dealer-service-coordination
     ports:

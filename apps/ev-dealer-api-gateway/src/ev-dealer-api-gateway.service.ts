@@ -10,4 +10,9 @@ export class EvDealerApiGatewayService {
     // For demonstration, we return a mock product
     return { id: data.id, name: 'Mock Product', description: 'This is a mock product.' };
   }
+  getCustomer(data: any) {
+    // Here you would typically call the customer service to get the customer details
+    // For demonstration, we return a mock customer
+    return { id: data.id, name: 'Mock Customer', email: '' };
+  }
 }

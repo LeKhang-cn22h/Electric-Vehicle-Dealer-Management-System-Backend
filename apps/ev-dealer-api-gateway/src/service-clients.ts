@@ -8,7 +8,7 @@ export class ServiceClients implements OnModuleInit {
   evmCoordinationService: ClientProxy;
   dealerCoordinationService: ClientProxy;
   productService: ClientProxy;
-
+  customerService: ClientProxy;
   onModuleInit() {
     this.authService = ClientProxyFactory.create({
       transport: Transport.TCP,
@@ -46,6 +46,13 @@ export class ServiceClients implements OnModuleInit {
       options: {
         host: '127.0.0.1',
         port: Number(process.env.PRODUCT_TCP_PORT) || 3600,
+      },
+    });
+    this.customerService = ClientProxyFactory.create({
+      transport: Transport.TCP,
+      options: {
+        host: '127.0.0.1',
+        port: Number(process.env.CUSTOMER_TCP_PORT) || 4300,
       },
     });
   }

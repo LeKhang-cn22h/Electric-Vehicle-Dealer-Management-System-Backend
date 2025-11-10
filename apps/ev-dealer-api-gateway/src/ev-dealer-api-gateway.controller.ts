@@ -15,4 +15,8 @@ export class EvDealerApiGatewayController {
   getProduct(data: any) {
     return this.evDealerApiGatewayService.getProduct(data);
   }
+  @MessagePattern({ cmd: 'get_customer' })
+  getCustomer(data: any) {
+    return this.evDealerApiGatewayService.getCustomer(data);
+  }
 }
