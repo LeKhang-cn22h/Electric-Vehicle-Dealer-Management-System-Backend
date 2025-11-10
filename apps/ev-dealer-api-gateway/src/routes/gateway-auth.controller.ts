@@ -34,4 +34,12 @@ export class GatewayAuthController {
   changePassword(@Body() b: any) {
     return this.c.auth().post('/auth/change-password', b);
   }
+  @Post('forgot-password')
+  forgotPassword(@Body() b: any) {
+    return this.c.auth().post('/auth/forgot-password', b);
+  }
+  @Post('reset-password')
+  resetPassword(@Body() b: any) {
+    return this.c.auth().post('/auth/reset-password', b);
+  }
 }
