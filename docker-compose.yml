@@ -4,13 +4,13 @@ version: '3.8'
 services:
   product-service:
     build: ./apps/product-service
-    ports:
-      - "3002:3002"
-    environment:
-      - DATABASE_URL=postgres://postgres:YzkwNWJmZTAtNjQ4YS00ZTQzLWFiZjQt@product-db:5432/postgres
+    expose:
+      - "3000"
     depends_on:
       - product-db
-
+    env_file: ./product-service/.env
+    networks:
+      - micro-net
   dealer-service-coordination:
     build: ./apps/dealer-service-coordination
     ports:
@@ -26,18 +26,10 @@ services:
     networks:
       - internal
 
-  product-db:
-    image: postgres:15
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: YzkwNWJmZTAtNjQ4YS00ZTQzLWFiZjQt
-      POSTGRES_DB: postgres
-    ports:
-      - "5432:5432"
 
   api-gateway:
-    build:
-      context: .                      
+    build: ./apps/ev-dealer-api-gateway
+      context:              
       dockerfile: apps/ev-dealer-api-gateway/Dockerfile
     ports:
       - "3000:3000"
@@ -47,6 +39,8 @@ services:
     depends_on:
       - product-service
       - dealer-service-coordination
+    networks:
+      - micro-net
 networks:
-  internal:
+  micro-net:
     driver: bridge

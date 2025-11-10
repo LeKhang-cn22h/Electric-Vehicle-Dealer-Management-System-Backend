@@ -1,14 +1,22 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { SupabaseClient, createClient } from '@supabase/supabase-js';
 import { Repository } from 'typeorm';
 import { Product } from './car.entity';
 
 @Injectable()
 export class ProductService {
+  private supabase: SupabaseClient;
+
   constructor(
     @InjectRepository(Product)
-    private repo: Repository<Product>,
-  ) {}
+    private readonly repo: Repository<Product>,
+  ) {
+    const url = process.env.SUPABASE_URL!;
+    const anon = process.env.SUPABASE_ANON_KEY!;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    this.supabase = createClient(url, anon);
+  }
 
   findAll() {
     return this.repo.find();

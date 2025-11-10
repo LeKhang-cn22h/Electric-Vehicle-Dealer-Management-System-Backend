@@ -15,5 +15,7 @@ import { ProductModule } from './product/car.module';
     }),
     ProductModule,
   ],
+  controllers: [],
+  providers: [],
 })
 export class AppModule {}

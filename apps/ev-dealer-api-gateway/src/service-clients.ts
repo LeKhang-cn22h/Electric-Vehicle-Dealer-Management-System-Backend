@@ -1,57 +1,57 @@
-import { Injectable } from '@nestjs/common';
-import { HttpService } from '@nestjs/axios';
-import { AxiosResponse } from 'axios';
-
-type Headers = Record<string, string | undefined>;
-
-interface ServiceClient {
-  get: <T = any>(path: string, headers?: Headers) => Promise<T>;
-  post: <T = any>(path: string, body: any, headers?: Headers) => Promise<T>;
-  put: <T = any>(path: string, body: any, headers?: Headers) => Promise<T>;
-  patch: <T = any>(path: string, body: any, headers?: Headers) => Promise<T>;
-  delete: <T = any>(path: string, headers?: Headers) => Promise<T>;
-}
+import { Injectable, OnModuleInit } from '@nestjs/common';
+import { ClientProxy, ClientProxyFactory, Transport } from '@nestjs/microservices';
 
 @Injectable()
-export class ServiceClients {
-  constructor(private readonly http: HttpService) {}
+export class ServiceClients implements OnModuleInit {
+  authService: ClientProxy;
+  usersService: ClientProxy;
+  evmCoordinationService: ClientProxy;
+  dealerCoordinationService: ClientProxy;
+  productService: ClientProxy;
 
-  private base(url: string): ServiceClient {
-    return {
-      get: <T = any>(p: string, h?: Headers) =>
-        this.http.axiosRef.get<T>(url + p, { headers: h }).then((r: AxiosResponse<T>) => r.data),
-      post: <T = any>(p: string, b: any, h?: Headers) =>
-        this.http.axiosRef
-          .post<T>(url + p, b, { headers: h })
-          .then((r: AxiosResponse<T>) => r.data),
-      put: <T = any>(p: string, b: any, h?: Headers) =>
-        this.http.axiosRef.put<T>(url + p, b, { headers: h }).then((r: AxiosResponse<T>) => r.data),
-      patch: <T = any>(p: string, b: any, h?: Headers) =>
-        this.http.axiosRef
-          .patch<T>(url + p, b, { headers: h })
-          .then((r: AxiosResponse<T>) => r.data),
-      delete: <T = any>(p: string, h?: Headers) =>
-        this.http.axiosRef.delete<T>(url + p, { headers: h }).then((r: AxiosResponse<T>) => r.data),
-    };
+  onModuleInit() {
+    this.authService = ClientProxyFactory.create({
+      transport: Transport.TCP,
+      options: {
+        host: '127.0.0.1',
+        port: Number(process.env.AUTH_TCP_PORT) || 4100,
+      },
+    });
+
+    this.usersService = ClientProxyFactory.create({
+      transport: Transport.TCP,
+      options: {
+        host: '127.0.0.1',
+        port: Number(process.env.USERS_TCP_PORT) || 4200,
+      },
+    });
+
+    this.evmCoordinationService = ClientProxyFactory.create({
+      transport: Transport.TCP,
+      options: {
+        host: '127.0.0.1',
+        port: Number(process.env.EVM_COORDINATION_TCP_PORT) || 3002,
+      },
+    });
+
+    this.dealerCoordinationService = ClientProxyFactory.create({
+      transport: Transport.TCP,
+      options: {
+        host: '127.0.0.1',
+        port: Number(process.env.DEALER_COORDINATION_TCP_PORT) || 3001,
+      },
+    });
+    this.productService = ClientProxyFactory.create({
+      transport: Transport.TCP,
+      options: {
+        host: '127.0.0.1',
+        port: Number(process.env.PRODUCT_TCP_PORT) || 3600,
+      },
+    });
   }
 
-  auth(): ServiceClient {
-    const url = process.env.AUTH_URL || 'http://localhost:4100';
-    return this.base(url);
-  }
-
-  users(): ServiceClient {
-    const url = process.env.USERS_SERVICE_URL || 'http://localhost:4200';
-    return this.base(url);
-  }
-
-  evmCoordination(): ServiceClient {
-    const url = process.env.EVM_COORDINATION_SERVICE_URL || 'http://localhost:3002';
-    return this.base(url);
-  }
-
-  dealerCoordination(): ServiceClient {
-    const url = process.env.DEALER_COORDINATION_SERVICE_URL || 'http://localhost:3001';
-    return this.base(url);
+  // helper gửi message
+  send(service: ClientProxy, pattern: any, data: any) {
+    return service.send(pattern, data);
   }
 }
