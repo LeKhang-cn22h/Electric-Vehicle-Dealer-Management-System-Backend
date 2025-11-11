@@ -12,7 +12,12 @@ function createAdmin(): SupabaseClient | null {
   return srole ? createClient(url, srole) : null;
 }
 
-function createAnon(): SupabaseClient {
+// function createAnon(): SupabaseClient {
+//   const url = process.env.SUPABASE_URL!;
+//   const anon = process.env.SUPABASE_ANON_KEY!;
+//   return createClient(url, anon);
+// }
+function createAnon() {
   const url = process.env.SUPABASE_URL!;
   const anon = process.env.SUPABASE_ANON_KEY!;
   return createClient(url, anon);

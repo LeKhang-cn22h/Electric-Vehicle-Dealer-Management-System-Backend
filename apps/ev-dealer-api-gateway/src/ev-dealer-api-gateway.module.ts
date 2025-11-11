@@ -3,10 +3,11 @@ import { HttpModule } from '@nestjs/axios';
 import { ServiceClients } from './service-clients';
 import { GatewayAuthController } from './routes/gateway-auth.controller';
 import { GatewayUsersController } from './routes/gateway-users.controller';
+import { GatewayDealerCoordinationController } from './routes/gateway-dealer-coordination.controller';
 
 @Module({
   imports: [HttpModule.register({ timeout: 8000 })],
   providers: [ServiceClients],
-  controllers: [GatewayAuthController, GatewayUsersController],
+  controllers: [GatewayAuthController, GatewayUsersController, GatewayDealerCoordinationController],
 })
 export class EvDealerApiGatewayModule {}
