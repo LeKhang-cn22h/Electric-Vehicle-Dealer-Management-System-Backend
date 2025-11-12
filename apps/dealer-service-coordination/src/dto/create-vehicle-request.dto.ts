@@ -6,6 +6,7 @@
 //   request_type: string = '';
 // }
 export class CreateVehicleRequestDto {
+  dealer_id: string = '';
   dealer_name: string = '';
   vehicle_model: string = '';
   quantity: number = 0;
