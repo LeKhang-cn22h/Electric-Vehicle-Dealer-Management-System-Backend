@@ -126,4 +126,13 @@ export class ServiceClients {
     const url = process.env.BILLING_SERVICE_URL || 'http://localhost:4300';
     return this.base(url);
   }
+  vehicle(): ServiceClient {
+    const url = process.env.VEHICLE_SERVICE_URL || 'http://localhost:4001';
+    return this.base(url);
+  }
+
+  customer(): ServiceClient {
+    const url = process.env.CUSTOMER_SERVICE_URL || 'http://localhost:4400';
+    return this.base(url);
+  }
 }

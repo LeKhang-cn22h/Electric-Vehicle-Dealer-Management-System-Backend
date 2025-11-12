@@ -4,6 +4,8 @@ import { ServiceClients } from './service-clients';
 import { GatewayAuthController } from './routes/gateway-auth.controller';
 import { GatewayUsersController } from './routes/gateway-users.controller';
 import { GatewayDealerCoordinationController } from './routes/gateway-dealer-coordination.controller';
+import { GatewayVehicleController } from './routes/gateway-vehicle.controller';
+import { GatewayCustomersController } from './routes/gateway-customers.controller';
 // import { GatewayBillingController } from './routes/gateway-billing.controller';
 
 @Module({
@@ -13,6 +15,8 @@ import { GatewayDealerCoordinationController } from './routes/gateway-dealer-coo
     GatewayAuthController,
     GatewayUsersController,
     GatewayDealerCoordinationController,
+    GatewayVehicleController,
+    GatewayCustomersController,
     // GatewayBillingController,
   ],
 })
