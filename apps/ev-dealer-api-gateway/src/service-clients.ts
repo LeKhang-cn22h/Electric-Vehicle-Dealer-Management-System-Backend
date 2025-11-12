@@ -113,10 +113,10 @@ export class ServiceClients {
     return this.base(url);
   }
 
-  evmCoordination(): ServiceClient {
-    const url = process.env.EVM_COORDINATION_SERVICE_URL || 'http://localhost:3002';
-    return this.base(url);
-  }
+  // evmCoordination(): ServiceClient {
+  //   const url = process.env.EVM_COORDINATION_SERVICE_URL || 'http://localhost:3002';
+  //   return this.base(url);
+  // }
 
   dealerCoordination(): ServiceClient {
     const url = process.env.DEALER_COORDINATION_SERVICE_URL || 'http://localhost:3001';
@@ -124,6 +124,10 @@ export class ServiceClients {
   }
   billing(): ServiceClient {
     const url = process.env.BILLING_SERVICE_URL || 'http://localhost:4300';
+    return this.base(url);
+  }
+  evmStaffCoordination(): ServiceClient {
+    const url = process.env.EVM_STAFF_COORDINATION_SERVICE_URL || 'http://localhost:3002';
     return this.base(url);
   }
 }
