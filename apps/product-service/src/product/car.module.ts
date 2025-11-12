@@ -1,13 +1,16 @@
 import { Module } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { ProductMessageController } from './car.mesage.controller';
+import { ProductController } from './car.controller';
 import { ProductService } from './car.service';
-import { Product } from './car.entity';
+import { ConfigModule } from '@nestjs/config';
 
 @Module({
-  controllers: [ProductMessageController],
+  imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: '.env', // đường dẫn tới file .env
+    }),
+  ],
+  controllers: [ProductController],
   providers: [ProductService],
-  imports: [TypeOrmModule.forFeature([Product])],
-  exports: [TypeOrmModule],
 })
 export class ProductModule {}

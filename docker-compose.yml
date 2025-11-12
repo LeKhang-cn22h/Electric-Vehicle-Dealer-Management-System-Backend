@@ -1,55 +1,68 @@
-# version: '3.8'
-
 version: '3.8'
+
 services:
+  # Product microservice (TCP)
   product-service:
-    build: ./apps/product-service
+    build:
+      context: ./apps/product-service
+      dockerfile: Dockerfile
+    restart: always
+
     expose:
-      - "3000"
-    depends_on:
-      - product-db
-    env_file: ./product-service/.env
+      - "4001"
+    env_file:
+      - ./apps/product-service/.env
     networks:
       - micro-net
+
+  # Customer microservice (TCP)
   customer-service:
-    build: ./apps/customer-service
+    build:
+      context: ./apps/customers-service
+      dockerfile: Dockerfile
     expose:
-      - "3000"
-    depends_on:
-      - customer-db
-    env_file: ./customer-service/.env
+      - "4002"
+    env_file:
+      - ./apps/customers-service/.env
     networks:
       - micro-net
+
+  # Dealer service (HTTP)
   dealer-service-coordination:
-    build: ./apps/dealer-service-coordination
+    build:
+      context: ./apps/dealer-service-coordination
+      dockerfile: Dockerfile
     ports:
-    - "3001:3001" 
+      - "3001:3001"
     environment:
       - SUPABASE_URL=http://host.docker.internal:54321
       - SUPABASE_SERVICE_ROLE_KEY=sb_secret_N7UND0UgjKTVK-Uodkm0Hg_xSvEMPvz
       - SUPABASE_ANON_KEY=sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH
       - DATABASE_URL=postgresql://postgres:postgres@host.docker.internal:54322/postgres
       - PORT=3001
-    depends_on:
-      - product-db
     networks:
-      - internal
+      - micro-net
 
-
+  # API Gateway (HTTP)
   api-gateway:
-    build: ./apps/ev-dealer-api-gateway
-      context:              
+    build:
+      context: .
       dockerfile: apps/ev-dealer-api-gateway/Dockerfile
     ports:
       - "3000:3000"
     environment:
-      - PRODUCT_SERVICE_URL=http://product-service:3002
+      - PRODUCT_HOST=product-service
+      - PRODUCT_TCP_PORT=4001
+      - CUSTOMER_HOST=customer-service
+      - CUSTOMER_TCP_PORT=4002
       - DEALER_SERVICE_URL=http://dealer-service-coordination:3001
     depends_on:
       - product-service
+      - customer-service
       - dealer-service-coordination
     networks:
       - micro-net
+
 networks:
   micro-net:
     driver: bridge

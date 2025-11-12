@@ -1,41 +1,64 @@
 import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { SupabaseClient, createClient } from '@supabase/supabase-js';
-import { Repository } from 'typeorm';
-import { Product } from './car.entity';
+import { SupabaseClientService } from './supabase.client';
 
+/**
+ * Service xử lý logic và giao tiếp với Supabase/Postgres
+ */
 @Injectable()
 export class ProductService {
-  private supabase: SupabaseClient;
+  constructor(private readonly supabase: SupabaseClientService) {}
 
-  constructor(
-    @InjectRepository(Product)
-    private readonly repo: Repository<Product>,
-  ) {
-    const url = process.env.SUPABASE_URL!;
-    const anon = process.env.SUPABASE_ANON_KEY!;
+  async findAll() {
+    const { data, error } = await this.supabase.client.from('cars').select('*');
+
+    if (error) throw error;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+    return data;
+  }
+
+  async findOne(id: number) {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    this.supabase = createClient(url, anon);
+    const { data, error } = await this.supabase.client
+      .from('cars')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error) throw error;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+    return data;
   }
 
-  findAll() {
-    return this.repo.find();
+  async create(dto: any) {
+    const { data, error } = await this.supabase.client
+      .from('cars')
+      .insert(dto)
+      .select();
+
+    if (error) throw error;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+    return data;
   }
 
-  findOne(id: number) {
-    return this.repo.findOneBy({ id });
+  async update(id: number, dto: any) {
+    const { data, error } = await this.supabase.client
+      .from('cars')
+      .update(dto)
+      .eq('id', id)
+      .select();
+
+    if (error) throw error;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+    return data;
   }
 
-  create(data: Partial<Product>) {
-    const product = this.repo.create(data);
-    return this.repo.save(product);
-  }
+  async delete(id: number) {
+    const { error } = await this.supabase.client
+      .from('cars')
+      .delete()
+      .eq('id', id);
 
-  update(id: number, data: Partial<Product>) {
-    return this.repo.update(id, data);
-  }
-
-  remove(id: number) {
-    return this.repo.delete(id);
+    if (error) throw error;
+    return { success: true };
   }
 }
