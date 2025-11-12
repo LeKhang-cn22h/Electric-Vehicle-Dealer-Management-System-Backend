@@ -16,6 +16,7 @@ export class OrderService {
   //Tạo đơn hàng từ báo giá
   async createFromQuotation(quotationId: string): Promise<Order> {
     const quotation = await this.quotationService.findOne(quotationId);
+    // const quotation_items = await this.quotationService.findOne(quotationId);
     if (!quotation) throw new NotFoundException('Quotation not found');
 
     const newOrder: CreateOrderDto = {
@@ -28,7 +29,9 @@ export class OrderService {
       status: 'pending',
     };
 
-    const { error } = await this.supabase
+    const now = new Date();
+
+    const { data: insertedOrder, error } = await this.supabase
       .schema('sales')
       .from('orders')
       .insert([
@@ -41,10 +44,12 @@ export class OrderService {
           total_amount: newOrder.totalAmount,
           note: newOrder.note,
           status: newOrder.status,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
+          created_at: now.toISOString(),
+          updated_at: now.toISOString(),
         },
-      ]);
+      ])
+      .select('*')
+      .single();
 
     if (error) throw new Error(`Supabase insert error: ${error.message}`);
 
@@ -99,9 +104,20 @@ export class OrderService {
   }
 
   //Xoá đơn hàng
-  async remove(id: string): Promise<void> {
-    const { error } = await this.supabase.schema('sales').from('orders').delete().eq('id', id);
+  async remove(id: string): Promise<any> {
+    const { data, error } = await this.supabase
+      .schema('sales')
+      .from('orders')
+      .delete()
+      .eq('id', id)
+      .select('*'); // trả về bản ghi đã xóa
+
     if (error) throw new Error(`Supabase delete error: ${error.message}`);
+    if (!data || data.length === 0) {
+      throw new NotFoundException(`Không tìm thấy đơn hàng có id = ${id}`);
+    }
+
+    return { message: `Xóa thành công đơn hàng ${id}` };
   }
 
   //Helper: map dữ liệu
