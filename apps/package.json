@@ -7,7 +7,6 @@
   "license": "UNLICENSED",
   "scripts": {
     "build": "nest build",
-    "start:product-service-no-watch": "cross-env TCP_PORT=4001 nest start product-service",
     "format": "prettier --write \"apps/**/*.ts\" \"libs/**/*.ts\"",
     "start": "nest start",
     "start:dev": "nest start --watch",
@@ -21,7 +20,7 @@
     "test:e2e": "jest --config ./apps/electric-vehicle-dealer-management-system-backend/test/jest-e2e.json",
     "users": "nest start users --watch",
     "start:gateway": "cross-env GATEWAY_PORT=4000 nest start ev-dealer-api-gateway --watch",
-    "start:all": "concurrently -k -n USERS,GATEWAY -c green,cyan \"npm:users\" \"npm:start:gateway\""
+    "start:all": "concurrently -k -n USERS,GATEWAY -c green,cyan \"npm:users\" \"npm:start:gateway\" \"npm:vehicle\""
   },
   "dependencies": {
     "@nestjs/axios": "^4.0.1",
