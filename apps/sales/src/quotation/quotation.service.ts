@@ -75,39 +75,119 @@ export class QuotationService {
 
   //Lấy tất cả báo giá
   async findAll(): Promise<Quotation[]> {
-    const { data, error } = await this.supabase
+    //Lấy tất cả báo giá
+    const { data: quotations, error: quoteError } = await this.supabase
       .schema('sales')
       .from('quotations')
       .select('*')
       .order('created_at', { ascending: false });
 
-    if (error) throw new Error(`Supabase fetch error: ${error.message}`);
+    if (quoteError) throw new Error(`Supabase fetch error: ${quoteError.message}`);
 
-    return data?.map((row) => this.mapRowToQuotation(row)) || [];
+    if (!quotations?.length) return [];
+
+    //Lấy tất cả items (chỉ những items thuộc các quotation hiện có)
+    const quotationIds = quotations.map((q) => q.id);
+    const { data: items, error: itemsError } = await this.supabase
+      .schema('sales')
+      .from('quotation_items')
+      .select('*')
+      .in('quotation_id', quotationIds);
+
+    if (itemsError) throw new Error(`Failed to fetch quotation items: ${itemsError.message}`);
+
+    //Gom nhóm items theo quotation_id
+    const itemsByQuotation = items.reduce(
+      (acc, item) => {
+        if (!acc[item.quotation_id]) acc[item.quotation_id] = [];
+        acc[item.quotation_id].push(item);
+        return acc;
+      },
+      {} as Record<string, any[]>,
+    );
+
+    //Trả về danh sách Quotation (gộp items tương ứng)
+    return quotations.map((row) =>
+      this.mapRowToQuotation({
+        ...row,
+        items: itemsByQuotation[row.id] || [],
+      }),
+    );
   }
 
   //Lấy báo giá theo ID
   async findOne(id: string): Promise<Quotation> {
-    const { data, error } = await this.supabase
+    //Lấy thông tin báo giá
+    const { data: quotation, error: quoteError } = await this.supabase
       .schema('sales')
       .from('quotations')
       .select('*')
       .eq('id', id)
       .single();
 
-    if (error || !data) throw new NotFoundException('Quotation not found');
-    return this.mapRowToQuotation(data);
+    if (quoteError || !quotation) {
+      throw new NotFoundException('Quotation not found');
+    }
+
+    //Lấy các dòng sản phẩm trong báo giá
+    const { data: items, error: itemsError } = await this.supabase
+      .schema('sales')
+      .from('quotation_items')
+      .select('*')
+      .eq('quotation_id', id);
+
+    if (itemsError) {
+      throw new Error(`Failed to fetch quotation items: ${itemsError.message}`);
+    }
+
+    //Gộp items vào data và gọi hàm mapRowToQuotation
+    return this.mapRowToQuotation({
+      ...quotation,
+      items, // thêm field items vào object quotation
+    });
   }
 
   //Cập nhật báo giá
-  async update(id: string, updateData: Partial<CreateQuotationDto>): Promise<Quotation> {
+  async update(id: string, updateData: Partial<Quotation>): Promise<Quotation> {
     const updatedAt = new Date();
 
+    //Nếu có items mới, cập nhật lại bảng quotation_items
+    if (updateData.items && updateData.items.length > 0) {
+      // Xóa toàn bộ items cũ
+      const { error: delError } = await this.supabase
+        .schema('sales')
+        .from('quotation_items')
+        .delete()
+        .eq('quotation_id', id);
+
+      if (delError) throw new Error(`Failed to delete old items: ${delError.message}`);
+
+      // Thêm lại items mới
+      const { error: insertError } = await this.supabase
+        .schema('sales')
+        .from('quotation_items')
+        .insert(
+          updateData.items.map((item) => ({
+            id: uuid(),
+            quotation_id: id,
+            product_id: item.productId,
+            quantity: item.quantity,
+            unit_price: item.unitPrice,
+            created_at: new Date().toISOString(),
+          })),
+        );
+
+      if (insertError) throw new Error(`Failed to insert new items: ${insertError.message}`);
+    }
+
+    //Cập nhật thông tin báo giá chính (trừ items)
     const { data, error } = await this.supabase
       .schema('sales')
       .from('quotations')
       .update({
-        ...updateData,
+        note: updateData.note,
+        status: updateData.status,
+        total_amount: updateData.totalAmount,
         updated_at: updatedAt.toISOString(),
       })
       .eq('id', id)
@@ -115,13 +195,36 @@ export class QuotationService {
       .single();
 
     if (error) throw new Error(`Supabase update error: ${error.message}`);
-    return this.mapRowToQuotation(data);
+
+    //Lấy lại bản ghi sau khi cập nhật (gồm items)
+    const quotation = await this.findOne(id);
+
+    return quotation;
   }
 
   //Xoá báo giá
   async remove(id: string): Promise<void> {
-    const { error } = await this.supabase.schema('sales').from('quotations').delete().eq('id', id);
-    if (error) throw new Error(`Supabase delete error: ${error.message}`);
+    //Xóa toàn bộ items thuộc báo giá này
+    const { error: delItemsError } = await this.supabase
+      .schema('sales')
+      .from('quotation_items')
+      .delete()
+      .eq('quotation_id', id);
+
+    if (delItemsError) {
+      throw new Error(`Failed to delete quotation items: ${delItemsError.message}`);
+    }
+
+    //Xóa báo giá chính
+    const { error: delQuoteError } = await this.supabase
+      .schema('sales')
+      .from('quotations')
+      .delete()
+      .eq('id', id);
+
+    if (delQuoteError) {
+      throw new Error(`Supabase delete quotation error: ${delQuoteError.message}`);
+    }
   }
 
   async convertToOrder(quotationId: string): Promise<CreateOrderDto> {
