@@ -1,0 +1,22 @@
+# ---------- STAGE 1: BUILD ----------
+FROM node:20-alpine AS builder
+WORKDIR /app
+
+COPY package*.json nest-cli.json tsconfig*.json ./
+RUN npm ci
+
+COPY . .
+RUN npm run build apps/auth
+
+# ---------- STAGE 2: RUNTIME ----------
+FROM node:20-alpine
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm ci --omit=dev
+
+COPY --from=builder /app/dist ./dist
+
+ENV NODE_ENV=production
+EXPOSE 4100
+CMD ["node", "dist/apps/auth/main.js"]

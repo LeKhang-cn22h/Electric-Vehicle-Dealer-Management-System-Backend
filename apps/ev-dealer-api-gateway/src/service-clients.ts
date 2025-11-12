@@ -93,11 +93,21 @@ export class ServiceClients {
     return cleaned;
   }
 
+  //docker
+  // auth(): ServiceClient {
+  //   const url = process.env.AUTH_SERVICE_URL || 'http://auth:4100';
+  //   return this.base(url);
+  // }
+
+  // users(): ServiceClient {
+  //   const url = process.env.USERS_SERVICE_URL || 'http://users:4200';
+  //   return this.base(url);
+  // }
+
   auth(): ServiceClient {
     const url = process.env.AUTH_URL || 'http://localhost:4100';
     return this.base(url);
   }
-
   users(): ServiceClient {
     const url = process.env.USERS_SERVICE_URL || 'http://localhost:4200';
     return this.base(url);
@@ -110,6 +120,10 @@ export class ServiceClients {
 
   dealerCoordination(): ServiceClient {
     const url = process.env.DEALER_COORDINATION_SERVICE_URL || 'http://localhost:3001';
+    return this.base(url);
+  }
+  billing(): ServiceClient {
+    const url = process.env.BILLING_SERVICE_URL || 'http://localhost:4300';
     return this.base(url);
   }
 }
