@@ -1,68 +1,51 @@
 version: '3.8'
 
 services:
-  # Product microservice (TCP)
   product-service:
-    build:
-      context: ./apps/product-service
-      dockerfile: Dockerfile
-    restart: always
-
-    expose:
-      - "4001"
-    env_file:
-      - ./apps/product-service/.env
-    networks:
-      - micro-net
-
-  # Customer microservice (TCP)
-  customer-service:
-    build:
-      context: ./apps/customers-service
-      dockerfile: Dockerfile
-    expose:
-      - "4002"
-    env_file:
-      - ./apps/customers-service/.env
-    networks:
-      - micro-net
-
-  # Dealer service (HTTP)
-  dealer-service-coordination:
-    build:
-      context: ./apps/dealer-service-coordination
-      dockerfile: Dockerfile
+    build: ./apps/product-service
     ports:
-      - "3001:3001"
+      - "3002:3002"
+    environment:
+      - DATABASE_URL=postgres://postgres:YzkwNWJmZTAtNjQ4YS00ZTQzLWFiZjQt@product-db:5432/postgres
+    depends_on:
+      - product-db
+
+  dealer-service-coordination:
+    build: ./apps/dealer-service-coordination
+    ports:
+    - "3001:3001" 
     environment:
       - SUPABASE_URL=http://host.docker.internal:54321
       - SUPABASE_SERVICE_ROLE_KEY=sb_secret_N7UND0UgjKTVK-Uodkm0Hg_xSvEMPvz
       - SUPABASE_ANON_KEY=sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH
       - DATABASE_URL=postgresql://postgres:postgres@host.docker.internal:54322/postgres
       - PORT=3001
+    depends_on:
+      - product-db
     networks:
-      - micro-net
+      - internal
 
-  # API Gateway (HTTP)
+  product-db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: YzkwNWJmZTAtNjQ4YS00ZTQzLWFiZjQt
+      POSTGRES_DB: postgres
+    ports:
+      - "5432:5432"
+
   api-gateway:
     build:
       context: .
       dockerfile: apps/ev-dealer-api-gateway/Dockerfile
     ports:
-      - "3000:3000"
+      - '4000:4000'
     environment:
-      - PRODUCT_HOST=product-service
-      - PRODUCT_TCP_PORT=4001
-      - CUSTOMER_HOST=customer-service
-      - CUSTOMER_TCP_PORT=4002
+      - PRODUCT_SERVICE_URL=http://product-service:3002
       - DEALER_SERVICE_URL=http://dealer-service-coordination:3001
     depends_on:
       - product-service
-      - customer-service
       - dealer-service-coordination
-    networks:
-      - micro-net
-
 networks:
   micro-net:
     driver: bridge

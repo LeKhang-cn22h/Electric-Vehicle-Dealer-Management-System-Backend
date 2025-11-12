@@ -19,7 +19,7 @@ export class DealerCoordinationService {
     vehicleId: string,
     quantity: number,
     note: string,
-    requestType: string, // ✅ thêm tham số này
+    requestType: string,
   ): Promise<any> {
     const { data, error } = await this.supabase
       .from('vehicle_requests')
