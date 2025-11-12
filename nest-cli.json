@@ -9,24 +9,6 @@
   "entryFile": "main",
   "sourceRoot": "apps",
   "projects": {
-    "ar-service": {
-      "type": "application",
-      "root": "apps/ar-service",
-      "entryFile": "main",
-      "sourceRoot": "apps/ar-service/src",
-      "compilerOptions": {
-        "tsConfigPath": "apps/ar-service/tsconfig.app.json"
-      }
-    },
-    "ar_service": {
-      "type": "application",
-      "root": "apps/ar_service",
-      "entryFile": "main",
-      "sourceRoot": "apps/ar_service/src",
-      "compilerOptions": {
-        "tsConfigPath": "apps/ar_service/tsconfig.app.json"
-      }
-    },
     "auth": {
       "type": "application",
       "root": "apps/auth",
@@ -36,22 +18,13 @@
         "tsConfigPath": "apps/auth/tsconfig.app.json"
       }
     },
-    "billing_service": {
+    "billing": {
       "type": "application",
-      "root": "apps/billing_service",
+      "root": "apps/billing",
       "entryFile": "main",
-      "sourceRoot": "apps/billing_service/src",
+      "sourceRoot": "apps/billing/src",
       "compilerOptions": {
-        "tsConfigPath": "apps/billing_service/tsconfig.app.json"
-      }
-    },
-    "commission_service": {
-      "type": "application",
-      "root": "apps/commission_service",
-      "entryFile": "main",
-      "sourceRoot": "apps/commission_service/src",
-      "compilerOptions": {
-        "tsConfigPath": "apps/commission_service/tsconfig.app.json"
+        "tsConfigPath": "apps/billing/tsconfig.app.json"
       }
     },
     "contracts": {
@@ -97,15 +70,6 @@
       "sourceRoot": "apps/evm-staff-coordination-service/src",
       "compilerOptions": {
         "tsConfigPath": "apps/evm-staff-coordination-service/tsconfig.app.json"
-      }
-    },
-    "rbac_service": {
-      "type": "application",
-      "root": "apps/rbac_service",
-      "entryFile": "main",
-      "sourceRoot": "apps/rbac_service/src",
-      "compilerOptions": {
-        "tsConfigPath": "apps/rbac_service/tsconfig.app.json"
       }
     },
     "sales": {
