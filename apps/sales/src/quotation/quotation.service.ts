@@ -75,28 +75,76 @@ export class QuotationService {
 
   //Lấy tất cả báo giá
   async findAll(): Promise<Quotation[]> {
-    const { data, error } = await this.supabase
+    // 1️⃣ Lấy tất cả báo giá
+    const { data: quotations, error: quoteError } = await this.supabase
       .schema('sales')
       .from('quotations')
       .select('*')
       .order('created_at', { ascending: false });
 
-    if (error) throw new Error(`Supabase fetch error: ${error.message}`);
+    if (quoteError) throw new Error(`Supabase fetch error: ${quoteError.message}`);
 
-    return data?.map((row) => this.mapRowToQuotation(row)) || [];
+    if (!quotations?.length) return [];
+
+    // 2️⃣ Lấy tất cả items (chỉ những items thuộc các quotation hiện có)
+    const quotationIds = quotations.map((q) => q.id);
+    const { data: items, error: itemsError } = await this.supabase
+      .schema('sales')
+      .from('quotation_items')
+      .select('*')
+      .in('quotation_id', quotationIds);
+
+    if (itemsError) throw new Error(`Failed to fetch quotation items: ${itemsError.message}`);
+
+    // 3️⃣ Gom nhóm items theo quotation_id
+    const itemsByQuotation = items.reduce(
+      (acc, item) => {
+        if (!acc[item.quotation_id]) acc[item.quotation_id] = [];
+        acc[item.quotation_id].push(item);
+        return acc;
+      },
+      {} as Record<string, any[]>,
+    );
+
+    // 4️⃣ Trả về danh sách Quotation (gộp items tương ứng)
+    return quotations.map((row) =>
+      this.mapRowToQuotation({
+        ...row,
+        items: itemsByQuotation[row.id] || [],
+      }),
+    );
   }
 
   //Lấy báo giá theo ID
   async findOne(id: string): Promise<Quotation> {
-    const { data, error } = await this.supabase
+    // 1️⃣ Lấy thông tin báo giá
+    const { data: quotation, error: quoteError } = await this.supabase
       .schema('sales')
       .from('quotations')
       .select('*')
       .eq('id', id)
       .single();
 
-    if (error || !data) throw new NotFoundException('Quotation not found');
-    return this.mapRowToQuotation(data);
+    if (quoteError || !quotation) {
+      throw new NotFoundException('Quotation not found');
+    }
+
+    // 2️⃣ Lấy các dòng sản phẩm trong báo giá
+    const { data: items, error: itemsError } = await this.supabase
+      .schema('sales')
+      .from('quotation_items')
+      .select('*')
+      .eq('quotation_id', id);
+
+    if (itemsError) {
+      throw new Error(`Failed to fetch quotation items: ${itemsError.message}`);
+    }
+
+    // 3️⃣ Gộp items vào data và gọi hàm mapRowToQuotation
+    return this.mapRowToQuotation({
+      ...quotation,
+      items, // thêm field items vào object quotation
+    });
   }
 
   //Cập nhật báo giá
