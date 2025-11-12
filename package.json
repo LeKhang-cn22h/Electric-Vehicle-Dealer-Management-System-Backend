@@ -11,6 +11,8 @@
     "start": "nest start",
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
+    "build:auth": "nest build apps/auth",
+    "build:users": "nest build apps/users",
     "start:prod": "node dist/apps/electric-vehicle-dealer-management-system-backend/main",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "test": "jest",
@@ -18,11 +20,13 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./apps/electric-vehicle-dealer-management-system-backend/apps/evm-staff-coordination/electric-vehicle-dealer-management-system-backend/test/jest-e2e.json",
-    "start:all": "concurrently -n gateway,auth,users -c blue,green,black \"npm:start:gateway\" \"npm:start:auth\" \"npm:start:users\"",
+    "start:all": "concurrently -n gateway,auth,users,dealer-coordination,billing -c blue,green,black,yellow,red \"npm:start:gateway\" \"npm:start:auth\" \"npm:start:users\" \"npm:start:dealer-coordination\" \"npm:start:billing\"",
     "start:auth": "cross-env PORT=4100 nest start auth --watch",
     "start:gateway": "cross-env PORT=4000 nest start ev-dealer-api-gateway --watch",
     "start:users": "cross-env PORT=4200 nest start users --watch",
-    "start:sales": "cross-env PORT=4007 nest start sales --watch"
+    "start:sales": "cross-env PORT=4007 nest start sales --watch",
+    "start:dealer-coordination": "cross-env PORT=4008 nest start dealer-coordination --watch",
+    "start:billing": "cross-env PORT=4300 nest start billing-service --watch"
   },
   "dependencies": {
     "@nestjs/axios": "^4.0.1",
