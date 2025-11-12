@@ -3,6 +3,7 @@ import { CreateQuotationDto } from './dto/create-quotation.dto';
 import { Quotation } from './entity/quotation.entity';
 import { v4 as uuid } from 'uuid';
 import { SupabaseClient } from '@supabase/supabase-js';
+import { CreateOrderDto } from '../order/dto/create-order.dto';
 
 @Injectable()
 export class QuotationService {
@@ -18,38 +19,58 @@ export class QuotationService {
       0,
     );
 
-    const newQuotation: Quotation = {
+    const quotationId = uuid();
+    const now = new Date();
+
+    //Tạo bản ghi báo giá chính
+    const { error: quotationError } = await this.supabase
+      .schema('sales')
+      .from('quotations')
+      .insert([
+        {
+          id: quotationId,
+          customer_id: createQuote.customerId,
+          created_by: createQuote.createdBy,
+          total_amount: totalAmount,
+          note: createQuote.note,
+          status: 'draft',
+          created_at: now.toISOString(),
+          updated_at: now.toISOString(),
+        },
+      ]);
+
+    if (quotationError)
+      throw new Error(`Supabase insert quotation error: ${quotationError.message}`);
+
+    //Thêm chi tiết sản phẩm
+    const itemsData = createQuote.items.map((item) => ({
       id: uuid(),
+      quotation_id: quotationId,
+      product_id: item.productId,
+      quantity: item.quantity,
+      unit_price: item.unitPrice,
+      created_at: now.toISOString(),
+    }));
+
+    const { error: itemsError } = await this.supabase
+      .schema('sales')
+      .from('quotation_items')
+      .insert(itemsData);
+
+    if (itemsError) throw new Error(`Supabase insert items error: ${itemsError.message}`);
+
+    //Trả về object tổng hợp
+    return {
+      id: quotationId,
       customerId: createQuote.customerId,
       createdBy: createQuote.createdBy,
       items: createQuote.items,
       totalAmount,
       note: createQuote.note,
       status: 'draft',
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      createdAt: now,
+      updatedAt: now,
     };
-
-    const { error } = await this.supabase
-      .schema('sales')
-      .from('quotations')
-      .insert([
-        {
-          id: newQuotation.id,
-          customer_id: newQuotation.customerId,
-          created_by: newQuotation.createdBy,
-          items: newQuotation.items,
-          total_amount: newQuotation.totalAmount,
-          note: newQuotation.note,
-          status: newQuotation.status,
-          created_at: newQuotation.createdAt.toISOString(),
-          updated_at: newQuotation.updatedAt.toISOString(),
-        },
-      ]);
-
-    if (error) throw new Error(`Supabase insert error: ${error.message}`);
-
-    return newQuotation;
   }
 
   //Lấy tất cả báo giá
@@ -101,6 +122,49 @@ export class QuotationService {
   async remove(id: string): Promise<void> {
     const { error } = await this.supabase.schema('sales').from('quotations').delete().eq('id', id);
     if (error) throw new Error(`Supabase delete error: ${error.message}`);
+  }
+
+  async convertToOrder(quotationId: string): Promise<CreateOrderDto> {
+    const quotation = await this.findOne(quotationId);
+    if (!quotation) throw new NotFoundException('Quotation not found');
+
+    const newOrder: CreateOrderDto = {
+      quotationId: quotation.id,
+      customerId: quotation.customerId,
+      createdBy: quotation.createdBy,
+      items: quotation.items,
+      totalAmount: quotation.totalAmount,
+      note: quotation.note,
+      status: 'pending',
+    };
+
+    const { error: insertError } = await this.supabase
+      .schema('sales')
+      .from('orders')
+      .insert([
+        {
+          id: uuid(),
+          quotation_id: newOrder.quotationId,
+          customer_id: newOrder.customerId,
+          created_by: newOrder.createdBy,
+          items: newOrder.items,
+          total_amount: newOrder.totalAmount,
+          note: newOrder.note,
+          status: newOrder.status,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        },
+      ]);
+
+    if (insertError) throw new Error(`Failed to create order: ${insertError.message}`);
+
+    await this.supabase
+      .schema('sales')
+      .from('quotations')
+      .update({ status: 'converted', updated_at: new Date().toISOString() })
+      .eq('id', quotationId);
+
+    return newOrder;
   }
 
   //Hàm helper: map dữ liệu từ DB về entity
