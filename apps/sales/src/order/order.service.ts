@@ -60,7 +60,7 @@ export class OrderService {
       .update({ status: 'converted', updated_at: new Date().toISOString() })
       .eq('id', quotationId);
 
-    return this.mapRowToOrder(newOrder);
+    return this.mapRowToOrder(insertedOrder);
   }
 
   //Lấy tất cả đơn hàng
