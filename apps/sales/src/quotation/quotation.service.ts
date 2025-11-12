@@ -204,8 +204,27 @@ export class QuotationService {
 
   //Xoá báo giá
   async remove(id: string): Promise<void> {
-    const { error } = await this.supabase.schema('sales').from('quotations').delete().eq('id', id);
-    if (error) throw new Error(`Supabase delete error: ${error.message}`);
+    //Xóa toàn bộ items thuộc báo giá này
+    const { error: delItemsError } = await this.supabase
+      .schema('sales')
+      .from('quotation_items')
+      .delete()
+      .eq('quotation_id', id);
+
+    if (delItemsError) {
+      throw new Error(`Failed to delete quotation items: ${delItemsError.message}`);
+    }
+
+    //Xóa báo giá chính
+    const { error: delQuoteError } = await this.supabase
+      .schema('sales')
+      .from('quotations')
+      .delete()
+      .eq('id', id);
+
+    if (delQuoteError) {
+      throw new Error(`Supabase delete quotation error: ${delQuoteError.message}`);
+    }
   }
 
   async convertToOrder(quotationId: string): Promise<CreateOrderDto> {
