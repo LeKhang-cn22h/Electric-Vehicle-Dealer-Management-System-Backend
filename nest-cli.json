@@ -45,6 +45,15 @@
         "tsConfigPath": "apps/customer-service/tsconfig.app.json"
       }
     },
+    "customers-service": {
+      "type": "application",
+      "root": "apps/customers-service",
+      "entryFile": "main",
+      "sourceRoot": "apps/customers-service/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/customers-service/tsconfig.app.json"
+      }
+    },
     "deale-coordination": {
       "type": "application",
       "root": "apps/deale-coordination",
@@ -97,6 +106,15 @@
       "sourceRoot": "apps/users/src",
       "compilerOptions": {
         "tsConfigPath": "apps/users/tsconfig.app.json"
+      }
+    },
+    "product-service": {
+      "type": "application",
+      "root": "apps/product-service",
+      "entryFile": "main",
+      "sourceRoot": "apps/product-service/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/product-service/tsconfig.app.json"
       }
     }
   }

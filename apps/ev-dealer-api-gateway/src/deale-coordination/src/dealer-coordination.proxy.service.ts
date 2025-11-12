@@ -5,7 +5,7 @@ import { firstValueFrom } from 'rxjs';
 
 @Injectable()
 export class DealerCoordinationProxyService {
-  private readonly baseUrl = process.env.DEALER_COORDINATION_URL || 'http://localhost:4001';
+  private readonly baseUrl = process.env.DEALER_COORDINATION_URL || 'http://localhost:3001';
 
   constructor(private readonly httpService: HttpService) {}
 
