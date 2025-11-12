@@ -1,8 +1,8 @@
-import { IsString, IsArray, IsNumber, ValidateNested, IsOptional } from 'class-validator';
+import { IsString, IsArray, IsNumber, ValidateNested, IsOptional, IsUUID } from 'class-validator';
 import { Type } from 'class-transformer';
 
 class QuotationItemDto {
-  @IsString()
+  @IsUUID()
   productId: string;
 
   @IsString()
@@ -16,10 +16,10 @@ class QuotationItemDto {
 }
 
 export class CreateQuotationDto {
-  @IsString()
+  @IsUUID()
   customerId: string;
 
-  @IsString()
+  @IsUUID()
   createdBy: string;
 
   @IsArray()

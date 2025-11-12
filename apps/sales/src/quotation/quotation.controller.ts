@@ -30,4 +30,9 @@ export class QuotationController {
   remove(@Param('id') id: string) {
     return this.quotationService.remove(id);
   }
+
+  @Post(':id/convert')
+  async convertToOrder(@Param('id') id: string) {
+    return this.quotationService.convertToOrder(id);
+  }
 }
