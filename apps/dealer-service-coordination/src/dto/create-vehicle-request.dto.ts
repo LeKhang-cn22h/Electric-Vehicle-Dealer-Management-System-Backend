@@ -5,19 +5,18 @@
 //   note?: string;
 //   request_type: string = '';
 // }
-export class CreateVehicleRequestDto {
-  dealer_id: string = '';
-  dealer_name: string = '';
+// DTO cho từng loại xe trong yêu cầu
+export class VehicleItemDto {
+  vehicle_id: string = '';
   vehicle_model: string = '';
   quantity: number = 0;
   note?: string;
-  request_type: string = '';
 }
 
-export class VehicleRequestDto extends CreateVehicleRequestDto {
-  id: string = '';
-  status: string = 'pending';
-  created_at: string = '';
-  updated_at: string = '';
-  created_by?: string;
+// DTO tổng cho một yêu cầu (từ một đại lý)
+export class CreateVehicleRequestDto {
+  dealer_id: string = '';
+  dealer_name: string = '';
+  request_type: string = '';
+  vehicles!: VehicleItemDto[]; // MẢNG các xe trong một yêu cầu
 }

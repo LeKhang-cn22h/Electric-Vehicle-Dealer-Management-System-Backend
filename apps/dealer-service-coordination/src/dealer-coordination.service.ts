@@ -1,92 +1,13 @@
-// import { Injectable } from '@nestjs/common';
-// import { ConfigService } from '@nestjs/config';
-// import { createClient, SupabaseClient } from '@supabase/supabase-js';
-
-// @Injectable()
-// export class DealerCoordinationService {
-//   private readonly supabase: SupabaseClient;
-
-//   constructor(private configService: ConfigService) {
-//     const supabaseUrl = this.configService.get<string>('SUPABASE_URL');
-//     const supabaseKey = this.configService.get<string>('SUPABASE_SERVICE_ROLE_KEY');
-
-//     // FIX: Sử dụng type assertion
-//     this.supabase = createClient(supabaseUrl!, supabaseKey!) as SupabaseClient;
-//   }
-
-//   async createVehicleRequest(
-//     dealerId: string,
-//     vehicleId: string,
-//     quantity: number,
-//     note: string,
-//     requestType: string,
-//   ): Promise<any> {
-//     const { data, error } = await this.supabase
-//       .from('distribution.vehicle_dispatch_requests')
-//       // .schema('distribution') // FIX: Chỉ định schema đúng cách
-//       .insert([
-//         {
-//           dealer_id: dealerId,
-//           vehicle_id: vehicleId,
-//           quantity,
-//           note,
-//           request_type: requestType, // ✅ thêm dòng này
-//           status: 'pending',
-//           created_at: new Date().toISOString(),
-//         },
-//       ])
-//       .select();
-
-//     if (error) {
-//       throw new Error(error.message);
-//     }
-
-//     return data[0];
-//   }
-// }
-// import { Injectable } from '@nestjs/common';
-// import { ConfigService } from '@nestjs/config';
-// import { createClient, SupabaseClient } from '@supabase/supabase-js';
-
-// @Injectable()
-// export class DealerCoordinationService {
-//   private readonly supabase: SupabaseClient;
-
-//   constructor(private configService: ConfigService) {
-//     const supabaseUrl = this.configService.get<string>('SUPABASE_URL');
-//     const supabaseKey = this.configService.get<string>('SUPABASE_SERVICE_ROLE_KEY');
-//     this.supabase = createClient(supabaseUrl!, supabaseKey!);
-//   }
-
-//   async createVehicleRequest(
-//     dealerId: string,
-//     vehicleId: string,
-//     quantity: number,
-//     requestType: string,
-//     note: string,
-//   ): Promise<any> {
-//     const { data, error } = await this.supabase.rpc('create_vehicle_dispatch_request', {
-//       // Gọi function RPC
-//       p_dealer_id: dealerId,
-//       p_vehicle_id: vehicleId,
-//       p_quantity: quantity,
-//       p_request_type: requestType,
-//       p_note: note,
-//     });
-
-//     if (error) {
-//       console.error('Supabase RPC error:', error);
-//       throw new Error(`Failed to create vehicle request: ${error.message}`);
-//     }
-
-//     return data;
-//   }
-
-// }
-
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+
+interface VehicleItem {
+  vehicle_id: string;
+  vehicle_model: string;
+  quantity: number;
+  note?: string;
+}
 
 @Injectable()
 export class DealerCoordinationService {
@@ -98,53 +19,168 @@ export class DealerCoordinationService {
     this.supabase = createClient(supabaseUrl!, supabaseKey!);
   }
 
+  /**
+   * Tạo nhiều yêu cầu xe + lưu lịch sử trực tiếp vào bảng
+   */
   async createVehicleRequest(
-    dealer_name: string, // ✅ Đổi từ dealerId thành dealer_name
-    vehicle_model: string, // ✅ Đổi từ vehicleId thành vehicle_model
-    quantity: number,
-    request_type: string, // ✅ Đổi từ requestType thành request_type
-    note?: string, // ✅ Thêm dấu ? vì optional
-  ): Promise<any> {
-    const { data, error } = await this.supabase
-      .from('vehicle_dispatch_requests')
-      .insert([
-        {
-          dealer_name, // ✅ Sử dụng dealer_name thay vì dealer_id
-          vehicle_model, // ✅ Sử dụng vehicle_model thay vì vehicle_id
-          quantity,
-          request_type, // ✅ Sử dụng request_type
-          note: note || null, // ✅ Xử lý optional
-          status: 'pending',
-          created_at: new Date().toISOString(),
-        },
-      ])
-      .select();
+    dealer_id: string,
+    dealer_name: string,
+    request_type: string,
+    vehicles: VehicleItem[],
+    action_by = 'system',
+  ): Promise<any[]> {
+    const results = [];
 
-    if (error) {
-      console.error('Supabase error:', error);
-      throw new Error(`Failed to create vehicle request: ${error.message}`);
+    for (const v of vehicles) {
+      // 1. Insert trực tiếp vào vehicle_dispatch_requests
+      const { data: request, error: reqError } = await this.supabase
+        .schema('distribution')
+        .from('vehicle_dispatch_requests')
+        // .from('distribution.vehicle_dispatch_requests')
+        .insert({
+          dealer_id,
+          dealer_name,
+          vehicle_id: v.vehicle_id,
+          vehicle_model: v.vehicle_model,
+          quantity: v.quantity,
+          note: v.note || null,
+          request_type,
+          status: 'pending', // mặc định
+        })
+        .select('*')
+        .single();
+
+      if (reqError) throw new Error(`Failed to create vehicle request: ${reqError.message}`);
+
+      // 2. Insert trực tiếp vào lịch sử
+      const { error: histError } = await this.supabase
+        .schema('distribution')
+        .from('vehicle_dispatch_request_history')
+        .insert({
+          request_id: request.id,
+          dealer_id: request.dealer_id,
+          dealer_name: request.dealer_name,
+          vehicle_id: request.vehicle_id,
+          vehicle_model: request.vehicle_model,
+          quantity: request.quantity,
+          request_type: request.request_type,
+          note: request.note,
+          status: request.status,
+          action_by,
+        });
+
+      if (histError) throw new Error(`Failed to save request history: ${histError.message}`);
+
+      results.push(request);
     }
 
-    return data[0];
+    return results;
   }
 
-  // ✅ Thêm method để lấy lịch sử requests
-  async getVehicleRequests(dealer_name?: string): Promise<any[]> {
-    let query = this.supabase
+  /**
+   * Cập nhật trạng thái request + lưu lịch sử
+   */
+  async updateRequestStatus(
+    request_id: string,
+    status: string,
+    note?: string,
+    action_by = 'system',
+  ): Promise<any> {
+    // 1. Update trực tiếp
+    const { data: updated, error: updError } = await this.supabase
+      .schema('distribution')
+      .from('vehicle_dispatch_requests')
+      .update({ status, note: note || null })
+      .eq('id', request_id)
+      .select('*')
+      .single();
+
+    if (updError) throw new Error(`Failed to update request status: ${updError.message}`);
+
+    // 2. Insert vào lịch sử
+    const { error: histError } = await this.supabase
+      .schema('distribution')
+      .from('vehicle_dispatch_request_history')
+      .insert({
+        request_id: updated.id,
+        dealer_id: updated.dealer_id,
+        dealer_name: updated.dealer_name,
+        vehicle_id: updated.vehicle_id,
+        vehicle_model: updated.vehicle_model,
+        quantity: updated.quantity,
+        request_type: updated.request_type,
+        note: updated.note,
+        status: updated.status,
+        action_by,
+      });
+
+    if (histError) throw new Error(`Failed to save request history: ${histError.message}`);
+
+    return updated;
+  }
+
+  /**
+   * Lấy request + lịch sử theo request_id
+   */
+  async getVehicleRequestByIdWithHistory(request_id: string): Promise<any> {
+    const { data: request, error: reqError } = await this.supabase
+      .schema('distribution')
       .from('vehicle_dispatch_requests')
       .select('*')
-      .order('created_at', { ascending: false });
+      .eq('id', request_id)
+      .single();
 
-    if (dealer_name) {
-      query = query.eq('dealer_name', dealer_name);
-    }
+    if (reqError) throw new Error(`Failed to get request: ${reqError.message}`);
 
-    const { data, error } = await query;
+    const { data: history, error: histError } = await this.supabase
+      .schema('distribution')
+      .from('vehicle_dispatch_request_history')
+      .select('*')
+      .eq('request_id', request_id);
 
-    if (error) {
-      throw new Error(`Failed to get vehicle requests: ${error.message}`);
-    }
+    if (histError) throw new Error(`Failed to get request history: ${histError.message}`);
 
+    return { ...request, history };
+  }
+
+  /**
+   * Lấy tất cả request theo dealer_id
+   */
+  async getVehicleRequestsByDealerId(dealer_id: string): Promise<any[]> {
+    const { data, error } = await this.supabase
+      .schema('distribution')
+      .from('vehicle_dispatch_requests')
+      .select('*')
+      .eq('dealer_id', dealer_id);
+
+    if (error) throw new Error(`Failed to get vehicle requests: ${error.message}`);
+    return data || [];
+  }
+
+  /**
+   * Lấy tất cả request theo dealer_name
+   */
+  async getVehicleRequestsByDealerName(dealer_name?: string): Promise<any[]> {
+    const { data, error } = await this.supabase
+      .schema('distribution')
+      .from('vehicle_dispatch_requests')
+      .select('*')
+      .ilike('dealer_name', dealer_name || '%');
+
+    if (error) throw new Error(`Failed to get vehicle requests: ${error.message}`);
+    return data || [];
+  }
+
+  /**
+   * Lấy tất cả requests
+   */
+  async getAllVehicleRequests(): Promise<any[]> {
+    const { data, error } = await this.supabase
+      .schema('distribution')
+      .from('vehicle_dispatch_requests')
+      .select('*');
+
+    if (error) throw new Error(`Failed to get all vehicle requests: ${error.message}`);
     return data || [];
   }
 }
