@@ -29,7 +29,8 @@
     "start:billing": "cross-env PORT=4300 nest start billing-service --watch",
     "start:evm-coordination": "cross-env PORT=3002 nest start evm-staff-coordination-service --watch",
     "start:vehicle": "cross-env PORT=4001 nest start vehicle-service --watch",
-    "start:customers": "cross-env PORT=4400 nest start customers-service --watch"
+    "start:customers": "cross-env PORT=4400 nest start customers-service --watch",
+    "start:ar": "cross-env PORT=4400 nest start ar --watch"
   },
   "dependencies": {
     "@nestjs/axios": "^4.0.1",
