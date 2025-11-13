@@ -20,7 +20,7 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./apps/electric-vehicle-dealer-management-system-backend/apps/evm-staff-coordination/electric-vehicle-dealer-management-system-backend/test/jest-e2e.json",
-    "start:all": "concurrently -n gateway,auth,users,dealer-coordination,billing,vehicle,customer -c blue,green,black,yellow,red,magenta \"npm:start:gateway\" \"npm:start:auth\" \"npm:start:users\" \"npm:start:dealer-coordination\" \"npm:start:billing\" \"npm:start:vehicle\" \"npm:start:customer\"",
+    "start:all": "concurrently -n gateway,auth,users,dealer-coordination,billing,vehicle,customer -c blue,green,black,yellow,red,magenta \"npm:start:gateway\" \"npm:start:auth\" \"npm:start:users\" \"npm:start:dealer-coordination\" \"npm:start:billing\" \"npm:start:vehicle\" \"npm:start:customer\"\npm:start:evm-coordination\"",
     "start:auth": "cross-env PORT=4100 nest start auth --watch",
     "start:gateway": "cross-env PORT=4000 nest start ev-dealer-api-gateway --watch",
     "start:users": "cross-env PORT=4200 nest start users --watch",
@@ -29,6 +29,7 @@
     "start:billing": "cross-env PORT=4300 nest start billing-service --watch",
     "start:vehicle": "cross-env PORT=4001 nest start vehicle --watch",
     "start:customer": "cross-env PORT=4009 nest start customer --watch"
+    "start:evm-coordination": "cross-env PORT=3002 nest start evm-staff-coordination-service --watch",
   },
   "dependencies": {
     "@nestjs/axios": "^4.0.1",
@@ -43,6 +44,7 @@
     "@prisma/client": "^6.18.0",
     "@supabase/supabase-js": "^2.79.0",
     "@types/passport": "^1.0.17",
+    "amqp-connection-manager": "^5.0.0",
     "amqplib": "^0.10.9",
     "axios": "^1.13.1",
     "base64-arraybuffer": "^1.0.2",
