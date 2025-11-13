@@ -12,7 +12,7 @@ import {
 } from '@nestjs/common';
 import { ServiceClients } from '../service-clients';
 
-@Controller('api/vehicle')
+@Controller('api/customer')
 export class GatewayCustomersController {
   private readonly logger = new Logger(GatewayCustomersController.name);
 
@@ -21,24 +21,24 @@ export class GatewayCustomersController {
   @Get()
   async findAll() {
     try {
-      this.logger.log('🔍 Calling vehicle service GET ');
-      const result = await this.c.vehicle().get('/customer');
+      this.logger.log('🔍 Calling customer service GET ');
+      const result = await this.c.customer().get('/customer');
       this.logger.log('✅ Success, got data:', JSON.stringify(result).slice(0, 100));
       return result;
     } catch (error) {
-      this.logger.error('❌ Error calling vehicle service:');
+      this.logger.error('❌ Error calling customer service:');
       this.logger.error('Message:', error.message);
       this.logger.error('Response:', error.response?.data);
       this.logger.error('Status:', error.response?.status);
       this.logger.error('Stack:', error.stack);
-      throw new InternalServerErrorException('Failed to fetch vehicles');
+      throw new InternalServerErrorException('Failed to fetch customer');
     }
   }
 
   @Get(':id')
   async findOne(@Param('id') id: string) {
     try {
-      return await this.c.vehicle().get(`/customer/${id}`);
+      return await this.c.customer().get(`/customer/${id}`);
     } catch (error) {
       this.logger.error('Error in findOne:', error);
       throw error;
@@ -48,7 +48,7 @@ export class GatewayCustomersController {
   @Post()
   async create(@Body() body: any) {
     try {
-      return await this.c.vehicle().post('/customer', body);
+      return await this.c.customer().post('/customer', body);
     } catch (error) {
       this.logger.error('Error in create:', error);
       throw error;
@@ -58,7 +58,7 @@ export class GatewayCustomersController {
   @Put(':id')
   async update(@Param('id') id: string, @Body() body: any) {
     try {
-      return await this.c.vehicle().put(`/customer/${id}`, body);
+      return await this.c.customer().put(`/customer/${id}`, body);
     } catch (error) {
       this.logger.error('Error in update:', error);
       throw error;
@@ -68,7 +68,7 @@ export class GatewayCustomersController {
   @Delete(':id')
   async remove(@Param('id') id: string) {
     try {
-      return await this.c.vehicle().delete(`/customer/${id}`);
+      return await this.c.customer().delete(`/customer/${id}`);
     } catch (error) {
       this.logger.error('Error in remove:', error);
       throw error;

@@ -132,7 +132,7 @@ export class ServiceClients {
   }
 
   customer(): ServiceClient {
-    const url = process.env.CUSTOMER_SERVICE_URL || 'http://localhost:4400';
+    const url = process.env.CUSTOMER_SERVICE_URL || 'http://localhost:4009';
     return this.base(url);
   }
 }
