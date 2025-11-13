@@ -36,22 +36,13 @@
         "tsConfigPath": "libs/contracts/tsconfig.lib.json"
       }
     },
-    "customer-service": {
+    "customer": {
       "type": "application",
-      "root": "apps/customer-service",
+      "root": "apps/customer",
       "entryFile": "main",
-      "sourceRoot": "apps/customer-service/src",
+      "sourceRoot": "apps/customer/src",
       "compilerOptions": {
-        "tsConfigPath": "apps/customer-service/tsconfig.app.json"
-      }
-    },
-    "customers-service": {
-      "type": "application",
-      "root": "apps/customers-service",
-      "entryFile": "main",
-      "sourceRoot": "apps/customers-service/src",
-      "compilerOptions": {
-        "tsConfigPath": "apps/customers-service/tsconfig.app.json"
+        "tsConfigPath": "apps/customer/tsconfig.app.json"
       }
     },
     "deale-coordination": {
@@ -108,13 +99,13 @@
         "tsConfigPath": "apps/users/tsconfig.app.json"
       }
     },
-    "product-service": {
+    "vehicle": {
       "type": "application",
-      "root": "apps/product-service",
+      "root": "apps/vehicle",
       "entryFile": "main",
-      "sourceRoot": "apps/product-service/src",
+      "sourceRoot": "apps/vehicle/src",
       "compilerOptions": {
-        "tsConfigPath": "apps/product-service/tsconfig.app.json"
+        "tsConfigPath": "apps/vehicle/tsconfig.app.json"
       }
     }
   }
