@@ -1,10 +1,10 @@
 import { Module } from '@nestjs/common';
-import { PromotionService } from './pricing-promotion.service';
-import { PromotionController } from './pricing-promotion.controller';
+import { PricingPromotionService } from './pricing-promotion.service';
+import { PricingPromotionController } from './pricing-promotion.controller';
 
 @Module({
   imports: [],
-  controllers: [PromotionController],
-  providers: [PromotionService],
+  controllers: [PricingPromotionController],
+  providers: [PricingPromotionService],
 })
-export class PromotionModule {}
+export class PricingPromotionModule {}

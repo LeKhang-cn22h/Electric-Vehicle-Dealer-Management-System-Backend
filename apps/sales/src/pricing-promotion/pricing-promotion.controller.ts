@@ -1,13 +1,13 @@
 import { Controller, Get, Post, Body, Param, Patch, Delete } from '@nestjs/common';
-import { PromotionService } from './pricing-promotion.service';
+import { PricingPromotionService } from './pricing-promotion.service';
 import { CreatePriceDto } from './dto/create-price.dto';
 import { UpdatePriceDto } from './dto/update-price.dto';
 import { CreatePromotionDto } from './dto/create-promotion.dto';
 import { UpdatePromotionDto } from './dto/update-promotion.dto';
 
 @Controller('pricing-promotion')
-export class PromotionController {
-  constructor(private readonly service: PromotionService) {}
+export class PricingPromotionController {
+  constructor(private readonly service: PricingPromotionService) {}
 
   // PRICE
   @Post('price')

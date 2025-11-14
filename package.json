@@ -28,8 +28,8 @@
     "start:dealer-coordination": "cross-env PORT=4008 nest start dealer-coordination --watch",
     "start:billing": "cross-env PORT=4300 nest start billing-service --watch",
     "start:vehicle": "cross-env PORT=4001 nest start vehicle --watch",
-    "start:customer": "cross-env PORT=4009 nest start customer --watch"
-    "start:evm-coordination": "cross-env PORT=3002 nest start evm-staff-coordination-service --watch",
+    "start:customer": "cross-env PORT=4009 nest start customer --watch",
+    "start:evm-coordination": "cross-env PORT=3002 nest start evm-staff-coordination-service --watch"
   },
   "dependencies": {
     "@nestjs/axios": "^4.0.1",

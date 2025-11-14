@@ -8,7 +8,7 @@ import { CreatePromotionDto } from './dto/create-promotion.dto';
 import { Promotion } from './entity/promotion.entity';
 import { UpdatePromotionDto } from './dto/update-promotion.dto';
 @Injectable()
-export class PromotionService {
+export class PricingPromotionService {
   constructor(
     @Inject('SUPABASE_CLIENT')
     private readonly supabase: SupabaseClient,
@@ -21,18 +21,27 @@ export class PromotionService {
     const newPrice: Price = {
       id: uuid(),
       productId: dto.productId,
-      price: dto.price,
+      basePrice: dto.basePrice,
+      discountedPrice: dto.discountedPrice,
+      startDate: new Date(dto.startDate),
+      endDate: dto.endDate ? new Date(dto.endDate) : null,
       createdAt: now,
       updatedAt: now,
     };
 
-    const { error } = await this.supabase.schema('sales').from('prices').insert({
-      id: newPrice.id,
-      product_id: newPrice.productId,
-      price: newPrice.price,
-      created_at: now.toISOString(),
-      updated_at: now.toISOString(),
-    });
+    const { error } = await this.supabase
+      .schema('sales')
+      .from('prices')
+      .insert({
+        id: newPrice.id,
+        product_id: newPrice.productId,
+        base_price: newPrice.basePrice,
+        discounted_price: newPrice.discountedPrice,
+        start_date: newPrice.startDate.toISOString(),
+        end_date: newPrice.endDate ? newPrice.endDate.toISOString() : null,
+        created_at: now.toISOString(),
+        updated_at: now.toISOString(),
+      });
 
     if (error) throw new Error(error.message);
 
@@ -94,7 +103,10 @@ export class PromotionService {
     return {
       id: row.id,
       productId: row.product_id,
-      price: row.price,
+      basePrice: row.basePrice,
+      discountedPrice: row.discountedPrice,
+      startDate: new Date(row.startDate),
+      endDate: new Date(row.endDate),
       createdAt: new Date(row.created_at),
       updatedAt: new Date(row.updated_at),
     };
