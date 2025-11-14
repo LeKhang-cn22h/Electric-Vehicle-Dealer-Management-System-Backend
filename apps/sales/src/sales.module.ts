@@ -6,6 +6,7 @@ import { SupabaseModule } from './supabase/supabase.module';
 import { TestSupabaseModule } from './supabase/test-supabase.module';
 import { QuotationModule } from './quotation/quotation.module';
 import { OrderModule } from './order/order.module';
+import { PricingPromotionModule } from './pricing-promotion/pricing-promotion.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { OrderModule } from './order/order.module';
     TestSupabaseModule,
     QuotationModule,
     OrderModule,
+    PricingPromotionModule,
   ],
   controllers: [SalesController],
   providers: [SalesService],
