@@ -36,6 +36,15 @@
         "tsConfigPath": "apps/billing/tsconfig.app.json"
       }
     },
+    "commission": {
+      "type": "application",
+      "root": "apps/commission",
+      "entryFile": "main",
+      "sourceRoot": "apps/commission/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/commission/tsconfig.app.json"
+      }
+    },
     "contracts": {
       "type": "library",
       "root": "libs/contracts",

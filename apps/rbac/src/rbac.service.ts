@@ -2,7 +2,7 @@ import { Injectable, BadRequestException } from '@nestjs/common';
 import { createClient } from '@supabase/supabase-js';
 import * as dotenv from 'dotenv';
 import * as path from 'path';
-const envPath = path.resolve(process.cwd(), 'apps/users/.env');
+const envPath = path.resolve(process.cwd(), 'apps/rbac/.env');
 dotenv.config({ path: envPath });
 
 @Injectable()
