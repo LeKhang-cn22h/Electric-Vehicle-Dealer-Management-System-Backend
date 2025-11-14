@@ -139,4 +139,8 @@ export class ServiceClients {
     const url = process.env.EVM_STAFF_COORDINATION_SERVICE_URL || 'http://localhost:3002';
     return this.base(url);
   }
+
+  ar(): ServiceClient {
+    return this.base(process.env.AR_SERVICE_URL || 'http://localhost:4400');
+  }
 }

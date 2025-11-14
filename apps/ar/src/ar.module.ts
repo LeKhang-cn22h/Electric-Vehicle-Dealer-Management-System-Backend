@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
-import { ArController } from './ar.controller';
 import { ArService } from './ar.service';
 import { ConfigModule } from '@nestjs/config';
+import { ArController } from './ar.controller';
 
 @Module({
   imports: [

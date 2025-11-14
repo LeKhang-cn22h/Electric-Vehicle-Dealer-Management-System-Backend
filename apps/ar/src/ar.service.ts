@@ -1,195 +1,186 @@
 import { Injectable } from '@nestjs/common';
-import axios from 'axios';
-
-import {
-  yymmddVN,
-  zpMacCreate,
-  zpMacQuery,
-  zpMacRefund,
-  zpVerifyCallback,
-  nowMs,
-} from './zalopay.util';
 import { createClient } from '@supabase/supabase-js';
+import { buildVnpCreateParams, makeVnpUrl, verifyVnpReturn } from './vnpay.util';
+import * as crypto from 'crypto';
+
+function sb() {
+  return createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
+    db: { schema: 'platform' },
+  });
+}
 
 @Injectable()
 export class ArService {
-  private db = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
-    db: { schema: 'platform' },
-  });
-  async zpCreateOrder(inv_id: string, app_user = 'ev-dealer', userIP = '127.0.0.1') {
+  private db = sb();
+  async createVnpayPayment(inv_id: string, req: any, locale?: 'vn' | 'en', bankCode?: string) {
     const inv = await this.db
       .from('billing_invoices')
       .select('id,total_cents,currency,status')
       .eq('id', inv_id)
       .single();
-
     if (inv.error) throw inv.error;
     if (inv.data.status === 'void') throw new Error('Invoice is void');
     if (inv.data.status === 'paid') return { alreadyPaid: true };
 
-    const app_id = Number(process.env.ZP_APP_ID!);
-    const key1 = process.env.ZP_KEY1!;
-    const createUrl = process.env.ZP_CREATE_ENDPOINT!;
-    const callback_url = process.env.ZP_CALLBACK_URL!;
-    const app_time = nowMs();
-    const app_trans_id = `${yymmddVN()}_${inv_id}`;
-    const amount = Number(inv.data.total_cents);
-    const embed_data = JSON.stringify({ redirecturl: process.env.ZP_REDIRECT_AFTER || '' });
-    const item = JSON.stringify([{ inv_id }]);
+    const tmnCode = process.env.VNP_TMNCODE!;
+    const secret = process.env.VNP_HASHSECRET!;
+    const vnpUrl = process.env.VNP_URL!;
+    const returnUrl = process.env.VNP_RETURN_URL!;
+    const ip =
+      (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || req.ip || '127.0.0.1';
 
-    // lưu intent pending
+    // tạo orderId (vnp_TxnRef) duy nhất
+    const orderId = `INV_${inv_id}_${Date.now()}`;
+
+    // lưu intent (pending)
     const intent = await this.db
       .from('ar_payment_intents')
       .insert({
         invoice_id: inv_id,
-        provider: 'zalopay',
-        amount_cents: amount,
+        provider: 'vnpay',
+        amount_cents: inv.data.total_cents,
         currency: inv.data.currency,
         status: 'pending',
-        provider_ref: app_trans_id,
-        meta: { callback_url },
+        provider_ref: orderId,
+        meta: {},
       })
       .select('id')
       .single();
     if (intent.error) throw intent.error;
 
-    const mac = zpMacCreate(key1, {
-      app_id,
-      app_trans_id,
-      app_user,
-      amount,
-      app_time,
-      embed_data,
-      item,
+    const params = buildVnpCreateParams({
+      tmnCode,
+      amountVnd: inv.data.total_cents,
+      orderId,
+      orderInfo: `Payment for invoice ${inv_id}`,
+      returnUrl,
+      clientIp: ip,
+      locale,
+      bankCode,
     });
 
-    const payload = {
-      app_id,
-      app_user,
-      app_time,
-      amount,
-      app_trans_id,
-      embed_data,
-      item,
-      description: `EV Dealer - Thanh toán hóa đơn #${inv_id}`,
-      bank_code: 'zalopayapp',
-      mac,
-    };
-    console.log('=== PAYLOAD GỬI ĐI ===');
-    console.log(JSON.stringify(payload, null, 2));
-
-    console.log({
-      app_id,
-      key1,
-      createUrl,
-      app_time,
-      app_trans_id,
-      amount,
-      embed_data,
-      item,
-      mac,
-      userIP,
-    });
-
-    const { data } = await axios.post(createUrl, payload, {
-      headers: { 'Content-Type': 'application/json' },
-    });
-    if (data?.return_code !== 1) {
-      console.error('ZaloPay ERROR:', data);
-      return { ok: false, app_trans_id, intent_id: intent.data.id, zalopay: data };
-    }
-    console.log('ZaloPay SUCCESS:', { payload, createUrl, data });
-    return { ok: true, app_trans_id, intent_id: intent.data.id, zalopay: data };
+    const payUrl = makeVnpUrl(vnpUrl, params, secret);
+    return { payUrl, intent_id: intent.data.id, txnRef: orderId };
   }
 
-  async zpHandleCallback(body: any) {
-    const key2 = process.env.ZP_KEY2!;
-    const dataStr: string = body?.data ?? '';
-    const reqMac: string = body?.mac ?? '';
+  // VNPay Return (browser)
+  async handleVnpReturn(query: Record<string, any>) {
+    const secret = process.env.VNP_HASHSECRET!;
+    const ok = verifyVnpReturn(query, secret);
+    const code = query['vnp_ResponseCode'];
+    const txnRef = query['vnp_TxnRef'];
+    const txnNo = query['vnp_TransactionNo'];
+    const inv_id = (txnRef || '').toString().split('INV_')[1]?.split('_')[0];
 
-    if (!dataStr || !reqMac) return { return_code: -1, return_message: 'invalid payload' };
-    if (!zpVerifyCallback(dataStr, reqMac, key2)) {
-      return { return_code: -1, return_message: 'mac not equal' };
-    }
+    if (!ok) return { success: false, message: 'Invalid signature' };
+    return {
+      success: code === '00',
+      code,
+      invoice_id: inv_id,
+      provider_txn: txnNo,
+    };
+  }
 
-    const data = JSON.parse(dataStr);
-    const app_trans_id: string = data.app_trans_id;
-    const zp_trans_id = String(data.zp_trans_id);
-    const amount = Number(data.amount || 0);
-    const inv_id = app_trans_id?.split('_')[1];
-    if (!inv_id) return { return_code: -3, return_message: 'invalid app_trans_id' };
+  //  VNPay IPN (server)
+  async handleVnpIpn(payload: Record<string, any>) {
+    const secret = process.env.VNP_HASHSECRET!;
+    const ok = verifyVnpReturn(payload, secret);
+    if (!ok) return { RspCode: '97', Message: 'Invalid signature' };
 
-    // idempotent theo (provider, provider_txn)
+    const code = payload['vnp_ResponseCode'];
+    const txnRef = payload['vnp_TxnRef'];
+    const txnNo = payload['vnp_TransactionNo'];
+    const amount = Number(payload['vnp_Amount'] || 0) / 100; // chuyển về VND
+    const inv_id = (txnRef || '').toString().split('INV_')[1]?.split('_')[0];
+
+    if (!inv_id) return { RspCode: '99', Message: 'Invalid invoice' };
+
+    // idempotent: nếu payment đã tồn tại -> OK
     const exists = await this.db
       .from('ar_payments')
       .select('id')
-      .eq('provider', 'zalopay')
-      .eq('provider_txn', zp_trans_id)
+      .eq('provider', 'vnpay')
+      .eq('provider_txn', txnNo)
       .maybeSingle();
-    if (exists.data) return { return_code: 2, return_message: 'duplicate' };
+    if (exists.data) return { RspCode: '00', Message: 'OK' };
 
-    // Ghi payment
-    const ins = await this.db
-      .from('ar_payments')
-      .insert({
+    if (code === '00') {
+      // insert payment
+      const ins = await this.db
+        .from('ar_payments')
+        .insert({
+          intent_id: null,
+          invoice_id: inv_id,
+          provider: 'vnpay',
+          provider_txn: String(txnNo),
+          amount_cents: Math.round(amount),
+          status: 'succeeded',
+          meta: payload,
+        })
+        .select('id')
+        .single();
+      if (ins.error) return { RspCode: '99', Message: 'DB error' };
+
+      // mark invoice paid
+      const upd = await this.db
+        .from('billing_invoices')
+        .update({ status: 'paid', paid_at: new Date().toISOString() })
+        .eq('id', inv_id);
+      if (upd.error) return { RspCode: '99', Message: 'DB error' };
+
+      return { RspCode: '00', Message: 'OK' };
+    } else {
+      // thanh toán thất bại
+      await this.db.from('ar_payments').insert({
         intent_id: null,
         invoice_id: inv_id,
-        provider: 'zalopay',
-        provider_txn: zp_trans_id,
-        amount_cents: amount,
-        status: 'succeeded',
-        meta: data,
-      })
-      .select('id')
-      .single();
-    if (ins.error) return { return_code: 0, return_message: 'db error (insert payment)' };
-
-    // Mark paid invoice
-    const upd = await this.db
-      .from('billing_invoices')
-      .update({ status: 'paid', paid_at: new Date().toISOString() })
-      .eq('id', inv_id);
-    if (upd.error) return { return_code: 0, return_message: 'db error (update invoice)' };
-
-    return { return_code: 1, return_message: 'success' };
+        provider: 'vnpay',
+        provider_txn: String(txnNo),
+        amount_cents: Math.round(amount),
+        status: 'failed',
+        meta: payload,
+      });
+      return { RspCode: '00', Message: 'OK' };
+    }
   }
 
-  async zpQuery(app_trans_id: string) {
-    const app_id = Number(process.env.ZP_APP_ID!);
-    const key1 = process.env.ZP_KEY1!;
-    const url = process.env.ZP_QUERY_ENDPOINT!;
-    const mac = zpMacQuery(key1, app_id, app_trans_id);
+  async queryPayment(txnRef: string) {
+    const secret = process.env.VNP_HASHSECRET!;
+    const tmnCode = process.env.VNP_TMNCODE!;
+    const vnpQueryUrl = process.env.VNP_QUERY_URL!;
 
-    const { data } = await axios.post(
-      url,
-      { app_id, app_trans_id, mac },
-      { headers: { 'Content-Type': 'application/json' } },
-    );
-    return data;
-  }
-
-  async zpRefund(zp_trans_id: string, amount: number, description: string, m_refund_id?: string) {
-    const app_id = Number(process.env.ZP_APP_ID!);
-    const key1 = process.env.ZP_KEY1!;
-    const url = process.env.ZP_REFUND_ENDPOINT!;
-    const timestamp = nowMs();
-    const mrid = m_refund_id ?? `${yymmddVN()}_${app_id}_${timestamp}`;
-
-    const mac = zpMacRefund(key1, { app_id, zp_trans_id, amount, description, timestamp });
-
-    const payload = {
-      app_id,
-      m_refund_id: mrid,
-      zp_trans_id,
-      amount,
-      timestamp,
-      description,
-      mac,
+    const params: any = {
+      vnp_Version: '2.1.0',
+      vnp_Command: 'querydr',
+      vnp_TmnCode: tmnCode,
+      vnp_TxnRef: txnRef,
+      vnp_OrderInfo: 'Query Transaction',
+      vnp_TransactionDate: '',
+      vnp_IpAddr: '127.0.0.1',
+      vnp_CreateDate: new Date()
+        .toISOString()
+        .replace(/[-:TZ]/g, '')
+        .slice(0, 14),
     };
 
-    const { data } = await axios.post(url, payload, {
-      headers: { 'Content-Type': 'application/json' },
-    });
-    return { request: payload, response: data };
+    const signData = Object.keys(params)
+      .sort()
+      .map((k) => k + '=' + params[k])
+      .join('&');
+
+    params['vnp_SecureHash'] = crypto.createHmac('sha512', secret).update(signData).digest('hex');
+
+    const queryUrl = `${vnpQueryUrl}?${signData}&vnp_SecureHash=${params['vnp_SecureHash']}`;
+
+    const res = await fetch(queryUrl);
+    return res.json();
+  }
+
+  async refundPayment(txnRef: string, amount: number, description: string) {
+    return { message: 'VNPay refund chưa hỗ trợ ở môi trường Sandbox' };
+  }
+
+  async queryRefund(m_refund_id: string, timestamp: string) {
+    return { message: 'VNPay QueryRefund chưa hỗ trợ Sandbox' };
   }
 }

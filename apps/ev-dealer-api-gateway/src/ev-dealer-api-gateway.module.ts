@@ -8,6 +8,7 @@ import { GatewayVehicleController } from './routes/gateway-vehicle.controller';
 import { GatewayCustomersController } from './routes/gateway-customers.controller';
 // import { GatewayBillingController } from './routes/gateway-billing.controller';
 import { GatewayEvmStaffCoordinationController } from './routes/gateway-evm-staff-coordination.controller';
+import { GatewayARController } from './routes/gateway-ar.controller';
 @Module({
   imports: [HttpModule.register({ timeout: 8000 })],
   providers: [ServiceClients],
@@ -19,6 +20,7 @@ import { GatewayEvmStaffCoordinationController } from './routes/gateway-evm-staf
     GatewayCustomersController,
     // GatewayBillingController,
     GatewayEvmStaffCoordinationController,
+    GatewayARController,
   ],
 })
 export class EvDealerApiGatewayModule {}
