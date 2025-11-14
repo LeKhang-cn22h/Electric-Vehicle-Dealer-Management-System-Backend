@@ -9,6 +9,15 @@
   "entryFile": "main",
   "sourceRoot": "apps",
   "projects": {
+    "ar": {
+      "type": "application",
+      "root": "apps/ar",
+      "entryFile": "main",
+      "sourceRoot": "apps/ar/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/ar/tsconfig.app.json"
+      }
+    },
     "auth": {
       "type": "application",
       "root": "apps/auth",
@@ -25,6 +34,15 @@
       "sourceRoot": "apps/billing/src",
       "compilerOptions": {
         "tsConfigPath": "apps/billing/tsconfig.app.json"
+      }
+    },
+    "commission": {
+      "type": "application",
+      "root": "apps/commission",
+      "entryFile": "main",
+      "sourceRoot": "apps/commission/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/commission/tsconfig.app.json"
       }
     },
     "contracts": {
@@ -70,6 +88,24 @@
       "sourceRoot": "apps/evm-staff-coordination-service/src",
       "compilerOptions": {
         "tsConfigPath": "apps/evm-staff-coordination-service/tsconfig.app.json"
+      }
+    },
+    "product-service": {
+      "type": "application",
+      "root": "apps/product-service",
+      "entryFile": "main",
+      "sourceRoot": "apps/product-service/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/product-service/tsconfig.app.json"
+      }
+    },
+    "rbac": {
+      "type": "application",
+      "root": "apps/rbac",
+      "entryFile": "main",
+      "sourceRoot": "apps/rbac/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/rbac/tsconfig.app.json"
       }
     },
     "sales": {
