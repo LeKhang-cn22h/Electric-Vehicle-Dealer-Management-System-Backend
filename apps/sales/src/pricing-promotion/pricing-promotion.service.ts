@@ -17,7 +17,7 @@ export class PricingPromotionService {
   /* ---------------- PRICE ---------------- */
 
   async createPrice(dto: CreatePriceDto): Promise<Price> {
-    const now = new Date();
+    const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
     const newPrice: Price = {
       id: uuid(),
       productId: dto.productId,
@@ -69,13 +69,17 @@ export class PricingPromotionService {
   }
 
   async updatePrice(id: string, dto: UpdatePriceDto): Promise<Price> {
-    const now = new Date();
+    const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
 
     const { data, error } = await this.supabase
       .schema('sales')
       .from('prices')
       .update({
-        ...dto,
+        product_id: dto.productId,
+        base_price: dto.basePrice,
+        discounted_price: dto.discountedPrice,
+        start_date: dto.startDate,
+        end_date: dto.endDate,
         updated_at: now.toISOString(),
       })
       .eq('id', id)
@@ -103,10 +107,10 @@ export class PricingPromotionService {
     return {
       id: row.id,
       productId: row.product_id,
-      basePrice: row.basePrice,
-      discountedPrice: row.discountedPrice,
-      startDate: new Date(row.startDate),
-      endDate: new Date(row.endDate),
+      basePrice: row.base_price,
+      discountedPrice: row.discounted_price,
+      startDate: new Date(row.start_date),
+      endDate: new Date(row.end_date),
       createdAt: new Date(row.created_at),
       updatedAt: new Date(row.updated_at),
     };
@@ -115,40 +119,40 @@ export class PricingPromotionService {
   /* ---------------- PROMOTION ---------------- */
 
   async createPromotion(dto: CreatePromotionDto): Promise<Promotion> {
-    const now = new Date();
+    const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
+    const id = uuid();
 
-    const newPromotion: Promotion = {
-      id: uuid(),
-      title: dto.title,
+    const newPromotion = {
+      id,
+      code: dto.code,
       description: dto.description,
-      discountPercent: dto.discountPercent,
-      startDate: new Date(dto.startDate),
-      endDate: new Date(dto.endDate),
-      createdAt: now,
-      updatedAt: now,
-    };
-
-    const { error } = await this.supabase.schema('sales').from('promotions').insert({
-      id: newPromotion.id,
-      title: newPromotion.title,
-      description: newPromotion.description,
-      discount_percent: newPromotion.discountPercent,
-      start_date: newPromotion.startDate.toISOString(),
-      end_date: newPromotion.endDate.toISOString(),
+      discount_type: dto.discountType,
+      discount_value: dto.discountValue,
+      min_order_value: dto.minOrderValue ?? null,
+      min_quantity: dto.minQuantity ?? null,
+      start_date: new Date(dto.startDate).toISOString(),
+      end_date: dto.endDate ? new Date(dto.endDate).toISOString() : null,
+      is_active: dto.isActive ?? true,
       created_at: now.toISOString(),
       updated_at: now.toISOString(),
-    });
+    };
 
+    const { error } = await this.supabase.schema('sales').from('promotions').insert(newPromotion);
     if (error) throw new Error(error.message);
-    return newPromotion;
+
+    return this.mapPromotionRow(newPromotion);
   }
 
   async findAllPromotions(): Promise<Promotion[]> {
-    const { data, error } = await this.supabase.schema('sales').from('promotions').select('*');
+    const { data, error } = await this.supabase
+      .schema('sales')
+      .from('promotions')
+      .select('*')
+      .order('created_at', { ascending: false });
 
     if (error) throw new Error(error.message);
 
-    return data.map(this.mapPromotionRow);
+    return data.map((promotion) => this.mapPromotionRow(promotion));
   }
 
   async findOnePromotion(id: string): Promise<Promotion> {
@@ -160,24 +164,36 @@ export class PricingPromotionService {
       .single();
 
     if (error || !data) throw new NotFoundException('Promotion not found');
+
     return this.mapPromotionRow(data);
   }
 
   async updatePromotion(id: string, dto: UpdatePromotionDto): Promise<Promotion> {
-    const now = new Date();
+    const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
+
+    const payload = {
+      code: dto.code,
+      description: dto.description,
+      discount_type: dto.discountType,
+      discount_value: dto.discountValue,
+      min_order_value: dto.minOrderValue,
+      min_quantity: dto.minQuantity,
+      start_date: dto.startDate,
+      end_date: dto.endDate,
+      is_active: dto.isActive,
+      updated_at: now.toISOString(),
+    };
 
     const { data, error } = await this.supabase
       .schema('sales')
       .from('promotions')
-      .update({
-        ...dto,
-        updated_at: now.toISOString(),
-      })
+      .update(payload)
       .eq('id', id)
       .select('*')
       .single();
 
     if (error) throw new Error(error.message);
+
     return this.mapPromotionRow(data);
   }
 
@@ -197,11 +213,20 @@ export class PricingPromotionService {
   private mapPromotionRow(row: any): Promotion {
     return {
       id: row.id,
-      title: row.title,
+      code: row.code,
       description: row.description,
-      discountPercent: row.discount_percent,
+
+      discountType: row.discount_type,
+      discountValue: row.discount_value,
+
+      minOrderValue: row.min_order_value,
+      minQuantity: row.min_quantity,
+
       startDate: new Date(row.start_date),
-      endDate: new Date(row.end_date),
+      endDate: row.end_date ? new Date(row.end_date) : null,
+
+      isActive: row.is_active,
+
       createdAt: new Date(row.created_at),
       updatedAt: new Date(row.updated_at),
     };

@@ -10,7 +10,7 @@ export class Promotion {
   minQuantity?: number;
 
   startDate: Date;
-  endDate?: Date;
+  endDate: Date | null;
 
   isActive: boolean;
 

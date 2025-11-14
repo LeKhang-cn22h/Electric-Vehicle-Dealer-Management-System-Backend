@@ -41,6 +41,16 @@ export class PricingPromotionController {
     return this.service.createPromotion(dto);
   }
 
+  @Get('promotion')
+  findAllPromotion() {
+    return this.service.findAllPromotions();
+  }
+
+  @Get('promotion/:id')
+  findOnePromotion(@Param('id') id: string) {
+    return this.service.findOnePromotion(id);
+  }
+
   @Patch('promotion/:id')
   updatePromotion(@Param('id') id: string, @Body() dto: UpdatePromotionDto) {
     return this.service.updatePromotion(id, dto);
