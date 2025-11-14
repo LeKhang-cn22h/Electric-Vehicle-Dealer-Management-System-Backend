@@ -29,7 +29,7 @@ export class OrderService {
       status: 'pending',
     };
 
-    const now = new Date();
+    const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
 
     const { data: insertedOrder, error } = await this.supabase
       .schema('sales')
@@ -57,7 +57,12 @@ export class OrderService {
     await this.supabase
       .schema('sales')
       .from('quotations')
-      .update({ status: 'converted', updated_at: new Date().toISOString() })
+      .update({
+        status: 'converted',
+        updated_at: new Date(
+          new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }),
+        ).toISOString(),
+      })
       .eq('id', quotationId);
 
     return this.mapRowToOrder(insertedOrder);
@@ -90,7 +95,9 @@ export class OrderService {
 
   //Cập nhật đơn hàng
   async update(id: string, updateData: Partial<Order>): Promise<Order> {
-    const updatedAt = new Date();
+    const updatedAt = new Date(
+      new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }),
+    );
     const { data, error } = await this.supabase
       .schema('sales')
       .from('orders')

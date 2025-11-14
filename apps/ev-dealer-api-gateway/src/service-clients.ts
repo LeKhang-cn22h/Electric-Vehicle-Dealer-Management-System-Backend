@@ -131,25 +131,16 @@ export class ServiceClients {
     return this.base(url);
   }
 
-  // customer(): ServiceClient {
-  //   const url = process.env.CUSTOMER_SERVICE_URL || 'http://localhost:4400';
-  //   return this.base(url);
-  // }
+  customer(): ServiceClient {
+    const url = process.env.CUSTOMER_SERVICE_URL || 'http://localhost:4009';
+    return this.base(url);
+  }
   evmStaffCoordination(): ServiceClient {
     const url = process.env.EVM_STAFF_COORDINATION_SERVICE_URL || 'http://localhost:3002';
     return this.base(url);
   }
-
-  ar(): ServiceClient {
-    return this.base(process.env.AR_SERVICE_URL || 'http://localhost:4400');
-  }
-
-  rbac(): ServiceClient {
-    const url = process.env.RBAC_SERVICE_URL || 'http://localhost:4600';
-    return this.base(url);
-  }
-  commission(): ServiceClient {
-    const url = process.env.COMMISSION_SERVICE_URL || 'http://localhost:4500';
+  dealerAgreement(): ServiceClient {
+    const url = process.env.DEALER_AGREEMENT_SERVICE_URL || 'http://localhost:3003';
     return this.base(url);
   }
 }
