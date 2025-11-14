@@ -131,10 +131,10 @@ export class ServiceClients {
     return this.base(url);
   }
 
-  customer(): ServiceClient {
-    const url = process.env.CUSTOMER_SERVICE_URL || 'http://localhost:4400';
-    return this.base(url);
-  }
+  // customer(): ServiceClient {
+  //   const url = process.env.CUSTOMER_SERVICE_URL || 'http://localhost:4400';
+  //   return this.base(url);
+  // }
   evmStaffCoordination(): ServiceClient {
     const url = process.env.EVM_STAFF_COORDINATION_SERVICE_URL || 'http://localhost:3002';
     return this.base(url);
@@ -142,5 +142,10 @@ export class ServiceClients {
 
   ar(): ServiceClient {
     return this.base(process.env.AR_SERVICE_URL || 'http://localhost:4400');
+  }
+
+  rbac(): ServiceClient {
+    const url = process.env.RBAC_SERVICE_URL || 'http://localhost:4600';
+    return this.base(url);
   }
 }

@@ -90,6 +90,24 @@
         "tsConfigPath": "apps/evm-staff-coordination-service/tsconfig.app.json"
       }
     },
+    "product-service": {
+      "type": "application",
+      "root": "apps/product-service",
+      "entryFile": "main",
+      "sourceRoot": "apps/product-service/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/product-service/tsconfig.app.json"
+      }
+    },
+    "rbac": {
+      "type": "application",
+      "root": "apps/rbac",
+      "entryFile": "main",
+      "sourceRoot": "apps/rbac/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/rbac/tsconfig.app.json"
+      }
+    },
     "sales": {
       "type": "application",
       "root": "apps/sales",
@@ -115,15 +133,6 @@
       "sourceRoot": "apps/users/src",
       "compilerOptions": {
         "tsConfigPath": "apps/users/tsconfig.app.json"
-      }
-    },
-    "product-service": {
-      "type": "application",
-      "root": "apps/product-service",
-      "entryFile": "main",
-      "sourceRoot": "apps/product-service/src",
-      "compilerOptions": {
-        "tsConfigPath": "apps/product-service/tsconfig.app.json"
       }
     }
   }
