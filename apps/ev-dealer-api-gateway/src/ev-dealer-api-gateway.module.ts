@@ -10,6 +10,7 @@ import { GatewayBillingController } from './routes/gateway-billing.controller';
 import { GatewayEvmStaffCoordinationController } from './routes/gateway-evm-staff-coordination.controller';
 import { GatewayARController } from './routes/gateway-ar.controller';
 import { GatewayRbacController } from './routes/gateway-rbac.controller';
+import { CommissionGatewayController } from './routes/gateway-commission.controller';
 @Module({
   imports: [HttpModule.register({ timeout: 8000 })],
   providers: [ServiceClients],
@@ -23,6 +24,7 @@ import { GatewayRbacController } from './routes/gateway-rbac.controller';
     GatewayEvmStaffCoordinationController,
     GatewayARController,
     GatewayRbacController,
+    CommissionGatewayController,
   ],
 })
 export class EvDealerApiGatewayModule {}
