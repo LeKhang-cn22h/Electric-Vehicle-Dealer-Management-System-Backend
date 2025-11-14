@@ -148,4 +148,8 @@ export class ServiceClients {
     const url = process.env.RBAC_SERVICE_URL || 'http://localhost:4600';
     return this.base(url);
   }
+  commission(): ServiceClient {
+    const url = process.env.COMMISSION_SERVICE_URL || 'http://localhost:4500';
+    return this.base(url);
+  }
 }
