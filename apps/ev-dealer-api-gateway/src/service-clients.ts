@@ -139,4 +139,8 @@ export class ServiceClients {
     const url = process.env.EVM_STAFF_COORDINATION_SERVICE_URL || 'http://localhost:3002';
     return this.base(url);
   }
+  dealerAgreement(): ServiceClient {
+    const url = process.env.DEALER_AGREEMENT_SERVICE_URL || 'http://localhost:3003';
+    return this.base(url);
+  }
 }
