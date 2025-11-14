@@ -17,6 +17,7 @@ export class EvmStaffCoordinationService {
 
     // Lưu vào Supabase
     const { data, error } = await supabase
+      .schema('evm_coordination')
       .from('staff_coordination_history') // tên table bạn tạo trong Supabase
       .insert([
         {
