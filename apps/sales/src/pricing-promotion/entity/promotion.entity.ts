@@ -1,10 +1,19 @@
 export class Promotion {
   id: string;
-  title: string;
+  code: string;
   description?: string;
-  discountPercent: number;
+
+  discountType: 'percent' | 'amount';
+  discountValue: number;
+
+  minOrderValue?: number;
+  minQuantity?: number;
+
   startDate: Date;
-  endDate: Date;
+  endDate?: Date;
+
+  isActive: boolean;
+
   createdAt: Date;
   updatedAt: Date;
 }

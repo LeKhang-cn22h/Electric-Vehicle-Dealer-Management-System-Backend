@@ -1,7 +1,10 @@
 export class Price {
   id: string;
   productId: string;
-  price: number;
+  basePrice: number;
+  discountedPrice: number;
+  startDate: Date;
+  endDate: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
