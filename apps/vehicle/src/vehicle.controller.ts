@@ -9,6 +9,8 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { VehicleService } from './vehicle.service';
+import { VehicleCreateDto } from './DTO/vehicle_create.dto';
+import { VehicleUpdateDto } from './DTO/vehicle_update.dto';
 
 @Controller('vehicle')
 export class VehicleController {
@@ -32,13 +34,13 @@ export class VehicleController {
 
   // Tạo xe mới
   @Post()
-  async create(@Body() dto: any) {
+  async create(@Body() dto: VehicleCreateDto) {
     return this.vehicleService.create(dto);
   }
 
   // Cập nhật thông tin xe
   @Put(':id')
-  async update(@Param('id') id: string, @Body() dto: any) {
+  async update(@Param('id') id: string, @Body() dto: VehicleUpdateDto) {
     const vehicleId = Number(id);
     if (isNaN(vehicleId)) {
       throw new BadRequestException('Invalid vehicle ID');

@@ -22,7 +22,6 @@ export class VehicleService {
         `
       id,
       name,
-      price,
       images!inner(path, is_main)
     `,
       )
@@ -48,7 +47,6 @@ export class VehicleService {
       return {
         id: v.id,
         name: v.name,
-        price: v.price,
         imageUrl: publicUrl,
       };
     });
