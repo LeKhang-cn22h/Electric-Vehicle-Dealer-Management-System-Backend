@@ -200,10 +200,7 @@ export class QuotationService {
 
     if (error) throw new Error(`Supabase update error: ${error.message}`);
 
-    //Lấy lại bản ghi sau khi cập nhật (gồm items)
-    const quotation = await this.findOne(id);
-
-    return quotation;
+    return data;
   }
 
   //Xoá báo giá
@@ -229,58 +226,6 @@ export class QuotationService {
     if (delQuoteError) {
       throw new Error(`Supabase delete quotation error: ${delQuoteError.message}`);
     }
-  }
-
-  async convertToOrder(quotationId: string): Promise<CreateOrderDto> {
-    const quotation = await this.findOne(quotationId);
-    if (!quotation) throw new NotFoundException('Quotation not found');
-
-    const newOrder: CreateOrderDto = {
-      quotationId: quotation.id,
-      customerId: quotation.customerId,
-      createdBy: quotation.createdBy,
-      items: quotation.items,
-      totalAmount: quotation.totalAmount,
-      note: quotation.note,
-      status: 'pending',
-    };
-
-    const { error: insertError } = await this.supabase
-      .schema('sales')
-      .from('orders')
-      .insert([
-        {
-          id: uuid(),
-          quotation_id: newOrder.quotationId,
-          customer_id: newOrder.customerId,
-          created_by: newOrder.createdBy,
-          items: newOrder.items,
-          total_amount: newOrder.totalAmount,
-          note: newOrder.note,
-          status: newOrder.status,
-          created_at: new Date(
-            new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }),
-          ).toISOString(),
-          updated_at: new Date(
-            new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }),
-          ).toISOString(),
-        },
-      ]);
-
-    if (insertError) throw new Error(`Failed to create order: ${insertError.message}`);
-
-    await this.supabase
-      .schema('sales')
-      .from('quotations')
-      .update({
-        status: 'converted',
-        updated_at: new Date(
-          new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }),
-        ).toISOString(),
-      })
-      .eq('id', quotationId);
-
-    return newOrder;
   }
 
   //Hàm helper: map dữ liệu từ DB về entity
