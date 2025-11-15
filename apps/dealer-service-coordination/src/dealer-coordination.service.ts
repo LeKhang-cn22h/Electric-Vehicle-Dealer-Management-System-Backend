@@ -1,6 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { ClientProxy, ClientProxyFactory, Transport } from '@nestjs/microservices';
 
 interface VehicleItem {
   vehicle_id: string;
@@ -10,72 +11,27 @@ interface VehicleItem {
 }
 
 @Injectable()
-export class DealerCoordinationService {
+export class DealerCoordinationService implements OnModuleInit {
   private readonly supabase: SupabaseClient;
+  private client!: ClientProxy;
 
   constructor(private configService: ConfigService) {
     const supabaseUrl = this.configService.get<string>('SUPABASE_URL');
     const supabaseKey = this.configService.get<string>('SUPABASE_SERVICE_ROLE_KEY');
     this.supabase = createClient(supabaseUrl!, supabaseKey!);
   }
-
-  /**
-   * Tạo nhiều yêu cầu xe + lưu lịch sử trực tiếp vào bảng
-   */
-  // async createVehicleRequest(
-  //   dealer_id: string,
-  //   dealer_name: string,
-  //   request_type: string,
-  //   vehicles: VehicleItem[],
-  //   action_by = 'system',
-  // ): Promise<any[]> {
-  //   const results = [];
-
-  //   for (const v of vehicles) {
-  //     // 1. Insert trực tiếp vào vehicle_dispatch_requests
-  //     const { data: request, error: reqError } = await this.supabase
-  //       .schema('distribution')
-  //       .from('vehicle_dispatch_requests')
-  //       // .from('distribution.vehicle_dispatch_requests')
-  //       .insert({
-  //         dealer_id,
-  //         dealer_name,
-  //         vehicle_id: v.vehicle_id,
-  //         vehicle_model: v.vehicle_model,
-  //         quantity: v.quantity,
-  //         note: v.note || null,
-  //         request_type,
-  //         status: 'pending', // mặc định
-  //       })
-  //       .select('*')
-  //       .single();
-
-  //     if (reqError) throw new Error(`Failed to create vehicle request: ${reqError.message}`);
-
-  //     // 2. Insert trực tiếp vào lịch sử
-  //     const { error: histError } = await this.supabase
-  //       .schema('distribution')
-  //       .from('vehicle_dispatch_request_history')
-  //       .insert({
-  //         request_id: request.id,
-  //         dealer_id: request.dealer_id,
-  //         dealer_name: request.dealer_name,
-  //         vehicle_id: request.vehicle_id,
-  //         vehicle_model: request.vehicle_model,
-  //         quantity: request.quantity,
-  //         request_type: request.request_type,
-  //         note: request.note,
-  //         status: request.status,
-  //         action_by,
-  //       });
-
-  //     if (histError) throw new Error(`Failed to save request history: ${histError.message}`);
-
-  //     results.push(request);
-  //   }
-
-  //   return results;
-  // }
+  onModuleInit() {
+    this.client = ClientProxyFactory.create({
+      transport: Transport.RMQ,
+      options: {
+        urls: [this.configService.get<string>('RABBITMQ_URL') || 'amqp://localhost:5672'],
+        queue: 'vehicle_request_queue',
+        queueOptions: {
+          durable: false,
+        },
+      },
+    });
+  }
   async createVehicleRequest(
     dealer_id: string,
     dealer_name: string,
@@ -118,8 +74,12 @@ export class DealerCoordinationService {
 
     if (itemsError)
       throw new Error(`Failed to create vehicle request items: ${itemsError.message}`);
-
-    // 3. (Tuỳ chọn) Lưu lịch sử hoặc trả về dữ liệu
+    // 3. Gửi message lên RabbitMQ
+    this.client.emit('vehicle_request_created', {
+      request,
+      items: itemsToInsert,
+    });
+    // 4. (Tuỳ chọn) Lưu lịch sử hoặc trả về dữ liệu
     return { request, items: itemsToInsert };
   }
 
