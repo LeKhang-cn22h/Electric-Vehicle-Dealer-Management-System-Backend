@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { ClientProxy } from '@nestjs/microservices';
+
 interface VehicleResponseItem {
   request_item_id: string;
   response_status: string;
@@ -12,10 +13,28 @@ interface VehicleResponseItem {
 export class EvmStaffCoordinationService {
   private readonly supabase: SupabaseClient;
 
-    // Lưu vào Supabase
-    const { data, error } = await supabase
-      .schema('evm_coordination')
-      .from('staff_coordination_history') // tên table bạn tạo trong Supabase
+  constructor(
+    private configService: ConfigService,
+    @Inject('RABBITMQ_SERVICE') private readonly client: ClientProxy,
+  ) {
+    const supabaseUrl = this.configService.get<string>('SUPABASE_URL');
+    const supabaseKey = this.configService.get<string>('SUPABASE_SERVICE_ROLE_KEY');
+    this.supabase = createClient(supabaseUrl!, supabaseKey!);
+  }
+
+  /**
+   * Lưu lịch sử phối hợp vào Supabase
+   */
+  async saveCoordinationHistory(dto: {
+    dealer_id: string;
+    vehicle_id: string;
+    quantity: number;
+    note?: string;
+    request_type: string;
+    approved: boolean;
+  }): Promise<any> {
+    const { data, error } = await this.supabase
+      .from('evm_coordination.staff_coordination_history')
       .insert([
         {
           dealer_id: dto.dealer_id,
@@ -23,19 +42,15 @@ export class EvmStaffCoordinationService {
           quantity: dto.quantity,
           note: dto.note,
           request_type: dto.request_type,
-          approved,
+          approved: dto.approved,
           created_at: new Date().toISOString(),
         },
       ]);
-  constructor(
-    private configService: ConfigService,
-    @Inject('RABBITMQ_SERVICE') private readonly client: ClientProxy,
-  ) {
-    const supabaseUrl = this.configService.get<string>('SUPABASE_URL');
-    const supabaseKey = this.configService.get<string>('SUPABASE_SERVICE_ROLE_KEY');
-    // console.log('SUPABASE_URL:', supabaseUrl);
-    // console.log('SUPABASE_SERVICE_ROLE_KEY:', supabaseKey);
-    this.supabase = createClient(supabaseUrl!, supabaseKey!);
+
+    if (error) {
+      throw new Error(`Failed to save coordination history: ${error.message}`);
+    }
+    return data;
   }
 
   /**
@@ -51,8 +66,7 @@ export class EvmStaffCoordinationService {
   ): Promise<any> {
     // 1. Tạo phản hồi tổng
     const { data: response, error: respError } = await this.supabase
-      .schema('evm_coordination')
-      .from('vehicle_dispatch_responses')
+      .from('evm_coordination.vehicle_dispatch_responses')
       .insert({
         request_id,
         staff_id,
@@ -74,17 +88,18 @@ export class EvmStaffCoordinationService {
     }));
 
     const { error: itemsError } = await this.supabase
-      .schema('evm_coordination')
-      .from('vehicle_dispatch_response_items')
+      .from('evm_coordination.vehicle_dispatch_response_items')
       .insert(itemsToInsert);
 
     if (itemsError) throw new Error(`Failed to create response items: ${itemsError.message}`);
 
     // 3. Gửi message qua RabbitMQ thông báo đã tạo phản hồi mới
-    await this.client.emit('vehicle_response_created', {
-      response,
-      items: itemsToInsert,
-    });
+    await this.client
+      .emit('vehicle_response_created', {
+        response,
+        items: itemsToInsert,
+      })
+      .toPromise();
 
     return { response, items: itemsToInsert };
   }
@@ -100,8 +115,7 @@ export class EvmStaffCoordinationService {
   ): Promise<any> {
     // Lấy trạng thái cũ
     const { data: existing, error: getErr } = await this.supabase
-      .schema('evm_coordination')
-      .from('vehicle_dispatch_responses')
+      .from('evm_coordination.vehicle_dispatch_responses')
       .select('response_status')
       .eq('id', response_id)
       .single();
@@ -112,8 +126,7 @@ export class EvmStaffCoordinationService {
 
     // Cập nhật trạng thái mới
     const { data: updated, error: updErr } = await this.supabase
-      .schema('evm_coordination')
-      .from('vehicle_dispatch_responses')
+      .from('evm_coordination.vehicle_dispatch_responses')
       .update({ response_status: new_status })
       .eq('id', response_id)
       .select('*')
@@ -123,8 +136,7 @@ export class EvmStaffCoordinationService {
 
     // Lưu lịch sử thay đổi trạng thái
     const { error: histErr } = await this.supabase
-      .schema('evm_coordination')
-      .from('vehicle_dispatch_response_history')
+      .from('evm_coordination.vehicle_dispatch_response_history')
       .insert({
         response_id,
         action_by,
@@ -143,8 +155,7 @@ export class EvmStaffCoordinationService {
    */
   async getResponseByIdWithDetails(response_id: string): Promise<any> {
     const { data: response, error: respErr } = await this.supabase
-      .schema('evm_coordination')
-      .from('vehicle_dispatch_responses')
+      .from('evm_coordination.vehicle_dispatch_responses')
       .select('*')
       .eq('id', response_id)
       .single();
@@ -152,16 +163,14 @@ export class EvmStaffCoordinationService {
     if (respErr) throw new Error(`Failed to get response: ${respErr.message}`);
 
     const { data: history, error: histErr } = await this.supabase
-      .schema('evm_coordination')
-      .from('vehicle_dispatch_response_history')
+      .from('evm_coordination.vehicle_dispatch_response_history')
       .select('*')
       .eq('response_id', response_id);
 
     if (histErr) throw new Error(`Failed to get response history: ${histErr.message}`);
 
     const { data: items, error: itemsErr } = await this.supabase
-      .schema('evm_coordination')
-      .from('vehicle_dispatch_response_items')
+      .from('evm_coordination.vehicle_dispatch_response_items')
       .select('*')
       .eq('response_id', response_id);
 
