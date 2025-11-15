@@ -57,4 +57,4 @@ import { DealerCoordinationService } from './dealer-coordination.service';
   providers: [DealerCoordinationService],
   exports: [DealerCoordinationService],
 })
-export class EvmStaffCoordinationModule {}
+export class DealerCoordinationModule {}

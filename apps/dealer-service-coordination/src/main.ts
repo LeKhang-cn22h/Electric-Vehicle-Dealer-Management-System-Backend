@@ -1,8 +1,8 @@
 import { NestFactory } from '@nestjs/core';
-import { EvmStaffCoordinationModule } from './dealer-coordination.module';
+import { DealerCoordinationModule } from './dealer-coordination.module';
 
 async function bootstrap() {
-  const app = await NestFactory.create(EvmStaffCoordinationModule);
+  const app = await NestFactory.create(DealerCoordinationModule);
   app.enableCors();
   await app.listen(3001);
   console.log('Dealer Service Coordination running on port 3001');
