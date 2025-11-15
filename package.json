@@ -25,7 +25,6 @@
     "start:gateway": "cross-env PORT=4000 nest start ev-dealer-api-gateway --watch",
     "start:users": "cross-env PORT=4200 nest start users --watch",
     "start:sales": "cross-env PORT=4007 nest start sales --watch",
-    "start:dealer-coordination": "cross-env PORT=4008 nest start dealer-coordination --watch",
     "start:billing": "cross-env PORT=4300 nest start billing-service --watch",
     "start:vehicle": "cross-env PORT=4001 nest start vehicle --watch",
     "start:customer": "cross-env PORT=4009 nest start customer --watch",
@@ -58,7 +57,8 @@
     "passport-jwt": "^4.0.1",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
-    "uuid": "^13.0.0"
+    "uuid": "^13.0.0",
+    "vnpay": "^2.4.4"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",

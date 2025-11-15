@@ -143,4 +143,17 @@ export class ServiceClients {
     const url = process.env.DEALER_AGREEMENT_SERVICE_URL || 'http://localhost:3003';
     return this.base(url);
   }
+
+  ar(): ServiceClient {
+    return this.base(process.env.AR_SERVICE_URL || 'http://localhost:4400');
+  }
+
+  rbac(): ServiceClient {
+    const url = process.env.RBAC_SERVICE_URL || 'http://localhost:4600';
+    return this.base(url);
+  }
+  commission(): ServiceClient {
+    const url = process.env.COMMISSION_SERVICE_URL || 'http://localhost:4500';
+    return this.base(url);
+  }
 }

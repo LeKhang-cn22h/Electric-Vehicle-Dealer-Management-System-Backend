@@ -6,8 +6,11 @@ import { GatewayUsersController } from './routes/gateway-users.controller';
 import { GatewayDealerCoordinationController } from './routes/gateway-dealer-coordination.controller';
 import { GatewayVehicleController } from './routes/gateway-vehicle.controller';
 import { GatewayCustomersController } from './routes/gateway-customers.controller';
-// import { GatewayBillingController } from './routes/gateway-billing.controller';
+import { GatewayBillingController } from './routes/gateway-billing.controller';
 import { GatewayEvmStaffCoordinationController } from './routes/gateway-evm-staff-coordination.controller';
+import { GatewayARController } from './routes/gateway-ar.controller';
+import { GatewayRbacController } from './routes/gateway-rbac.controller';
+import { CommissionGatewayController } from './routes/gateway-commission.controller';
 import { GatewayDealerAgreementController } from './routes/gateway-dealer-agreement.controller';
 @Module({
   imports: [HttpModule.register({ timeout: 8000 })],
@@ -18,7 +21,7 @@ import { GatewayDealerAgreementController } from './routes/gateway-dealer-agreem
     GatewayDealerCoordinationController,
     GatewayVehicleController,
     GatewayCustomersController,
-    // GatewayBillingController,
+    GatewayBillingController,
     GatewayEvmStaffCoordinationController,
     GatewayDealerAgreementController,
   ],
