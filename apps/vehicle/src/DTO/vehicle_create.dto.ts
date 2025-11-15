@@ -40,13 +40,6 @@ export class VehicleCreateDto {
   @IsString()
   tagline?: string;
 
-  @IsNumber()
-  price: number;
-
-  @IsOptional()
-  @IsString()
-  price_note?: string;
-
   @IsOptional()
   @IsString()
   status?: string;
@@ -68,8 +61,9 @@ export class VehicleCreateDto {
   transmission?: string;
 
   @IsOptional()
-  @IsString()
-  color?: string;
+  @IsArray()
+  @IsString({ each: true })
+  color?: string[];
 
   @IsOptional()
   @IsString()

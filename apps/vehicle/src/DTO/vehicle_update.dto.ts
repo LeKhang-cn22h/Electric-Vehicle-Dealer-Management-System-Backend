@@ -42,14 +42,6 @@ export class VehicleUpdateDto {
   tagline?: string;
 
   @IsOptional()
-  @IsNumber()
-  price?: number;
-
-  @IsOptional()
-  @IsString()
-  price_note?: string;
-
-  @IsOptional()
   @IsString()
   status?: string;
 

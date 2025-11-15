@@ -7,22 +7,22 @@ import {
   Body,
   Param,
   BadRequestException,
+  UploadedFiles,
+  UseInterceptors,
+  Req,
 } from '@nestjs/common';
+import { FilesInterceptor } from '@nestjs/platform-express';
 import { VehicleService } from './vehicle.service';
-import { VehicleCreateDto } from './DTO/vehicle_create.dto';
-import { VehicleUpdateDto } from './DTO/vehicle_update.dto';
 
 @Controller('vehicle')
 export class VehicleController {
   constructor(private readonly vehicleService: VehicleService) {}
 
-  // Lấy danh sách tất cả xe
   @Get()
   async findAll() {
     return this.vehicleService.findAll();
   }
 
-  // Lấy 1 xe theo ID
   @Get(':id')
   async findOne(@Param('id') id: string) {
     const vehicleId = Number(id);
@@ -32,23 +32,67 @@ export class VehicleController {
     return this.vehicleService.findOne(vehicleId);
   }
 
-  // Tạo xe mới
+  // -------------------------------
+  // 📌 CREATE VEHICLE — MULTIPART FORM
+  // -------------------------------
   @Post()
-  async create(@Body() dto: VehicleCreateDto) {
-    return this.vehicleService.create(dto);
+  @UseInterceptors(FilesInterceptor('images'))
+  async create(
+    @Req() req,
+    @UploadedFiles() images: Express.Multer.File[],
+    @Body('vehicle') vehicleJson: string,
+  ) {
+    if (!vehicleJson) {
+      throw new BadRequestException('Missing vehicle JSON');
+    }
+
+    let vehicleData;
+    try {
+      vehicleData = JSON.parse(vehicleJson);
+    } catch (err) {
+      throw new BadRequestException('Invalid JSON in vehicle field ');
+    }
+
+    console.log('[VehicleService] Received request:', {
+      imagesCount: images?.length ?? 0,
+      vehicleData,
+    });
+
+    return this.vehicleService.create(vehicleData, images);
   }
 
-  // Cập nhật thông tin xe
   @Put(':id')
-  async update(@Param('id') id: string, @Body() dto: VehicleUpdateDto) {
+  @UseInterceptors(FilesInterceptor('images', 10))
+  async update(
+    @Param('id') id: string,
+    @UploadedFiles() images: Express.Multer.File[],
+    @Body('vehicle') vehicleJson: string,
+  ) {
     const vehicleId = Number(id);
     if (isNaN(vehicleId)) {
       throw new BadRequestException('Invalid vehicle ID');
     }
-    return this.vehicleService.update(vehicleId, dto);
+
+    if (!vehicleJson) {
+      throw new BadRequestException('Missing vehicle JSON');
+    }
+
+    let vehicleData;
+    try {
+      vehicleData = JSON.parse(vehicleJson);
+    } catch (err) {
+      throw new BadRequestException('Invalid JSON in vehicle field');
+    }
+
+    console.log('[VehicleService] Update request:', {
+      vehicleId,
+      imagesCount: images?.length ?? 0,
+      vehicleData,
+    });
+
+    return this.vehicleService.update(vehicleId, vehicleData, images);
   }
 
-  // Xóa xe
   @Delete(':id')
   async remove(@Param('id') id: string) {
     const vehicleId = Number(id);
