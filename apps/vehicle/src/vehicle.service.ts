@@ -14,44 +14,93 @@ export class VehicleService {
   }
 
   async findAll(cursor?: number, limit = 20) {
-    // Query vehicle + ảnh chính
+    console.log('[VehicleService] Fetching vehicles...');
+
     let req = this.supabase
       .schema('product')
       .from('vehicle')
       .select(
         `
-      id,
-      name,
-      images!inner(path, is_main)
-    `,
+            id,
+            name,
+            status,
+            images(path, is_main)
+        `,
       )
-      .eq('images.is_main', true)
       .order('id', { ascending: true })
       .limit(limit);
 
-    // Cursor pagination
     if (cursor) {
       req = req.gt('id', cursor);
     }
 
     const { data, error } = await req;
-    if (error) throw new Error(error.message);
 
-    //  nextCursor
-    const nextCursor = data.length > 0 ? data[data.length - 1].id : null;
+    if (error) {
+      console.error('[VehicleService] Query error:', error);
+      throw new BadRequestException(error.message);
+    }
 
-    //  Convert path → public URL
+    if (!data || data.length === 0) {
+      console.log('[VehicleService] No vehicles found');
+      return {
+        data: [],
+        nextCursor: null,
+      };
+    }
+
+    console.log('[VehicleService] Fetched', data.length, 'vehicles');
+    console.log('[VehicleService] First vehicle:', JSON.stringify(data[0], null, 2));
+
+    const nextCursor = data[data.length - 1].id;
+
+    // Map với error handling đầy đủ
     const vehiclesWithUrl = data.map((v) => {
-      const { publicUrl } = this.supabase.storage.from('Vehicle').getPublicUrl(v.images.path);
+      console.log(`[VehicleService] Processing vehicle ${v.id}, images:`, v.images);
+
+      // Xử lý images - có thể là array, object, hoặc null
+      let mainImage: { path: string; is_main?: boolean } | null = null; // ← FIX: Thêm type
+
+      if (v.images) {
+        if (Array.isArray(v.images)) {
+          // Nếu là array, tìm ảnh is_main hoặc lấy ảnh đầu tiên
+          if (v.images.length > 0) {
+            mainImage = v.images.find((img: any) => img?.is_main === true) || v.images[0];
+          }
+        } else if (typeof v.images === 'object' && (v.images as any).path) {
+          // Nếu là object đơn
+          mainImage = v.images as any;
+        }
+      }
+
+      // Tạo imageUrl
+      let imageUrl = 'https://via.placeholder.com/400x300?text=No+Image';
+
+      if (mainImage?.path) {
+        try {
+          const { data: urlData } = this.supabase.storage
+            .from('Vehicle')
+            .getPublicUrl(mainImage.path);
+
+          imageUrl = urlData.publicUrl;
+          console.log(`[VehicleService] ✅ Vehicle ${v.id} image URL:`, imageUrl);
+        } catch (err) {
+          console.error(`[VehicleService] ❌ Error getting URL for vehicle ${v.id}:`, err);
+        }
+      } else {
+        console.warn(`[VehicleService] ⚠️ Vehicle ${v.id} has no valid image`);
+      }
 
       return {
         id: v.id,
         name: v.name,
-        imageUrl: publicUrl,
+        status: v.status || 'còn hàng',
+        imageUrl,
       };
     });
 
-    //
+    console.log('[VehicleService] ✅ Processed', vehiclesWithUrl.length, 'vehicles successfully');
+
     return {
       data: vehiclesWithUrl,
       nextCursor,
