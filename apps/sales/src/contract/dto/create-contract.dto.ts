@@ -1,8 +1,8 @@
-import { IsString, IsNumber, IsOptional, IsDateString } from 'class-validator';
+import { IsString, IsNumber, IsOptional, IsDateString, IsUUID } from 'class-validator';
 
 export class CreateContractDto {
-  @IsString()
-  contractNumber: string;
+  @IsUUID()
+  orderId: string;
 
   @IsString()
   dealerId: string;
