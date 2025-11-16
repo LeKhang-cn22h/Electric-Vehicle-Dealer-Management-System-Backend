@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { HttpModule } from '@nestjs/axios';
 import { ServiceClients } from './service-clients';
 import { GatewayAuthController } from './routes/gateway-auth.controller';
@@ -12,6 +12,7 @@ import { GatewayARController } from './routes/gateway-ar.controller';
 import { GatewayRbacController } from './routes/gateway-rbac.controller';
 import { CommissionGatewayController } from './routes/gateway-commission.controller';
 import { GatewayDealerAgreementController } from './routes/gateway-dealer-agreement.controller';
+import { slidingWindow } from './middlewares/rateLimiter';
 @Module({
   imports: [HttpModule.register({ timeout: 8000 })],
   providers: [ServiceClients],
@@ -26,4 +27,10 @@ import { GatewayDealerAgreementController } from './routes/gateway-dealer-agreem
     GatewayDealerAgreementController,
   ],
 })
-export class EvDealerApiGatewayModule {}
+export class EvDealerApiGatewayModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer
+      .apply(slidingWindow(10, 60)) // limit 10 req/60s
+      .forRoutes('*');
+  }
+}
