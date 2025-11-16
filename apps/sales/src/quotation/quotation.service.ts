@@ -20,7 +20,7 @@ export class QuotationService {
     );
 
     const quotationId = uuid();
-    const now = new Date();
+    const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
 
     //Tạo bản ghi báo giá chính
     const { error: quotationError } = await this.supabase
@@ -149,7 +149,9 @@ export class QuotationService {
 
   //Cập nhật báo giá
   async update(id: string, updateData: Partial<Quotation>): Promise<Quotation> {
-    const updatedAt = new Date();
+    const updatedAt = new Date(
+      new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }),
+    );
 
     //Nếu có items mới, cập nhật lại bảng quotation_items
     if (updateData.items && updateData.items.length > 0) {
@@ -173,7 +175,9 @@ export class QuotationService {
             product_id: item.productId,
             quantity: item.quantity,
             unit_price: item.unitPrice,
-            created_at: new Date().toISOString(),
+            created_at: new Date(
+              new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }),
+            ).toISOString(),
           })),
         );
 
@@ -254,8 +258,12 @@ export class QuotationService {
           total_amount: newOrder.totalAmount,
           note: newOrder.note,
           status: newOrder.status,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
+          created_at: new Date(
+            new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }),
+          ).toISOString(),
+          updated_at: new Date(
+            new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }),
+          ).toISOString(),
         },
       ]);
 
@@ -264,7 +272,12 @@ export class QuotationService {
     await this.supabase
       .schema('sales')
       .from('quotations')
-      .update({ status: 'converted', updated_at: new Date().toISOString() })
+      .update({
+        status: 'converted',
+        updated_at: new Date(
+          new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }),
+        ).toISOString(),
+      })
       .eq('id', quotationId);
 
     return newOrder;
