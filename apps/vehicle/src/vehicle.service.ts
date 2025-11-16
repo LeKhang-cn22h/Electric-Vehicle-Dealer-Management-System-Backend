@@ -3,9 +3,19 @@ import { createClient } from '@supabase/supabase-js';
 import * as dotenv from 'dotenv';
 import { VehicleCreateDto } from './DTO/vehicle_create.dto';
 import { VehicleUpdateDto } from './DTO/vehicle_update.dto';
-import { features } from 'process';
 
 dotenv.config();
+
+interface SearchFilters {
+  keyword?: string;
+  model?: string;
+  status?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  cursor?: number;
+  limit?: number;
+}
+
 @Injectable()
 export class VehicleService {
   private supabase;
@@ -14,28 +24,58 @@ export class VehicleService {
     this.supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
   }
 
-  async findAll(cursor?: number, limit = 20) {
-    console.log('[VehicleService] Fetching vehicles...');
+  async findAll(filters?: SearchFilters) {
+    console.log('[VehicleService] Fetching vehicles with filters:', filters);
+
+    const { keyword, model, status, minPrice, maxPrice, cursor, limit = 20 } = filters || {};
 
     let req = this.supabase
       .schema('product')
       .from('vehicle')
       .select(
         `
-            id,
-            name,
-            status,
-            images(path, is_main)
+          id,
+          name,
+          status,
+          price,
+          model,
+          year,
+          fuel_type,
+          transmission,
+          mileage,
+          images(path, is_main)
         `,
+        { count: 'exact' },
       )
       .order('id', { ascending: true })
       .limit(limit);
+
+    // Áp dụng các filters
+    if (keyword) {
+      req = req.or(`name.ilike.%${keyword}%,model.ilike.%${keyword}%,version.ilike.%${keyword}%`);
+    }
+
+    if (model) {
+      req = req.ilike('model', `%${model}%`);
+    }
+
+    if (status) {
+      req = req.eq('status', status);
+    }
+
+    if (minPrice !== undefined) {
+      req = req.gte('price', minPrice);
+    }
+
+    if (maxPrice !== undefined) {
+      req = req.lte('price', maxPrice);
+    }
 
     if (cursor) {
       req = req.gt('id', cursor);
     }
 
-    const { data, error } = await req;
+    const { data, error, count } = await req;
 
     if (error) {
       console.error('[VehicleService] Query error:', error);
@@ -47,29 +87,26 @@ export class VehicleService {
       return {
         data: [],
         nextCursor: null,
+        total: 0,
       };
     }
 
     console.log('[VehicleService] Fetched', data.length, 'vehicles');
-    console.log('[VehicleService] First vehicle:', JSON.stringify(data[0], null, 2));
 
     const nextCursor = data[data.length - 1].id;
 
-    // Map với error handling đầy đủ
     const vehiclesWithUrl = data.map((v) => {
       console.log(`[VehicleService] Processing vehicle ${v.id}, images:`, v.images);
 
       // Xử lý images - có thể là array, object, hoặc null
-      let mainImage: { path: string; is_main?: boolean } | null = null; // ← FIX: Thêm type
+      let mainImage: { path: string; is_main?: boolean } | null = null;
 
       if (v.images) {
         if (Array.isArray(v.images)) {
-          // Nếu là array, tìm ảnh is_main hoặc lấy ảnh đầu tiên
           if (v.images.length > 0) {
             mainImage = v.images.find((img: any) => img?.is_main === true) || v.images[0];
           }
         } else if (typeof v.images === 'object' && (v.images as any).path) {
-          // Nếu là object đơn
           mainImage = v.images as any;
         }
       }
@@ -84,28 +121,79 @@ export class VehicleService {
             .getPublicUrl(mainImage.path);
 
           imageUrl = urlData.publicUrl;
-          console.log(`[VehicleService]  Vehicle ${v.id} image URL:`, imageUrl);
+          console.log(`[VehicleService] Vehicle ${v.id} image URL:`, imageUrl);
         } catch (err) {
-          console.error(`[VehicleService]  Error getting URL for vehicle ${v.id}:`, err);
+          console.error(`[VehicleService] Error getting URL for vehicle ${v.id}:`, err);
         }
       } else {
-        console.warn(`[VehicleService]  Vehicle ${v.id} has no valid image`);
+        console.warn(`[VehicleService] Vehicle ${v.id} has no valid image`);
       }
 
       return {
         id: v.id,
         name: v.name,
         status: v.status || 'còn hàng',
+        price: v.price,
+        model: v.model,
+        year: v.year,
+        fuel_type: v.fuel_type,
+        transmission: v.transmission,
+        mileage: v.mileage,
         imageUrl,
       };
     });
 
-    console.log('[VehicleService]  Processed', vehiclesWithUrl.length, 'vehicles successfully');
+    console.log('[VehicleService] Processed', vehiclesWithUrl.length, 'vehicles successfully');
 
     return {
       data: vehiclesWithUrl,
       nextCursor,
+      total: count || 0,
     };
+  }
+
+  // Phương thức search all (alias của findAll với keyword)
+  async searchAll(keyword: string, cursor?: number, limit = 20) {
+    return this.findAll({
+      keyword,
+      cursor,
+      limit,
+    });
+  }
+
+  // Phương thức filter by model
+  async filterByModel(model: string, cursor?: number, limit = 20) {
+    return this.findAll({
+      model,
+      cursor,
+      limit,
+    });
+  }
+
+  // Phương thức get all models (cho dropdown)
+  async getAllModels() {
+    console.log('[VehicleService] Fetching all models...');
+
+    const { data, error } = await this.supabase
+      .schema('product')
+      .from('vehicle')
+      .select('model')
+      .not('model', 'is', null)
+      .order('model', { ascending: true });
+
+    if (error) {
+      console.error('[VehicleService] Query error:', error);
+      throw new BadRequestException(error.message);
+    }
+
+    // Lấy unique models và loại bỏ null/undefined
+    const uniqueModels = [
+      ...new Set(data.map((item) => item.model).filter((model) => model && model.trim() !== '')),
+    ];
+
+    console.log('[VehicleService] Found', uniqueModels.length, 'unique models');
+
+    return uniqueModels;
   }
 
   async findOne(id: number) {
@@ -154,6 +242,7 @@ export class VehicleService {
       id: data.id,
       name: data.name,
       status: data.status,
+      price: data.price,
       tagline: data.tagline,
       year: data.year,
       mileage: data.mileage,
@@ -180,7 +269,6 @@ export class VehicleService {
     console.log('[VehicleService] Full DTO received:', dto);
 
     const { images: _, benefits, features, ...vehicleData } = dto;
-    //
 
     console.log('[VehicleService] Data to insert into vehicle table:', vehicleData);
     console.log('[VehicleService] Removed fields:', {
@@ -193,7 +281,7 @@ export class VehicleService {
     const { data: vehicleRes, error: vehicleErr } = await this.supabase
       .schema('product')
       .from('vehicle')
-      .insert(vehicleData) // ← CHỈ: name, status, year, fuel_type, etc.
+      .insert(vehicleData)
       .select()
       .single();
 
