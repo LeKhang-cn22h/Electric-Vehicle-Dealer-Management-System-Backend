@@ -1,8 +1,19 @@
-import { IsUUID, IsNumber, IsArray, IsString, IsOptional } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsUUID,
+  IsArray,
+  IsNumber,
+  IsEnum,
+  IsNotEmpty,
+  ValidateNested,
+} from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class CreateOrderDto {
+  @IsOptional()
   @IsUUID()
-  quotationId: string;
+  quotationId?: string;
 
   @IsUUID()
   customerId: string;
@@ -20,6 +31,13 @@ export class CreateOrderDto {
   @IsString()
   note?: string;
 
-  @IsString()
-  status: string = 'pending';
+  // Payment
+  @IsEnum(['cash', 'bank_transfer', 'card'])
+  paymentMethod: 'cash' | 'bank_transfer' | 'card';
+
+  @IsEnum(['unpaid', 'paid', 'partial'])
+  paymentStatus: 'unpaid' | 'paid' | 'partial';
+
+  @IsNumber()
+  paymentAmount: number;
 }

@@ -4,6 +4,7 @@ import { v4 as uuid } from 'uuid';
 import { Order } from './entity/order.entity';
 import { QuotationService } from '../quotation/quotation.service';
 import { CreateOrderDto } from './dto/create-order.dto';
+import { Quotation } from '../quotation/entity/quotation.entity';
 
 @Injectable()
 export class OrderService {
@@ -14,23 +15,35 @@ export class OrderService {
   ) {}
 
   //Tạo đơn hàng từ báo giá
-  async createFromQuotation(quotationId: string): Promise<Order> {
-    const quotation = await this.quotationService.findOne(quotationId);
-    // const quotation_items = await this.quotationService.findOne(quotationId);
-    if (!quotation) throw new NotFoundException('Quotation not found');
+  async createFromQuotation(dto: CreateOrderDto): Promise<Order> {
+    // Nếu người dùng gửi quotationId → lấy thông tin báo giá
+    let quotation;
+    if (dto.quotationId) {
+      quotation = await this.quotationService.findOne(dto.quotationId);
+      if (!quotation) throw new NotFoundException('Quotation not found');
+    }
 
-    const newOrder: CreateOrderDto = {
-      quotationId: quotation.id,
-      customerId: quotation.customerId,
-      createdBy: quotation.createdBy,
-      items: quotation.items,
-      totalAmount: quotation.totalAmount,
-      note: quotation.note,
+    // Nếu có quotation → override dữ liệu, nếu không → dùng dữ liệu từ dto
+    const newOrder = {
+      quotationId: quotation ? quotation.id : dto.quotationId,
+      customerId: quotation ? quotation.customerId : dto.customerId,
+      createdBy: quotation ? quotation.createdBy : dto.createdBy,
+      items: quotation ? quotation.items : dto.items,
+      totalAmount: quotation ? quotation.totalAmount : dto.totalAmount,
+      promotionCode: quotation.promotionCode,
+      discountAmount: quotation.discountAmount,
+      note: dto.note || (quotation ? quotation.note : null),
       status: 'pending',
+
+      // Payment
+      paymentMethod: dto.paymentMethod,
+      paymentStatus: dto.paymentStatus,
+      paymentAmount: dto.paymentAmount,
     };
 
     const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
 
+    // Insert vào Supabase
     const { data: insertedOrder, error } = await this.supabase
       .schema('sales')
       .from('orders')
@@ -42,8 +55,15 @@ export class OrderService {
           created_by: newOrder.createdBy,
           items: newOrder.items,
           total_amount: newOrder.totalAmount,
+          promotion_code: newOrder.promotionCode,
+          discount_amount: newOrder.discountAmount,
           note: newOrder.note,
           status: newOrder.status,
+
+          payment_method: newOrder.paymentMethod,
+          payment_status: newOrder.paymentStatus,
+          payment_amount: newOrder.paymentAmount,
+
           created_at: now.toISOString(),
           updated_at: now.toISOString(),
         },
@@ -53,17 +73,17 @@ export class OrderService {
 
     if (error) throw new Error(`Supabase insert error: ${error.message}`);
 
-    // Cập nhật trạng thái báo giá
-    await this.supabase
-      .schema('sales')
-      .from('quotations')
-      .update({
-        status: 'converted',
-        updated_at: new Date(
-          new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }),
-        ).toISOString(),
-      })
-      .eq('id', quotationId);
+    // Nếu tạo từ báo giá → cập nhật trạng thái báo giá
+    if (dto.quotationId) {
+      await this.supabase
+        .schema('sales')
+        .from('quotations')
+        .update({
+          status: 'converted',
+          updated_at: now.toISOString(),
+        })
+        .eq('id', dto.quotationId);
+    }
 
     return this.mapRowToOrder(insertedOrder);
   }
@@ -101,7 +121,23 @@ export class OrderService {
     const { data, error } = await this.supabase
       .schema('sales')
       .from('orders')
-      .update({ ...updateData, updated_at: updatedAt.toISOString() })
+      .update({
+        quotation_id: updateData.quotationId,
+        customer_id: updateData.customerId,
+        created_by: updateData.createdBy,
+        items: updateData.items,
+        total_amount: updateData.totalAmount,
+        promotion_code: updateData.promotionCode,
+        discount_amount: updateData.discountAmount,
+        note: updateData.note,
+        status: updateData.status,
+
+        payment_method: updateData.paymentMethod,
+        payment_status: updateData.paymentStatus,
+        payment_amount: updateData.paymentAmount,
+
+        updated_at: updatedAt.toISOString(),
+      })
       .eq('id', id)
       .select('*')
       .single();
@@ -134,9 +170,17 @@ export class OrderService {
       quotationId: row.quotation_id,
       customerId: row.customer_id,
       createdBy: row.created_by,
+
       items: row.items,
       totalAmount: row.total_amount,
+      promotionCode: row.promotion_code,
+      discountAmount: row.discount_amount,
       note: row.note,
+
+      paymentMethod: row.paymentMethod,
+      paymentStatus: row.paymentStatus,
+      paymentAmount: row.paymentAmount,
+
       status: row.status,
       createdAt: new Date(row.created_at),
       updatedAt: new Date(row.updated_at),
