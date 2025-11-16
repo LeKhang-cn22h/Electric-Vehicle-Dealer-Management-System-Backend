@@ -15,6 +15,10 @@ export class CreateQuotationDto {
   items: QuotationItemDto[];
 
   @IsOptional()
+  @IsNumber()
+  vatRate?: number; // mặc định 0.1 (10%)
+
+  @IsOptional()
   @IsString()
   note?: string;
 
@@ -22,7 +26,7 @@ export class CreateQuotationDto {
   @IsString()
   promotionCode?: string;
 
-  @IsOptional()
-  @IsNumber()
-  discountAmount?: number;
+  // @IsOptional()
+  // @IsNumber()
+  // discountAmount?: number;
 }

@@ -4,23 +4,47 @@ import { Quotation } from './entity/quotation.entity';
 import { v4 as uuid } from 'uuid';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { CreateOrderDto } from '../order/dto/create-order.dto';
+import { PricingPromotionService } from '../pricing-promotion/pricing-promotion.service';
 
 @Injectable()
 export class QuotationService {
   constructor(
     @Inject('SUPABASE_CLIENT')
     private readonly supabase: SupabaseClient,
+    private readonly pricingPromotionService: PricingPromotionService,
   ) {}
 
   //Tạo báo giá
   async create(createQuote: CreateQuotationDto): Promise<Quotation> {
+    // Tổng tiền sản phẩm
     const subtotal = createQuote.items.reduce(
       (sum, item) => sum + item.unitPrice * item.quantity,
       0,
     );
 
-    const discountAmount = createQuote.discountAmount || 0;
-    const totalAmount = subtotal - discountAmount;
+    // Tiền giảm giá từ khuyến mãi
+    let discountAmount = 0;
+    if (createQuote.promotionCode) {
+      const promotion = await this.pricingPromotionService.findOnePromotion(
+        createQuote.promotionCode,
+      );
+
+      if (promotion) {
+        if (promotion.discountType === 'percent') {
+          discountAmount = subtotal * promotion.discountValue;
+        } else if (promotion.discountType === 'amount') {
+          discountAmount = promotion.discountValue;
+        }
+      }
+    }
+    const subtotalAfterDiscount = subtotal - discountAmount;
+
+    // Tiền VAT
+    let vatAmount = 0;
+    if (createQuote.vatRate) vatAmount = subtotalAfterDiscount * createQuote.vatRate;
+
+    // Tổng tiền phải trả
+    const totalAmount = subtotalAfterDiscount + vatAmount;
 
     const quotationId = uuid();
     const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
