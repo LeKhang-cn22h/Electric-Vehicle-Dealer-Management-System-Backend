@@ -14,10 +14,13 @@ export class QuotationService {
 
   //Tạo báo giá
   async create(createQuote: CreateQuotationDto): Promise<Quotation> {
-    const totalAmount = createQuote.items.reduce(
+    const subtotal = createQuote.items.reduce(
       (sum, item) => sum + item.unitPrice * item.quantity,
       0,
     );
+
+    const discountAmount = createQuote.discountAmount || 0;
+    const totalAmount = subtotal - discountAmount;
 
     const quotationId = uuid();
     const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
@@ -32,6 +35,8 @@ export class QuotationService {
           customer_id: createQuote.customerId,
           created_by: createQuote.createdBy,
           total_amount: totalAmount,
+          promotion_code: createQuote.promotionCode || null,
+          discount_amount: discountAmount,
           note: createQuote.note,
           status: 'draft',
           created_at: now.toISOString(),
@@ -66,6 +71,8 @@ export class QuotationService {
       createdBy: createQuote.createdBy,
       items: createQuote.items,
       totalAmount,
+      promotionCode: createQuote.promotionCode || null,
+      discountAmount,
       note: createQuote.note,
       status: 'draft',
       createdAt: now,
@@ -192,6 +199,8 @@ export class QuotationService {
         note: updateData.note,
         status: updateData.status,
         total_amount: updateData.totalAmount,
+        promotion_code: updateData.promotionCode || null,
+        discount_amount: updateData.discountAmount,
         updated_at: updatedAt.toISOString(),
       })
       .eq('id', id)
@@ -236,6 +245,8 @@ export class QuotationService {
       createdBy: row.created_by,
       items: row.items,
       totalAmount: row.total_amount,
+      promotionCode: row.promotion_code,
+      discountAmount: row.discount_amount,
       note: row.note,
       status: row.status,
       createdAt: new Date(row.created_at),
