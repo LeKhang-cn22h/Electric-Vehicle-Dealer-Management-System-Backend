@@ -10,8 +10,6 @@ interface SearchFilters {
   keyword?: string;
   model?: string;
   status?: string;
-  minPrice?: number;
-  maxPrice?: number;
   cursor?: number;
   limit?: number;
 }
@@ -25,115 +23,116 @@ export class VehicleService {
   }
 
   async findAll(filters?: SearchFilters) {
-    console.log('[VehicleService] Fetching vehicles with filters:', filters);
+    console.log('================ VEHICLE SEARCH DEBUG ================');
+    console.log('[VehicleService] Incoming filters:', filters);
 
-    const { keyword, model, status, minPrice, maxPrice, cursor, limit = 20 } = filters || {};
+    const { keyword, model, status, cursor, limit = 20 } = filters || {};
+
+    // Log riêng khi SEARCH
+    if (keyword) {
+      console.log('[VehicleService] 🔎 SEARCH MODE ENABLED');
+      console.log('[VehicleService] 🔎 Keyword received:', keyword);
+    }
 
     let req = this.supabase
       .schema('product')
       .from('vehicle')
       .select(
         `
-          id,
-          name,
-          status,
-          price,
-          model,
-          year,
-          fuel_type,
-          transmission,
-          mileage,
-          images(path, is_main)
-        `,
+        id,
+        name,
+        status,
+        model,
+        year,
+        fuel_type,
+        transmission,
+        mileage,
+        images(path, is_main)
+      `,
         { count: 'exact' },
       )
       .order('id', { ascending: true })
       .limit(limit);
 
-    // Áp dụng các filters
+    // ===========================
+    // 🔍 Keyword filter
+    // ===========================
     if (keyword) {
-      req = req.or(`name.ilike.%${keyword}%,model.ilike.%${keyword}%,version.ilike.%${keyword}%`);
+      const orQuery = `name.ilike.%${keyword}%,model.ilike.%${keyword}%,version.ilike.%${keyword}%`;
+      console.log('[VehicleService] 🔎 Applying keyword filter:', orQuery);
+
+      req = req.or(orQuery);
     }
 
+    // Model filter
     if (model) {
+      console.log('[VehicleService] 🔧 Applying model filter:', model);
       req = req.ilike('model', `%${model}%`);
     }
 
+    // Status filter
     if (status) {
+      console.log('[VehicleService] 🔧 Applying status filter:', status);
       req = req.eq('status', status);
     }
 
-    if (minPrice !== undefined) {
-      req = req.gte('price', minPrice);
-    }
-
-    if (maxPrice !== undefined) {
-      req = req.lte('price', maxPrice);
-    }
-
+    // Cursor (pagination)
     if (cursor) {
+      console.log('[VehicleService] 🔧 Applying cursor >', cursor);
       req = req.gt('id', cursor);
     }
+
+    console.log('[VehicleService] 🔎 Executing SQL request now...');
 
     const { data, error, count } = await req;
 
     if (error) {
-      console.error('[VehicleService] Query error:', error);
+      console.error('[VehicleService] ❌ Query error:', error);
       throw new BadRequestException(error.message);
     }
 
+    console.log('[VehicleService] 🔎 Query executed successfully');
+    console.log('[VehicleService] 🔎 Total rows returned:', data?.length);
+    console.log('[VehicleService] 🔎 Total matches (count):', count);
+
     if (!data || data.length === 0) {
-      console.log('[VehicleService] No vehicles found');
+      console.warn('[VehicleService] ⚠ No vehicles matched your search.');
       return {
         data: [],
         nextCursor: null,
-        total: 0,
+        total: count || 0,
       };
     }
-
-    console.log('[VehicleService] Fetched', data.length, 'vehicles');
 
     const nextCursor = data[data.length - 1].id;
 
     const vehiclesWithUrl = data.map((v) => {
       console.log(`[VehicleService] Processing vehicle ${v.id}, images:`, v.images);
 
-      // Xử lý images - có thể là array, object, hoặc null
       let mainImage: { path: string; is_main?: boolean } | null = null;
 
       if (v.images) {
         if (Array.isArray(v.images)) {
-          if (v.images.length > 0) {
-            mainImage = v.images.find((img: any) => img?.is_main === true) || v.images[0];
-          }
-        } else if (typeof v.images === 'object' && (v.images as any).path) {
-          mainImage = v.images as any;
+          mainImage = v.images.find((img) => img?.is_main) || v.images[0];
+        } else if (v.images.path) {
+          mainImage = v.images;
         }
       }
 
-      // Tạo imageUrl
       let imageUrl = 'https://via.placeholder.com/400x300?text=No+Image';
 
       if (mainImage?.path) {
-        try {
-          const { data: urlData } = this.supabase.storage
-            .from('Vehicle')
-            .getPublicUrl(mainImage.path);
+        const { data: urlData } = this.supabase.storage
+          .from('Vehicle')
+          .getPublicUrl(mainImage.path);
 
-          imageUrl = urlData.publicUrl;
-          console.log(`[VehicleService] Vehicle ${v.id} image URL:`, imageUrl);
-        } catch (err) {
-          console.error(`[VehicleService] Error getting URL for vehicle ${v.id}:`, err);
-        }
-      } else {
-        console.warn(`[VehicleService] Vehicle ${v.id} has no valid image`);
+        imageUrl = urlData.publicUrl;
       }
 
       return {
         id: v.id,
         name: v.name,
         status: v.status || 'còn hàng',
-        price: v.price,
         model: v.model,
         year: v.year,
         fuel_type: v.fuel_type,
@@ -143,7 +142,7 @@ export class VehicleService {
       };
     });
 
-    console.log('[VehicleService] Processed', vehiclesWithUrl.length, 'vehicles successfully');
+    console.log('[VehicleService] ✅ Processed', vehiclesWithUrl.length, 'vehicles');
 
     return {
       data: vehiclesWithUrl,
@@ -242,7 +241,6 @@ export class VehicleService {
       id: data.id,
       name: data.name,
       status: data.status,
-      price: data.price,
       tagline: data.tagline,
       year: data.year,
       mileage: data.mileage,
@@ -277,7 +275,7 @@ export class VehicleService {
       features: features?.length,
     });
 
-    // 2️⃣ Insert CHỈ vehicle data (không có images, benefits, features, id, price)
+    // 2️⃣ Insert CHỈ vehicle data (không có images, benefits, features, id)
     const { data: vehicleRes, error: vehicleErr } = await this.supabase
       .schema('product')
       .from('vehicle')

@@ -24,8 +24,7 @@ export class VehicleController {
     @Query('keyword') keyword?: string,
     @Query('model') model?: string,
     @Query('status') status?: string,
-    @Query('minPrice') minPrice?: number,
-    @Query('maxPrice') maxPrice?: number,
+
     @Query('cursor') cursor?: number,
     @Query('limit') limit = 20,
   ) {
@@ -33,8 +32,6 @@ export class VehicleController {
       keyword,
       model,
       status,
-      minPrice: minPrice ? Number(minPrice) : undefined,
-      maxPrice: maxPrice ? Number(maxPrice) : undefined,
       cursor: cursor ? Number(cursor) : undefined,
       limit: Number(limit),
     });
