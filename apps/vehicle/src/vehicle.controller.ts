@@ -10,6 +10,7 @@ import {
   UploadedFiles,
   UseInterceptors,
   Req,
+  Query,
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { VehicleService } from './vehicle.service';
@@ -19,8 +20,44 @@ export class VehicleController {
   constructor(private readonly vehicleService: VehicleService) {}
 
   @Get()
-  async findAll() {
-    return this.vehicleService.findAll();
+  async findAll(
+    @Query('keyword') keyword?: string,
+    @Query('model') model?: string,
+    @Query('status') status?: string,
+
+    @Query('cursor') cursor?: number,
+    @Query('limit') limit = 20,
+  ) {
+    return this.vehicleService.findAll({
+      keyword,
+      model,
+      status,
+      cursor: cursor ? Number(cursor) : undefined,
+      limit: Number(limit),
+    });
+  }
+
+  @Get('search')
+  async searchAll(
+    @Query('keyword') keyword: string,
+    @Query('cursor') cursor?: number,
+    @Query('limit') limit = 20,
+  ) {
+    return this.vehicleService.searchAll(keyword, cursor, limit);
+  }
+
+  @Get('filter/model')
+  async filterByModel(
+    @Query('model') model: string,
+    @Query('cursor') cursor?: number,
+    @Query('limit') limit = 20,
+  ) {
+    return this.vehicleService.filterByModel(model, cursor, limit);
+  }
+
+  @Get('models')
+  async getAllModels() {
+    return this.vehicleService.getAllModels();
   }
 
   @Get(':id')
