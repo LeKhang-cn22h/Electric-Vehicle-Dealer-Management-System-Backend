@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import * as dotenv from 'dotenv';
 import { VehicleCreateDto } from './DTO/vehicle_create.dto';
 import { VehicleUpdateDto } from './DTO/vehicle_update.dto';
+import { features } from 'process';
 
 dotenv.config();
 @Injectable()
@@ -83,12 +84,12 @@ export class VehicleService {
             .getPublicUrl(mainImage.path);
 
           imageUrl = urlData.publicUrl;
-          console.log(`[VehicleService] ✅ Vehicle ${v.id} image URL:`, imageUrl);
+          console.log(`[VehicleService]  Vehicle ${v.id} image URL:`, imageUrl);
         } catch (err) {
-          console.error(`[VehicleService] ❌ Error getting URL for vehicle ${v.id}:`, err);
+          console.error(`[VehicleService]  Error getting URL for vehicle ${v.id}:`, err);
         }
       } else {
-        console.warn(`[VehicleService] ⚠️ Vehicle ${v.id} has no valid image`);
+        console.warn(`[VehicleService]  Vehicle ${v.id} has no valid image`);
       }
 
       return {
@@ -99,7 +100,7 @@ export class VehicleService {
       };
     });
 
-    console.log('[VehicleService] ✅ Processed', vehiclesWithUrl.length, 'vehicles successfully');
+    console.log('[VehicleService]  Processed', vehiclesWithUrl.length, 'vehicles successfully');
 
     return {
       data: vehiclesWithUrl,
@@ -108,14 +109,69 @@ export class VehicleService {
   }
 
   async findOne(id: number) {
+    console.log('[VehicleService] Fetching vehicle ID:', id);
+
     const { data, error } = await this.supabase
       .schema('product')
       .from('vehicle')
-      .select('*')
+      .select(
+        `
+            *,
+            benefits(*),
+            images(*),
+            features(*)
+        `,
+      )
       .eq('id', id)
       .single();
-    if (error) throw new Error(error.message);
-    return data;
+
+    if (error) {
+      console.error('[VehicleService] Query error:', error);
+      throw new BadRequestException(error.message);
+    }
+
+    if (!data) {
+      throw new BadRequestException('Vehicle not found');
+    }
+
+    console.log('[VehicleService] Found vehicle:', data.name);
+
+    // Transform images: path → publicUrl
+    const imagesWithUrl =
+      data.images?.map((img: any) => {
+        const { data: urlData } = this.supabase.storage.from('Vehicle').getPublicUrl(img.path);
+
+        return {
+          id: img.id,
+          path: img.path,
+          is_main: img.is_main,
+          imageUrl: urlData.publicUrl,
+        };
+      }) || [];
+
+    // Return formatted data
+    return {
+      id: data.id,
+      name: data.name,
+      status: data.status,
+      tagline: data.tagline,
+      year: data.year,
+      mileage: data.mileage,
+      fuel_type: data.fuel_type,
+      transmission: data.transmission,
+      color: data.color,
+      engine: data.engine,
+      seats: data.seats,
+      origin: data.origin,
+      description: data.description,
+      model: data.model,
+      version: data.version,
+      images: imagesWithUrl,
+      benefits: data.benefits || [],
+      features: data.features || [],
+      created_at: data.created_at,
+      updated_at: data.updated_at,
+    };
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
