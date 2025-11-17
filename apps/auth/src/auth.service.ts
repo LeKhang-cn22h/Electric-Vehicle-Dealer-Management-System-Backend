@@ -70,7 +70,10 @@ export class AuthService {
       email: dto.email,
       password: dto.password,
       email_confirm: true,
-      user_metadata: { full_name: dto.fullName ?? '' },
+      user_metadata: {
+        full_name: dto.fullName ?? '',
+        role: 'admin',
+      },
     });
     if (error) throw new BadRequestException(error.message);
     return { user: data.user, requires_confirm: false };
