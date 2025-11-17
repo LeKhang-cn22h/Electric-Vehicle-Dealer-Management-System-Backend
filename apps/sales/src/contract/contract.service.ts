@@ -35,7 +35,7 @@ export class ContractsService {
   async create(dto: CreateContractDto): Promise<Contract> {
     const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
 
-    // 1. Lấy Order từ DB
+    // Lấy Order từ DB
     const { data: order, error: orderError } = await this.supabase
       .schema('sales')
       .from('orders')
@@ -45,7 +45,7 @@ export class ContractsService {
 
     if (orderError || !order) throw new NotFoundException('Order not found');
 
-    // 2. Tạo contractNumber tự động
+    // Tạo contractNumber tự động
     const contractNumber = await this.generateContractNumber();
 
     const newContract: Contract = {
@@ -61,7 +61,7 @@ export class ContractsService {
       updatedAt: now,
     };
 
-    // 3. Insert vào DB
+    // Insert vào DB
     const { error } = await this.supabase
       .schema('sales')
       .from('contracts')

@@ -9,6 +9,7 @@ import { GatewayCustomersController } from './routes/gateway-customers.controlle
 // import { GatewayBillingController } from './routes/gateway-billing.controller';
 import { GatewayEvmStaffCoordinationController } from './routes/gateway-evm-staff-coordination.controller';
 import { GatewayDealerAgreementController } from './routes/gateway-dealer-agreement.controller';
+import { GatewaySalesController } from './routes/gateway-sales.controller';
 @Module({
   imports: [HttpModule.register({ timeout: 8000 })],
   providers: [ServiceClients],
@@ -21,6 +22,7 @@ import { GatewayDealerAgreementController } from './routes/gateway-dealer-agreem
     // GatewayBillingController,
     GatewayEvmStaffCoordinationController,
     GatewayDealerAgreementController,
+    GatewaySalesController,
   ],
 })
 export class EvDealerApiGatewayModule {}

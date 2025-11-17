@@ -143,4 +143,8 @@ export class ServiceClients {
     const url = process.env.DEALER_AGREEMENT_SERVICE_URL || 'http://localhost:3003';
     return this.base(url);
   }
+  sales(): ServiceClient {
+    const url = process.env.SALES_SERVICE_URL || 'http://localhost:4007';
+    return this.base(url);
+  }
 }
