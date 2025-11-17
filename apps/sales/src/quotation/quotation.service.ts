@@ -3,7 +3,6 @@ import { CreateQuotationDto } from './dto/create-quotation.dto';
 import { Quotation } from './entity/quotation.entity';
 import { v4 as uuid } from 'uuid';
 import { SupabaseClient } from '@supabase/supabase-js';
-import { CreateOrderDto } from '../order/dto/create-order.dto';
 import { PricingPromotionService } from '../pricing-promotion/pricing-promotion.service';
 
 @Injectable()
