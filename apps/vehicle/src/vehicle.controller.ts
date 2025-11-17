@@ -7,20 +7,59 @@ import {
   Body,
   Param,
   BadRequestException,
+  UploadedFiles,
+  UseInterceptors,
+  Req,
+  Query,
 } from '@nestjs/common';
+import { FilesInterceptor } from '@nestjs/platform-express';
 import { VehicleService } from './vehicle.service';
 
 @Controller('vehicle')
 export class VehicleController {
   constructor(private readonly vehicleService: VehicleService) {}
 
-  // Lấy danh sách tất cả xe
   @Get()
-  async findAll() {
-    return this.vehicleService.findAll();
+  async findAll(
+    @Query('keyword') keyword?: string,
+    @Query('model') model?: string,
+    @Query('status') status?: string,
+
+    @Query('cursor') cursor?: number,
+    @Query('limit') limit = 20,
+  ) {
+    return this.vehicleService.findAll({
+      keyword,
+      model,
+      status,
+      cursor: cursor ? Number(cursor) : undefined,
+      limit: Number(limit),
+    });
   }
 
-  // Lấy 1 xe theo ID
+  @Get('search')
+  async searchAll(
+    @Query('keyword') keyword: string,
+    @Query('cursor') cursor?: number,
+    @Query('limit') limit = 20,
+  ) {
+    return this.vehicleService.searchAll(keyword, cursor, limit);
+  }
+
+  @Get('filter/model')
+  async filterByModel(
+    @Query('model') model: string,
+    @Query('cursor') cursor?: number,
+    @Query('limit') limit = 20,
+  ) {
+    return this.vehicleService.filterByModel(model, cursor, limit);
+  }
+
+  @Get('models')
+  async getAllModels() {
+    return this.vehicleService.getAllModels();
+  }
+
   @Get(':id')
   async findOne(@Param('id') id: string) {
     const vehicleId = Number(id);
@@ -30,23 +69,67 @@ export class VehicleController {
     return this.vehicleService.findOne(vehicleId);
   }
 
-  // Tạo xe mới
+  // -------------------------------
+  // 📌 CREATE VEHICLE — MULTIPART FORM
+  // -------------------------------
   @Post()
-  async create(@Body() dto: any) {
-    return this.vehicleService.create(dto);
+  @UseInterceptors(FilesInterceptor('images'))
+  async create(
+    @Req() req,
+    @UploadedFiles() images: Express.Multer.File[],
+    @Body('vehicle') vehicleJson: string,
+  ) {
+    if (!vehicleJson) {
+      throw new BadRequestException('Missing vehicle JSON');
+    }
+
+    let vehicleData;
+    try {
+      vehicleData = JSON.parse(vehicleJson);
+    } catch (err) {
+      throw new BadRequestException('Invalid JSON in vehicle field ');
+    }
+
+    console.log('[VehicleService] Received request:', {
+      imagesCount: images?.length ?? 0,
+      vehicleData,
+    });
+
+    return this.vehicleService.create(vehicleData, images);
   }
 
-  // Cập nhật thông tin xe
   @Put(':id')
-  async update(@Param('id') id: string, @Body() dto: any) {
+  @UseInterceptors(FilesInterceptor('images', 10))
+  async update(
+    @Param('id') id: string,
+    @UploadedFiles() images: Express.Multer.File[],
+    @Body('vehicle') vehicleJson: string,
+  ) {
     const vehicleId = Number(id);
     if (isNaN(vehicleId)) {
       throw new BadRequestException('Invalid vehicle ID');
     }
-    return this.vehicleService.update(vehicleId, dto);
+
+    if (!vehicleJson) {
+      throw new BadRequestException('Missing vehicle JSON');
+    }
+
+    let vehicleData;
+    try {
+      vehicleData = JSON.parse(vehicleJson);
+    } catch (err) {
+      throw new BadRequestException('Invalid JSON in vehicle field');
+    }
+
+    console.log('[VehicleService] Update request:', {
+      vehicleId,
+      imagesCount: images?.length ?? 0,
+      vehicleData,
+    });
+
+    return this.vehicleService.update(vehicleId, vehicleData, images);
   }
 
-  // Xóa xe
   @Delete(':id')
   async remove(@Param('id') id: string) {
     const vehicleId = Number(id);
