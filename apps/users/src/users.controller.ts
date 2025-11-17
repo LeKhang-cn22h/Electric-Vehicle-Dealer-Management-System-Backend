@@ -3,16 +3,17 @@ import {
   Controller,
   Put,
   Get,
+  Post,
+  Delete,
+  Param,
   BadRequestException,
-  Headers,
   UseInterceptors,
   UploadedFile,
-  UseGuards,
+  Req,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { UpdateProfileDto } from './dtos/UpdateProfile.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { Req } from '@nestjs/common';
 import { ParseFilePipe, MaxFileSizeValidator, FileTypeValidator } from '@nestjs/common';
 @Controller('users')
 export class UsersController {
@@ -70,5 +71,25 @@ export class UsersController {
     }
     console.log('Getting profile for token length:', token.length);
     return this.usersService.getProfile(token);
+  }
+
+  @Get('dealers')
+  async listDealers() {
+    return this.usersService.listDealers();
+  }
+
+  @Post('dealers')
+  async createDealer(@Body() body: any) {
+    return this.usersService.createDealer(body);
+  }
+
+  @Put('dealers/:id')
+  async updateDealer(@Param('id') id: string, @Body() body: any) {
+    return this.usersService.updateDealer(id, body);
+  }
+
+  @Delete('dealers/:id')
+  async deleteDealer(@Param('id') id: string) {
+    return this.usersService.deleteDealer(id);
   }
 }

@@ -3,31 +3,46 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import * as dotenv from 'dotenv';
 import * as path from 'path';
 import { UpdateProfileDto } from './dtos/UpdateProfile.dto';
+import { CreateDealerDto } from './dtos/CreateDealerDto';
 
 const envPath = path.resolve(process.cwd(), 'apps/users/.env');
 dotenv.config({ path: envPath });
-
-function createAdmin(): SupabaseClient | null {
+function createAdmin(): SupabaseClient<any> {
   const url = process.env.SUPABASE_URL!;
   const srole = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  return srole ? createClient(url, srole) : null;
+  if (!srole) throw new Error('SERVICE_ROLE_KEY missing');
+
+  return createClient(url, srole, {
+    db: { schema: 'platform' },
+  }) as any;
 }
 
-// function createAnon(): SupabaseClient {
-//   const url = process.env.SUPABASE_URL!;
-//   const anon = process.env.SUPABASE_ANON_KEY!;
-//   return createClient(url, anon);
-// }
 function createAnon() {
   const url = process.env.SUPABASE_URL!;
   const anon = process.env.SUPABASE_ANON_KEY!;
-  return createClient(url, anon);
+  return createClient(url, anon, {
+    db: { schema: 'platform' },
+  });
 }
 
 @Injectable()
 export class UsersService {
   private admin = createAdmin();
   private sb = createAnon();
+
+  async getRoleId(code: string) {
+    const { data, error } = await this.admin
+      .from('rbac_roles')
+      .select('id')
+      .eq('code', code)
+      .single();
+
+    if (error) {
+      throw new BadRequestException(`Không tìm thấy role: ${code}`);
+    }
+
+    return data.id;
+  }
 
   async updateProfile(token: string, dto: UpdateProfileDto, avatar?: Express.Multer.File) {
     console.log('[UsersService] updateProfile called:', {
@@ -70,8 +85,6 @@ export class UsersService {
         const fileExt = avatar.mimetype.split('/')[1];
         const timestamp = Date.now();
         const fileName = `${userId}_${timestamp}.${fileExt}`;
-
-        console.log('[UsersService] Uploading to bucket: avatars, file:', fileName);
         if (avatar_url && avatar_url.includes('/avatars/')) {
           const urlParts = avatar_url.split('/avatars/');
           if (urlParts[1]) {
@@ -149,5 +162,141 @@ export class UsersService {
       avatar_url: data.user.user_metadata.avatar_url,
       created_at: data.user.created_at,
     };
+  }
+
+  // DEALERS MANAGEMENT
+  async listDealers() {
+    const { data, error } = await this.admin
+      .from('dealers')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) throw new BadRequestException(error.message);
+    return data;
+  }
+
+  async createDealer(dto: CreateDealerDto) {
+    console.log('[UsersService] Creating dealer with data:', dto);
+
+    if (!dto.name) throw new BadRequestException('Tên đại lý là bắt buộc');
+    if (!dto.user_email || !dto.user_password) {
+      throw new BadRequestException('Email & mật khẩu tài khoản đại lý là bắt buộc');
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(dto.user_email)) {
+      throw new BadRequestException('Email không hợp lệ');
+    }
+    if (dto.user_password.length < 6) {
+      throw new BadRequestException('Mật khẩu phải có ít nhất 6 ký tự');
+    }
+
+    try {
+      // 1) Kiểm tra email đã tồn tại trong Supabase Auth
+      console.log('[UsersService] Checking if email exists...');
+      const { data: existingUsers } = await this.admin.auth.admin.listUsers();
+      const emailExists = existingUsers?.users?.some((u: any) => u.email === dto.user_email);
+
+      if (emailExists) {
+        throw new BadRequestException(`Email ${dto.user_email} đã được sử dụng`);
+      }
+
+      // 2) Tạo dealer trong schema `users`
+      const { data: dealerData, error: dealerErr } = await this.admin
+        .from('dealers')
+        .insert({
+          name: dto.name,
+          phone: dto.phone ?? '',
+          address: dto.address ?? '',
+          status: dto.status ?? 'active',
+        })
+        .select()
+        .single();
+
+      if (dealerErr) {
+        console.error('[UsersService] Dealer creation error:', dealerErr);
+        throw new BadRequestException('Tạo đại lý thất bại: ' + dealerErr.message);
+      }
+
+      const dealer_id = dealerData.id;
+      console.log('[UsersService] Dealer created with ID:', dealer_id);
+
+      // 3) Tạo Supabase user kèm metadata
+      console.log('[UsersService] Creating user account...');
+      const { data: createdUser, error: createUserErr } = await this.admin.auth.admin.createUser({
+        email: dto.user_email,
+        password: dto.user_password,
+        email_confirm: true,
+        user_metadata: {
+          full_name: dto.user_full_name ?? dto.name,
+          phone: dto.user_phone ?? dto.phone ?? '',
+          role: 'dealer_manager',
+          dealer_id: dealer_id,
+        },
+      });
+
+      if (createUserErr) {
+        console.error('[UsersService] User creation error:', createUserErr);
+        await this.admin.from('dealers').delete().eq('id', dealer_id);
+
+        if (
+          createUserErr.message.includes('already registered') ||
+          createUserErr.message.includes('already exists')
+        ) {
+          throw new BadRequestException(`Email ${dto.user_email} đã được sử dụng`);
+        }
+        throw new BadRequestException('Tạo tài khoản đại lý thất bại: ' + createUserErr.message);
+      }
+
+      const user_id = createdUser.user?.id;
+
+      if (!user_id) {
+        await this.admin.from('dealers').delete().eq('id', dealer_id);
+        throw new BadRequestException('Không nhận được user_id từ Supabase');
+      }
+
+      console.log('[UsersService] User created with ID:', user_id);
+
+      return {
+        message: 'Tạo đại lý và tài khoản thành công',
+        dealer: dealerData,
+        user: {
+          id: user_id,
+          email: dto.user_email,
+          role: 'dealer_manager',
+          dealer_id,
+        },
+      };
+    } catch (error) {
+      console.error('[UsersService] Dealer creation failed:', error);
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  async updateDealer(id: string, dto: any) {
+    const { error } = await this.admin
+      .from('dealers')
+      .update({
+        name: dto.name,
+        phone: dto.phone,
+        address: dto.address,
+        status: dto.status,
+      })
+      .eq('id', id);
+
+    if (error) throw new BadRequestException(error.message);
+
+    return { message: 'Cập nhật đại lý thành công' };
+  }
+
+  async deleteDealer(id: string) {
+    try {
+      const { error: dealerError } = await this.admin.from('dealers').delete().eq('id', id);
+      if (dealerError) throw new BadRequestException(dealerError.message);
+      return { message: 'Xóa đại lý thành công' };
+    } catch (error) {
+      console.error('[UsersService] Delete dealer error:', error);
+      throw new BadRequestException('Xóa đại lý thất bại: ' + error.message);
+    }
   }
 }

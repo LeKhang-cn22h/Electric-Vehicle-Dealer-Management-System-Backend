@@ -2,6 +2,9 @@ import {
   Controller,
   Put,
   Get,
+  Post,
+  Delete,
+  Param,
   Body,
   Headers,
   UseInterceptors,
@@ -55,7 +58,7 @@ export class GatewayUsersController {
           method: 'PUT',
           url: '/users/profile',
           headers: {
-            ...formData.getHeaders(), 
+            ...formData.getHeaders(),
             authorization: auth,
           },
           data: formData,
@@ -82,6 +85,46 @@ export class GatewayUsersController {
     }
     console.log('[Gateway] Get profile request, auth length:', auth.length);
     return this.c.users().get('/users/profile', {
+      authorization: auth,
+    });
+  }
+
+  @Get('dealers')
+  async listDealers(@Headers('authorization') auth: string) {
+    if (!auth) throw new BadRequestException('Missing Authorization header');
+
+    return this.c.users().get('/users/dealers', {
+      authorization: auth,
+    });
+  }
+
+  @Post('dealers')
+  async createDealer(@Body() body: any, @Headers('authorization') auth: string) {
+    if (!auth) throw new BadRequestException('Missing Authorization header');
+
+    return this.c.users().post('/users/dealers', body, {
+      authorization: auth,
+    });
+  }
+
+  @Put('dealers/:id')
+  async updateDealer(
+    @Param('id') id: string,
+    @Body() body: any,
+    @Headers('authorization') auth: string,
+  ) {
+    if (!auth) throw new BadRequestException('Missing Authorization header');
+
+    return this.c.users().put(`/users/dealers/${id}`, body, {
+      authorization: auth,
+    });
+  }
+
+  @Delete('dealers/:id')
+  async deleteDealer(@Param('id') id: string, @Headers('authorization') auth: string) {
+    if (!auth) throw new BadRequestException('Missing Authorization header');
+
+    return this.c.users().delete(`/users/dealers/${id}`, {
       authorization: auth,
     });
   }
