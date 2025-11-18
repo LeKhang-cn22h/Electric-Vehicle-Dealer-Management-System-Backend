@@ -14,6 +14,7 @@ import {
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { VehicleService } from './vehicle.service';
+import { VehicleCompareDto } from './DTO/vehicle_compare.dto';
 
 @Controller('vehicle')
 export class VehicleController {
@@ -70,7 +71,7 @@ export class VehicleController {
   }
 
   // -------------------------------
-  // 📌 CREATE VEHICLE — MULTIPART FORM
+  // CREATE VEHICLE — MULTIPART FORM
   // -------------------------------
   @Post()
   @UseInterceptors(FilesInterceptor('images'))
@@ -137,5 +138,15 @@ export class VehicleController {
       throw new BadRequestException('Invalid vehicle ID');
     }
     return this.vehicleService.remove(vehicleId);
+  }
+  @Post('compare')
+  async compareVehicles(@Body() compareDto: VehicleCompareDto) {
+    console.log('Endpoint so sánh xe được gọi với dữ liệu:', compareDto);
+    return this.vehicleService.compareVehicles(compareDto.vehicleIds);
+  }
+  @Get(':id/compare-suggestions')
+  async getComparisonSuggestions(@Param('id') id: string, @Query('limit') limit?: string) {
+    console.log(`Lấy xe gợi ý so sánh cho xe ID: ${id}`);
+    return this.vehicleService.getComparisonSuggestions(parseInt(id), limit ? parseInt(limit) : 5);
   }
 }

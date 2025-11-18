@@ -36,9 +36,9 @@ export class GatewayVehicleController {
     @Query('limit') limit?: string,
   ) {
     try {
-      this.logger.log('🔍 Calling vehicle service GET /vehicle with filters');
+      this.logger.log('Calling vehicle service GET /vehicle with filters');
       this.logger.log(
-        `📋 Filters: keyword=${keyword}, model=${model}, status=${status}, minPrice=${minPrice}, maxPrice=${maxPrice}, cursor=${cursor}, limit=${limit}`,
+        `Filters: keyword=${keyword}, model=${model}, status=${status}, minPrice=${minPrice}, maxPrice=${maxPrice}, cursor=${cursor}, limit=${limit}`,
       );
 
       // Build query parameters
@@ -56,10 +56,10 @@ export class GatewayVehicleController {
       const url = queryString ? `/vehicle?${queryString}` : '/vehicle';
 
       const result = await this.c.vehicle().get(url);
-      this.logger.log(`✅ Success, got ${result.data?.length || 0} vehicles`);
+      this.logger.log(`Success, got ${result.data?.length || 0} vehicles`);
       return result;
     } catch (error) {
-      this.logger.error('❌ Error calling vehicle service:');
+      this.logger.error(' Error calling vehicle service:');
       this.logger.error('Message:', error.message);
       this.logger.error('Response:', error.response?.data);
       this.logger.error('Status:', error.response?.status);
@@ -74,7 +74,7 @@ export class GatewayVehicleController {
     @Query('limit') limit?: string,
   ) {
     try {
-      this.logger.log(`🔍 Searching vehicles with keyword: ${keyword}`);
+      this.logger.log(`Searching vehicles with keyword: ${keyword}`);
 
       const queryParams = new URLSearchParams();
       queryParams.append('keyword', keyword);
@@ -84,10 +84,10 @@ export class GatewayVehicleController {
       const url = `/vehicle/search?${queryParams.toString()}`;
       const result = await this.c.vehicle().get(url);
 
-      this.logger.log(`✅ Search success, found ${result.data?.length || 0} vehicles`);
+      this.logger.log(`Search success, found ${result.data?.length || 0} vehicles`);
       return result;
     } catch (error) {
-      this.logger.error('❌ Error in search:', error.message);
+      this.logger.error(' Error in search:', error.message);
       throw new InternalServerErrorException('Failed to search vehicles');
     }
   }
@@ -99,7 +99,7 @@ export class GatewayVehicleController {
     @Query('limit') limit?: string,
   ) {
     try {
-      this.logger.log(`🔍 Filtering vehicles by model: ${model}`);
+      this.logger.log(`Filtering vehicles by model: ${model}`);
 
       const queryParams = new URLSearchParams();
       queryParams.append('model', model);
@@ -109,10 +109,10 @@ export class GatewayVehicleController {
       const url = `/vehicle/filter/model?${queryParams.toString()}`;
       const result = await this.c.vehicle().get(url);
 
-      this.logger.log(`✅ Model filter success, found ${result.data?.length || 0} vehicles`);
+      this.logger.log(`Model filter success, found ${result.data?.length || 0} vehicles`);
       return result;
     } catch (error) {
-      this.logger.error('❌ Error in model filter:', error.message);
+      this.logger.error(' Error in model filter:', error.message);
       throw new InternalServerErrorException('Failed to filter vehicles by model');
     }
   }
@@ -120,12 +120,12 @@ export class GatewayVehicleController {
   @Get('models')
   async getAllModels() {
     try {
-      this.logger.log('🔍 Getting all vehicle models');
+      this.logger.log('Getting all vehicle models');
       const result = await this.c.vehicle().get('/vehicle/models');
-      this.logger.log(`✅ Success, got ${result.length || 0} models`);
+      this.logger.log(`Success, got ${result.length || 0} models`);
       return result;
     } catch (error) {
-      this.logger.error('❌ Error getting models:', error.message);
+      this.logger.error(' Error getting models:', error.message);
       throw new InternalServerErrorException('Failed to fetch vehicle models');
     }
   }
@@ -133,12 +133,12 @@ export class GatewayVehicleController {
   @Get(':id')
   async findOne(@Param('id') id: string) {
     try {
-      this.logger.log(`🔍 Getting vehicle details for ID: ${id}`);
+      this.logger.log(`Getting vehicle details for ID: ${id}`);
       const result = await this.c.vehicle().get(`/vehicle/${id}`);
-      this.logger.log(`✅ Success, found vehicle: ${result.name}`);
+      this.logger.log(`Success, found vehicle: ${result.name}`);
       return result;
     } catch (error) {
-      this.logger.error(`❌ Error getting vehicle ${id}:`, error.message);
+      this.logger.error(` Error getting vehicle ${id}:`, error.message);
       if (error.response?.status === 404) {
         throw new BadRequestException('Vehicle not found');
       }
@@ -208,7 +208,7 @@ export class GatewayVehicleController {
       console.log('[Gateway] 11. SUCCESS! Response:', response.data);
       return response.data;
     } catch (err) {
-      console.error('[Gateway] ❌ CAUGHT ERROR:');
+      console.error('[Gateway]  CAUGHT ERROR:');
       console.error('[Gateway] Error message:', err.message);
       console.error('[Gateway] Error stack:', err.stack);
       console.error('[Gateway] Response data:', err.response?.data);
@@ -269,10 +269,10 @@ export class GatewayVehicleController {
         data: form,
       });
 
-      console.log('[Gateway] ✅ UPDATE Success:', response.data);
+      console.log('[Gateway] UPDATE Success:', response.data);
       return response.data;
     } catch (err) {
-      console.error('[Gateway] ❌ UPDATE Error:', err.message);
+      console.error('[Gateway]  UPDATE Error:', err.message);
       console.error('[Gateway] Response:', err.response?.data);
       throw new BadRequestException(
         err.response?.data?.message || err.message || 'Failed to update vehicle',
@@ -285,11 +285,59 @@ export class GatewayVehicleController {
     try {
       this.logger.log(`🗑️ Deleting vehicle ID: ${id}`);
       const result = await this.c.vehicle().delete(`/vehicle/${id}`);
-      this.logger.log(`✅ Successfully deleted vehicle ${id}`);
+      this.logger.log(`Successfully deleted vehicle ${id}`);
       return result;
     } catch (error) {
-      this.logger.error(`❌ Error deleting vehicle ${id}:`, error.message);
+      this.logger.error(` Error deleting vehicle ${id}:`, error.message);
       throw error;
+    }
+  }
+  @Post('compare')
+  async compareVehicles(@Body() compareDto: any, @Headers('authorization') auth: string) {
+    try {
+      this.logger.log('Comparing vehicles');
+      this.logger.log(` Vehicle IDs: ${compareDto.vehicleIds}`);
+
+      const headers: Record<string, string> = {};
+      if (auth) {
+        headers.authorization = auth;
+      }
+
+      const result = await this.c.vehicle().post('/vehicle/compare', compareDto, headers);
+
+      this.logger.log('Vehicle comparison successful');
+      return result;
+    } catch (error) {
+      this.logger.error(' Error comparing vehicles:', error.message);
+      this.logger.error('Response:', error.response?.data);
+      throw new InternalServerErrorException('Failed to compare vehicles');
+    }
+  }
+  @Get(':id/compare-suggestions')
+  async getComparisonSuggestions(
+    @Param('id') id: string,
+    @Query('limit') limit?: string,
+    @Headers('authorization') auth?: string,
+  ) {
+    try {
+      this.logger.log(`Getting comparison suggestions for vehicle ID: ${id}`);
+
+      const queryParams = new URLSearchParams();
+      if (limit) queryParams.append('limit', limit);
+
+      const url = `/vehicle/${id}/compare-suggestions${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+
+      const config: any = {};
+      if (auth) {
+        config.headers = { authorization: auth };
+      }
+
+      const result = await this.c.vehicle().get(url, config);
+      this.logger.log(`Success, got ${result.data?.length || 0} suggestions`);
+      return result;
+    } catch (error) {
+      this.logger.error(` Error getting comparison suggestions for ${id}:`, error.message);
+      throw new InternalServerErrorException('Failed to get comparison suggestions');
     }
   }
 }
