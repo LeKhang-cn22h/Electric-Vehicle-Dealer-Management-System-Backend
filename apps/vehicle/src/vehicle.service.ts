@@ -14,12 +14,240 @@ interface SearchFilters {
   limit?: number;
 }
 
+// Interface cho kết quả so sánh
+export interface ComparisonResult {
+  vehicles: any[];
+  specs: any[];
+}
+
 @Injectable()
 export class VehicleService {
   private supabase;
 
   constructor() {
     this.supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
+  }
+
+  // ===========================
+  // TÍNH NĂNG SO SÁNH XE
+  // ===========================
+
+  /**
+   * So sánh nhiều xe với nhau
+   * @param vehicleIds - Mảng ID các xe cần so sánh
+   */
+  async compareVehicles(vehicleIds: number[]): Promise<ComparisonResult> {
+    console.log('[VehicleService] So sánh các xe với IDs:', vehicleIds);
+
+    // Kiểm tra số lượng xe
+    if (vehicleIds.length < 2) {
+      throw new BadRequestException('Cần ít nhất 2 xe để so sánh');
+    }
+    if (vehicleIds.length > 4) {
+      throw new BadRequestException('Chỉ có thể so sánh tối đa 4 xe');
+    }
+
+    // Lấy thông tin chi tiết của tất cả xe
+    const vehiclesPromises = vehicleIds.map((id) => this.getVehicleForComparison(id));
+    const vehicles = await Promise.all(vehiclesPromises);
+
+    // Kiểm tra nếu có xe không tồn tại
+    const validVehicles = vehicles.filter((vehicle) => vehicle !== null);
+    if (validVehicles.length !== vehicles.length) {
+      console.warn('[VehicleService] Một số xe không tồn tại đã được lọc bỏ');
+    }
+
+    if (validVehicles.length < 2) {
+      throw new BadRequestException('Không đủ xe hợp lệ để so sánh');
+    }
+
+    console.log('[VehicleService] So sánh thành công cho', validVehicles.length, 'xe');
+
+    return {
+      vehicles: validVehicles,
+      specs: this.generateComparisonSpecs(),
+    };
+  }
+
+  /**
+   * Lấy thông tin xe phục vụ cho việc so sánh
+   */
+  private async getVehicleForComparison(id: number): Promise<any> {
+    try {
+      console.log(`[VehicleService] Đang lấy thông tin xe ID: ${id} để so sánh`);
+
+      const { data, error } = await this.supabase
+        .schema('product')
+        .from('vehicle')
+        .select(
+          `
+          id,
+          name,
+          model,
+          version,
+          year,
+          engine,
+          power_hp,
+          fuel_consumption,
+          fuel_type,
+          transmission,
+          mileage,
+          color,
+          seats,
+          origin,
+          description,
+          status,
+          images(path, is_main)
+        `,
+        )
+        .eq('id', id)
+        .single();
+
+      if (error || !data) {
+        console.error(`[VehicleService] Không tìm thấy xe ID: ${id}`, error);
+        return null;
+      }
+
+      // Xử lý ảnh chính
+      let mainImageUrl = 'https://via.placeholder.com/400x300?text=Không+có+ảnh';
+
+      if (data.images) {
+        let mainImage: { path: string; is_main?: boolean } | null = null;
+
+        if (Array.isArray(data.images)) {
+          mainImage = data.images.find((img) => img?.is_main) || data.images[0];
+        } else if (data.images.path) {
+          mainImage = data.images;
+        }
+
+        if (mainImage?.path) {
+          const { data: urlData } = this.supabase.storage
+            .from('Vehicle')
+            .getPublicUrl(mainImage.path);
+          mainImageUrl = urlData.publicUrl;
+        }
+      }
+
+      // Format dữ liệu để phù hợp
+      const formattedVehicle = {
+        id: data.id,
+        name: data.name,
+        src: mainImageUrl,
+        // Các trường theo specs
+        version: data.version || '-',
+        model: data.model || '-',
+        year: data.year || '-',
+        engine: data.engine || '-',
+        power: data.power_hp ? `${data.power_hp} HP` : '-',
+        fuel: data.fuel_consumption ? `${data.fuel_consumption} L/100km` : data.fuel_type || '-',
+        // Các trường bổ sung có thể dùng để mở rộng
+        fuel_type: data.fuel_type || '-',
+        transmission: data.transmission || '-',
+        mileage: data.mileage ? `${data.mileage.toLocaleString()} km` : '-',
+        color: data.color || '-',
+        seats: data.seats ? `${data.seats} chỗ` : '-',
+        origin: data.origin || '-',
+        status: data.status || 'còn hàng',
+        description: data.description || '-',
+      };
+
+      console.log(`[VehicleService] Đã xử lý xe ID: ${id} - ${data.name}`);
+
+      return formattedVehicle;
+    } catch (error) {
+      console.error(`[VehicleService] Lỗi khi lấy thông tin xe ID: ${id}`, error);
+      return null;
+    }
+  }
+
+  private generateComparisonSpecs(): any[] {
+    // Theo đúng specs định nghĩa trong FE
+    return [
+      { label: 'Phiên bản', key: 'version' },
+      { label: 'Dòng xe', key: 'model' },
+      { label: 'Năm sản xuất', key: 'year' },
+      { label: 'Động cơ', key: 'engine' },
+      { label: 'Công suất (HP)', key: 'power' },
+      { label: 'Mức tiêu thụ nhiên liệu', key: 'fuel' },
+    ];
+  }
+
+  /**
+   * Lấy danh sách xe gợi ý để so sánh (cùng dòng xe)
+   */
+  async getComparisonSuggestions(vehicleId: number, limit = 5) {
+    console.log(`[VehicleService] Lấy xe gợi ý so sánh cho ID: ${vehicleId}`);
+
+    // Lấy thông tin xe hiện tại để biết dòng xe
+    const { data: currentVehicle, error } = await this.supabase
+      .schema('product')
+      .from('vehicle')
+      .select('model')
+      .eq('id', vehicleId)
+      .single();
+
+    if (error || !currentVehicle) {
+      throw new BadRequestException('Không tìm thấy xe');
+    }
+
+    // Lấy các xe cùng dòng (trừ xe hiện tại)
+    const { data: suggestions, error: suggestError } = await this.supabase
+      .schema('product')
+      .from('vehicle')
+      .select(
+        `
+        id,
+        name,
+        model,
+        version,
+        year,
+        images(path, is_main)
+      `,
+      )
+      .eq('model', currentVehicle.model)
+      .neq('id', vehicleId)
+      .eq('status', 'còn hàng')
+      .limit(limit);
+
+    if (suggestError) {
+      console.error('[VehicleService] Lỗi khi lấy xe gợi ý:', suggestError);
+      throw new BadRequestException(suggestError.message);
+    }
+
+    // Xử lý ảnh cho các xe gợi ý
+    const suggestionsWithImages = suggestions.map((vehicle) => {
+      let imageUrl = 'https://via.placeholder.com/200x150?text=Không+có+ảnh';
+
+      if (vehicle.images) {
+        let mainImage: { path: string; is_main?: boolean } | null = null;
+
+        if (Array.isArray(vehicle.images)) {
+          mainImage = vehicle.images.find((img) => img?.is_main) || vehicle.images[0];
+        } else if (vehicle.images.path) {
+          mainImage = vehicle.images;
+        }
+
+        if (mainImage?.path) {
+          const { data: urlData } = this.supabase.storage
+            .from('Vehicle')
+            .getPublicUrl(mainImage.path);
+          imageUrl = urlData.publicUrl;
+        }
+      }
+
+      return {
+        id: vehicle.id,
+        name: vehicle.name,
+        model: vehicle.model,
+        version: vehicle.version,
+        year: vehicle.year,
+        imageUrl,
+      };
+    });
+
+    console.log(`[VehicleService] Tìm thấy ${suggestionsWithImages.length} xe gợi ý`);
+
+    return suggestionsWithImages;
   }
 
   async findAll(filters?: SearchFilters) {
@@ -30,8 +258,8 @@ export class VehicleService {
 
     // Log riêng khi SEARCH
     if (keyword) {
-      console.log('[VehicleService] 🔎 SEARCH MODE ENABLED');
-      console.log('[VehicleService] 🔎 Keyword received:', keyword);
+      console.log('[VehicleService] SEARCH MODE ENABLED');
+      console.log('[VehicleService] Keyword received:', keyword);
     }
 
     let req = this.supabase
@@ -59,7 +287,7 @@ export class VehicleService {
     // ===========================
     if (keyword) {
       const orQuery = `name.ilike.%${keyword}%,model.ilike.%${keyword}%,version.ilike.%${keyword}%`;
-      console.log('[VehicleService] 🔎 Applying keyword filter:', orQuery);
+      console.log('[VehicleService] Applying keyword filter:', orQuery);
 
       req = req.or(orQuery);
     }
@@ -82,18 +310,18 @@ export class VehicleService {
       req = req.gt('id', cursor);
     }
 
-    console.log('[VehicleService] 🔎 Executing SQL request now...');
+    console.log('[VehicleService] Executing SQL request now...');
 
     const { data, error, count } = await req;
 
     if (error) {
-      console.error('[VehicleService] ❌ Query error:', error);
+      console.error('[VehicleService] Query error:', error);
       throw new BadRequestException(error.message);
     }
 
-    console.log('[VehicleService] 🔎 Query executed successfully');
-    console.log('[VehicleService] 🔎 Total rows returned:', data?.length);
-    console.log('[VehicleService] 🔎 Total matches (count):', count);
+    console.log('[VehicleService] Query executed successfully');
+    console.log('[VehicleService] Total rows returned:', data?.length);
+    console.log('[VehicleService] Total matches (count):', count);
 
     if (!data || data.length === 0) {
       console.warn('[VehicleService] ⚠ No vehicles matched your search.');
@@ -142,7 +370,7 @@ export class VehicleService {
       };
     });
 
-    console.log('[VehicleService] ✅ Processed', vehiclesWithUrl.length, 'vehicles');
+    console.log('[VehicleService] Processed', vehiclesWithUrl.length, 'vehicles');
 
     return {
       data: vehiclesWithUrl,
@@ -289,7 +517,7 @@ export class VehicleService {
     }
 
     const vehicleId = vehicleRes.id;
-    console.log('[VehicleService] ✅ Vehicle created with ID:', vehicleId);
+    console.log('[VehicleService] Vehicle created with ID:', vehicleId);
 
     // 3️⃣ Upload & insert images (từ multer files, KHÔNG dùng images từ JSON)
     if (images && images.length > 0) {
@@ -360,7 +588,7 @@ export class VehicleService {
       console.log('[VehicleService] Features inserted successfully');
     }
 
-    console.log('[VehicleService] ✅ Vehicle created successfully with ID:', vehicleId);
+    console.log('[VehicleService] Vehicle created successfully with ID:', vehicleId);
 
     return {
       success: true,
@@ -389,7 +617,7 @@ export class VehicleService {
       throw new BadRequestException(updateError.message);
     }
 
-    console.log('[VehicleService] ✅ Vehicle updated');
+    console.log('[VehicleService] Vehicle updated');
 
     // 2️⃣ Update images (nếu có upload mới)
     if (images && images.length > 0) {
@@ -478,7 +706,7 @@ export class VehicleService {
       console.log('[VehicleService] Features updated successfully');
     }
 
-    console.log('[VehicleService] ✅ Vehicle updated successfully, ID:', id);
+    console.log('[VehicleService] Vehicle updated successfully, ID:', id);
 
     return { message: 'Updated successfully', id };
   }
