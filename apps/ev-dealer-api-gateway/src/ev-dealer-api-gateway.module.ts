@@ -15,7 +15,7 @@ import { GatewayDealerAgreementController } from './routes/gateway-dealer-agreem
 import { slidingWindow } from './middlewares/rateLimiter';
 import { GatewaySalesController } from './routes/gateway-sales.controller';
 @Module({
-  imports: [HttpModule.register({ timeout: 8000 })],
+  imports: [HttpModule.register({ timeout: 160000 })],
   providers: [ServiceClients],
   controllers: [
     GatewayAuthController,

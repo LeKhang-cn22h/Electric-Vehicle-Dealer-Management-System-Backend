@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import * as dotenv from 'dotenv';
 import { VehicleCreateDto } from './DTO/vehicle_create.dto';
 import { VehicleUpdateDto } from './DTO/vehicle_update.dto';
+import { AmqpConnection } from '@golevelup/nestjs-rabbitmq';
 
 dotenv.config();
 
@@ -24,10 +25,20 @@ export interface ComparisonResult {
 export class VehicleService {
   private supabase;
 
-  constructor() {
+  constructor(private readonly amqpConnection: AmqpConnection) {
     this.supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
   }
 
+  async getVehicleWithPrice(vehicleId: number) {
+    const response = await this.amqpConnection.request<{ vehicleId: number; price: number }>({
+      exchange: 'vehicle_exchange',
+      routingKey: 'price.request',
+      payload: { vehicleId },
+      timeout: 160000,
+    });
+    const vehicle = await this.findOne(vehicleId);
+    return { ...vehicle, price: response.price };
+  }
   // ===========================
   // TÍNH NĂNG SO SÁNH XE
   // ===========================
