@@ -181,4 +181,60 @@ export class GatewayUsersController {
       authorization: auth,
     });
   }
+
+  @Get('evm-staff')
+  async listEvmStaff(@Headers('authorization') auth: string) {
+    if (!auth) throw new BadRequestException('Missing Authorization header');
+
+    return this.c.users().get('/users/evm-staff', {
+      authorization: auth,
+    });
+  }
+
+  // Cập nhật thông tin EVM staff
+  @Put('evm-staff/:id')
+  async updateEvmStaff(
+    @Param('id') id: string,
+    @Body()
+    body: {
+      full_name?: string;
+      phone?: string;
+      dealer_id?: string | null;
+    },
+    @Headers('authorization') auth: string,
+  ) {
+    if (!auth) throw new BadRequestException('Missing Authorization header');
+
+    return this.c.users().put(`/users/evm-staff/${id}`, body, {
+      authorization: auth,
+    });
+  }
+
+  // Khóa EVM staff
+  @Post('evm-staff/:id/lock')
+  async lockEvmStaff(@Param('id') id: string, @Headers('authorization') auth: string) {
+    if (!auth) throw new BadRequestException('Missing Authorization header');
+
+    return this.c.users().post(
+      `/users/evm-staff/${id}/lock`,
+      {},
+      {
+        authorization: auth,
+      },
+    );
+  }
+
+  // Mở khóa EVM staff
+  @Post('evm-staff/:id/unlock')
+  async unlockEvmStaff(@Param('id') id: string, @Headers('authorization') auth: string) {
+    if (!auth) throw new BadRequestException('Missing Authorization header');
+
+    return this.c.users().post(
+      `/users/evm-staff/${id}/unlock`,
+      {},
+      {
+        authorization: auth,
+      },
+    );
+  }
 }

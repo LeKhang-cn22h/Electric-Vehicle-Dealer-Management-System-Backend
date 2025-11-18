@@ -107,6 +107,7 @@ export class UsersController {
   async deleteDealer(@Param('id') id: string) {
     return this.usersService.deleteDealer(id);
   }
+
   @Get('dealer-staff')
   async listDealerStaff(@Req() req) {
     const token = this.extractToken(req);
@@ -146,5 +147,36 @@ export class UsersController {
   async deleteDealerStaff(@Req() req, @Param('id') id: string) {
     const token = this.extractToken(req);
     return this.usersService.deleteDealerStaff(token, id);
+  }
+
+  @Get('evm-staff')
+  async listEvmStaff() {
+    return this.usersService.listEvmStaff();
+  }
+
+  // Cập nhật thông tin EVM staff
+  @Put('evm-staff/:id')
+  async updateEvmStaff(
+    @Param('id') id: string,
+    @Body()
+    body: {
+      full_name?: string;
+      phone?: string;
+      dealer_id?: string | null;
+    },
+  ) {
+    return this.usersService.updateEvmStaff(id, body);
+  }
+
+  // Khóa EVM staff
+  @Post('evm-staff/:id/lock')
+  async lockEvmStaff(@Param('id') id: string) {
+    return this.usersService.lockEvmStaff(id);
+  }
+
+  // Mở khóa EVM staff
+  @Post('evm-staff/:id/unlock')
+  async unlockEvmStaff(@Param('id') id: string) {
+    return this.usersService.unlockEvmStaff(id);
   }
 }
