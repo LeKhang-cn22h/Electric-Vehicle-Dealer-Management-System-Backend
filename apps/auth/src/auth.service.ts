@@ -39,21 +39,38 @@ export class AuthService {
     if (!dto.email || !dto.password) {
       throw new BadRequestException('Email and password are required');
     }
-
-    const metadata: Record<string, string> = {};
-
-    if (
-      dto.role &&
-      ['admin', 'evm_staff', 'dealer_manager', 'dealer_staff', 'customer'].includes(dto.role)
-    ) {
-      metadata.role = dto.role;
-    }
-
+    const role = dto.role || 'customer';
+    const metadata: Record<string, any> = {
+      role,
+    };
     if (dto.username) metadata.username = dto.username;
     if (dto.phone) metadata.phone = dto.phone;
     if (dto.full_name) metadata.full_name = dto.full_name;
-    metadata.dealer_id = dto.dealer_id || '';
+    if (dto.dealer_id) metadata.dealer_id = dto.dealer_id;
 
+    if (['evm_staff', 'dealer_manager', 'dealer_staff'].includes(role)) {
+      if (!this.admin) {
+        throw new BadRequestException('No SERVICE_ROLE_KEY on server');
+      }
+
+      const { data, error } = await this.admin.auth.admin.createUser({
+        email: dto.email,
+        password: dto.password,
+        email_confirm: true,
+        user_metadata: metadata,
+      });
+
+      if (error) {
+        throw new BadRequestException(error.message);
+      }
+
+      return {
+        user: data.user,
+        requires_confirm: false,
+      };
+    }
+
+    //  customer (hoặc role khác mặc định) => signUp dùng anon
     const { error, data } = await this.supabase.client.auth.signUp({
       email: dto.email,
       password: dto.password,

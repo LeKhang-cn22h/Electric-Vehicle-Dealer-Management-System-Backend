@@ -18,6 +18,21 @@ import { ParseFilePipe, MaxFileSizeValidator, FileTypeValidator } from '@nestjs/
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
+  private extractToken(req: any): string {
+    const authHeader = req.headers['authorization'] || req.headers['Authorization'];
+
+    if (!authHeader) {
+      throw new BadRequestException('Missing Authorization header');
+    }
+
+    const token = authHeader.toString().replace('Bearer ', '').trim();
+
+    if (!token) {
+      throw new BadRequestException('Invalid Authorization header');
+    }
+
+    return token;
+  }
 
   @Put('profile')
   @UseInterceptors(FileInterceptor('avatar'))
@@ -91,5 +106,77 @@ export class UsersController {
   @Delete('dealers/:id')
   async deleteDealer(@Param('id') id: string) {
     return this.usersService.deleteDealer(id);
+  }
+
+  @Get('dealer-staff')
+  async listDealerStaff(@Req() req) {
+    const token = this.extractToken(req);
+    return this.usersService.listDealerStaff(token);
+  }
+
+  @Post('dealer-staff')
+  async createDealerStaff(
+    @Req() req,
+    @Body()
+    body: {
+      full_name: string;
+      email: string;
+      phone?: string;
+      password: string;
+    },
+  ) {
+    const token = this.extractToken(req);
+    return this.usersService.createDealerStaff(token, body);
+  }
+
+  @Put('dealer-staff/:id')
+  async updateDealerStaff(
+    @Req() req,
+    @Param('id') id: string,
+    @Body()
+    body: {
+      full_name?: string;
+      phone?: string;
+    },
+  ) {
+    const token = this.extractToken(req);
+    return this.usersService.updateDealerStaff(token, id, body);
+  }
+
+  @Delete('dealer-staff/:id')
+  async deleteDealerStaff(@Req() req, @Param('id') id: string) {
+    const token = this.extractToken(req);
+    return this.usersService.deleteDealerStaff(token, id);
+  }
+
+  @Get('evm-staff')
+  async listEvmStaff() {
+    return this.usersService.listEvmStaff();
+  }
+
+  // Cập nhật thông tin EVM staff
+  @Put('evm-staff/:id')
+  async updateEvmStaff(
+    @Param('id') id: string,
+    @Body()
+    body: {
+      full_name?: string;
+      phone?: string;
+      dealer_id?: string | null;
+    },
+  ) {
+    return this.usersService.updateEvmStaff(id, body);
+  }
+
+  // Khóa EVM staff
+  @Post('evm-staff/:id/lock')
+  async lockEvmStaff(@Param('id') id: string) {
+    return this.usersService.lockEvmStaff(id);
+  }
+
+  // Mở khóa EVM staff
+  @Post('evm-staff/:id/unlock')
+  async unlockEvmStaff(@Param('id') id: string) {
+    return this.usersService.unlockEvmStaff(id);
   }
 }
