@@ -7,15 +7,46 @@ import { UpdatePriceDto } from './dto/update-price.dto';
 import { CreatePromotionDto } from './dto/create-promotion.dto';
 import { Promotion } from './entity/promotion.entity';
 import { UpdatePromotionDto } from './dto/update-promotion.dto';
+import { RabbitRPC } from '@golevelup/nestjs-rabbitmq';
+
 @Injectable()
 export class PricingPromotionService {
   constructor(
     @Inject('SUPABASE_CLIENT')
     private readonly supabase: SupabaseClient,
   ) {}
+  @RabbitRPC({
+    exchange: 'vehicle_exchange', // Exchange để nhận message
+    routingKey: 'price.request', // Routing key để filter message
+    queue: 'price_request_queue', // Queue để message tồn tại nếu consumer offline
+  })
+  public async handlePriceRequest(msg: { vehicleId: number | string }) {
+    console.log('Received price request:', msg);
+    const price = await this.getPrice(msg.vehicleId.toString());
+    return { ...msg, price };
+  }
 
+  private async getPrice(vehicleId: string): Promise<number> {
+    const { data, error } = await this.supabase
+      .schema('sales')
+      .from('prices')
+      .select('discounted_price')
+      .eq('product_id', vehicleId);
+
+    if (error) {
+      console.error('Error fetching price:', error);
+      throw new Error(`Failed to fetch price: ${error.message}`);
+    }
+
+    if (!data || data.length === 0) {
+      console.warn(`No price found for vehicleId: ${vehicleId}`);
+      throw new NotFoundException(`Price not found for vehicleId: ${vehicleId}`);
+    }
+
+    // Trả về discounted_price của bản ghi đầu tiên
+    return data[0].discounted_price;
+  }
   /* ---------------- PRICE ---------------- */
-
   async createPrice(dto: CreatePriceDto): Promise<Price> {
     const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
     const newPrice: Price = {
