@@ -32,6 +32,7 @@
     "start:dealer-agreement": "nest build dealer-agreement-service"
   },
   "dependencies": {
+    "@golevelup/nestjs-rabbitmq": "^6.0.2",
     "@nestjs/axios": "^4.0.1",
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^4.0.2",
