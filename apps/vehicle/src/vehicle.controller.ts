@@ -67,7 +67,7 @@ export class VehicleController {
     if (isNaN(vehicleId)) {
       throw new BadRequestException('Invalid vehicle ID');
     }
-    return this.vehicleService.findOne(vehicleId);
+    return this.vehicleService.getVehicleWithPrice(vehicleId);
   }
 
   // -------------------------------
