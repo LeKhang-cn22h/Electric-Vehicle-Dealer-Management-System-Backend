@@ -8,11 +8,8 @@ export class OrderController {
   constructor(private readonly orderService: OrderService) {}
 
   //Tạo đơn hàng từ báo giá
-  @Post('from-quotation/:quotationId')
-  async createFromQuotation(
-    @Param('quotationId') quotationId: string,
-    @Body() createOrdertion: CreateOrderDto,
-  ): Promise<Order> {
+  @Post()
+  async createFromQuotation(@Body() createOrdertion: CreateOrderDto): Promise<Order> {
     return this.orderService.createFromQuotation(createOrdertion);
   }
 

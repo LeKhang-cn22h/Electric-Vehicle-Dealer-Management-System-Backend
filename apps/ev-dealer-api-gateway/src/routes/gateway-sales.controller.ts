@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Put, Delete, Patch } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Delete, Patch } from '@nestjs/common';
 import { ServiceClients } from '../service-clients';
 
 @Controller('sales')
@@ -8,24 +8,24 @@ export class GatewaySalesController {
   // ------------------------------
   // PRICING
   // ------------------------------
-  @Get('pricing')
+  @Get('price')
   findAllPricing() {
-    return this.c.sales().get('/pricing');
+    return this.c.sales().get('/pricing-promotion/price');
   }
 
-  @Post('pricing')
+  @Post('price')
   createPricing(@Body() body: any) {
-    return this.c.sales().post('/pricing', body);
+    return this.c.sales().post('/pricing-promotion/price', body);
   }
 
-  @Put('pricing/:id')
+  @Patch('price/:id')
   updatePricing(@Param('id') id: string, @Body() body: any) {
-    return this.c.sales().put(`/pricing/${id}`, body);
+    return this.c.sales().put(`/pricing-promotion/price/${id}`, body);
   }
 
-  @Delete('pricing/:id')
+  @Delete('price/:id')
   deletePricing(@Param('id') id: string) {
-    return this.c.sales().delete(`/pricing/${id}`);
+    return this.c.sales().delete(`/pricing-promotion/price/${id}`);
   }
 
   // ------------------------------
@@ -33,27 +33,27 @@ export class GatewaySalesController {
   // ------------------------------
   @Get('promotions')
   findAllPromotions() {
-    return this.c.sales().get('/promotions');
+    return this.c.sales().get('/pricing-promotion/promotion');
   }
 
   @Get('promotions/:id')
   findOnePromotion(@Param('id') id: string) {
-    return this.c.sales().get(`/promotions/${id}`);
+    return this.c.sales().get(`/pricing-promotion/promotion/${id}`);
   }
 
   @Post('promotions')
   createPromotion(@Body() body: any) {
-    return this.c.sales().post('/promotions', body);
+    return this.c.sales().post('/pricing-promotion/promotion', body);
   }
 
-  @Put('promotions/:id')
+  @Patch('promotions/:id')
   updatePromotion(@Param('id') id: string, @Body() body: any) {
-    return this.c.sales().put(`/promotions/${id}`, body);
+    return this.c.sales().put(`/pricing-promotion/promotion/${id}`, body);
   }
 
   @Delete('promotions/:id')
   deletePromotion(@Param('id') id: string) {
-    return this.c.sales().delete(`/promotions/${id}`);
+    return this.c.sales().delete(`/pricing-promotion/promotion/${id}`);
   }
 
   // ------------------------------
@@ -102,7 +102,7 @@ export class GatewaySalesController {
     return this.c.sales().post('/orders', body);
   }
 
-  @Put('orders/:id')
+  @Patch('orders/:id')
   updateOrder(@Param('id') id: string, @Body() body: any) {
     return this.c.sales().put(`/orders/${id}`, body);
   }
@@ -130,7 +130,7 @@ export class GatewaySalesController {
     return this.c.sales().post('/contracts', body);
   }
 
-  @Put('contracts/:id')
+  @Patch('contracts/:id')
   updateContract(@Param('id') id: string, @Body() body: any) {
     return this.c.sales().put(`/contracts/${id}`, body);
   }
