@@ -6,5 +6,6 @@ import { PricingPromotionController } from './pricing-promotion.controller';
   imports: [],
   controllers: [PricingPromotionController],
   providers: [PricingPromotionService],
+  exports: [PricingPromotionService],
 })
 export class PricingPromotionModule {}

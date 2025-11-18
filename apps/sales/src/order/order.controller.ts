@@ -1,15 +1,16 @@
 import { Controller, Get, Post, Param, Patch, Delete, Body } from '@nestjs/common';
 import { OrderService } from './order.service';
 import { Order } from './entity/order.entity';
+import { CreateOrderDto } from './dto/create-order.dto';
 
 @Controller('orders')
 export class OrderController {
   constructor(private readonly orderService: OrderService) {}
 
   //Tạo đơn hàng từ báo giá
-  @Post('from-quotation/:quotationId')
-  async createFromQuotation(@Param('quotationId') quotationId: string): Promise<Order> {
-    return this.orderService.createFromQuotation(quotationId);
+  @Post()
+  async createFromQuotation(@Body() createOrdertion: CreateOrderDto): Promise<Order> {
+    return this.orderService.createFromQuotation(createOrdertion);
   }
 
   //Lấy tất cả đơn hàng

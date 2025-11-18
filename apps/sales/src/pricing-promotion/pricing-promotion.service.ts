@@ -160,7 +160,7 @@ export class PricingPromotionService {
       .schema('sales')
       .from('promotions')
       .select('*')
-      .eq('id', id)
+      .or(`id.eq.${id},code.eq.${id}`)
       .single();
 
     if (error || !data) throw new NotFoundException('Promotion not found');

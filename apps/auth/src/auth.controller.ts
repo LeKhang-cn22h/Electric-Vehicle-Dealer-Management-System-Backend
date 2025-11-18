@@ -50,7 +50,6 @@ export class AuthController {
     }
     return this.authService.changePassword(token, body);
   }
-
   @Post('forgot-password')
   forgotPassword(@Body() dto: ForgotPasswordDto) {
     return this.authService.forgotPassword(dto.email);
@@ -59,5 +58,10 @@ export class AuthController {
   @Post('reset-password')
   resetPassword(@Body() dto: ResetPasswordDto) {
     return this.authService.resetPassword(dto.accessToken, dto.newPassword);
+  }
+
+  @Post('signup-admin')
+  signupAdmin(@Body() dto: { email: string; password: string; fullName?: string }) {
+    return this.authService.signupAdmin(dto);
   }
 }

@@ -144,6 +144,11 @@ export class ServiceClients {
     return this.base(url);
   }
 
+  sales(): ServiceClient {
+    const url = process.env.SALES_SERVICE_URL || 'http://localhost:4007';
+    return this.base(url);
+  }
+
   ar(): ServiceClient {
     return this.base(process.env.AR_SERVICE_URL || 'http://localhost:4400');
   }

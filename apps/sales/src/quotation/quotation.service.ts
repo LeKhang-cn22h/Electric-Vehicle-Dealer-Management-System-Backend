@@ -3,21 +3,47 @@ import { CreateQuotationDto } from './dto/create-quotation.dto';
 import { Quotation } from './entity/quotation.entity';
 import { v4 as uuid } from 'uuid';
 import { SupabaseClient } from '@supabase/supabase-js';
-import { CreateOrderDto } from '../order/dto/create-order.dto';
+import { PricingPromotionService } from '../pricing-promotion/pricing-promotion.service';
 
 @Injectable()
 export class QuotationService {
   constructor(
     @Inject('SUPABASE_CLIENT')
     private readonly supabase: SupabaseClient,
+    private readonly pricingPromotionService: PricingPromotionService,
   ) {}
 
   //Tạo báo giá
   async create(createQuote: CreateQuotationDto): Promise<Quotation> {
-    const totalAmount = createQuote.items.reduce(
+    // Tổng tiền sản phẩm
+    const subtotal = createQuote.items.reduce(
       (sum, item) => sum + item.unitPrice * item.quantity,
       0,
     );
+
+    // Tiền giảm giá từ khuyến mãi
+    let discountAmount = 0;
+    if (createQuote.promotionCode) {
+      const promotion = await this.pricingPromotionService.findOnePromotion(
+        createQuote.promotionCode,
+      );
+
+      if (promotion) {
+        if (promotion.discountType === 'percent') {
+          discountAmount = subtotal * promotion.discountValue;
+        } else if (promotion.discountType === 'amount') {
+          discountAmount = promotion.discountValue;
+        }
+      }
+    }
+    const subtotalAfterDiscount = subtotal - discountAmount;
+
+    // Tiền VAT
+    let vatAmount = 0;
+    if (createQuote.vatRate) vatAmount = subtotalAfterDiscount * createQuote.vatRate;
+
+    // Tổng tiền phải trả
+    const totalAmount = subtotalAfterDiscount + vatAmount;
 
     const quotationId = uuid();
     const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
@@ -32,6 +58,8 @@ export class QuotationService {
           customer_id: createQuote.customerId,
           created_by: createQuote.createdBy,
           total_amount: totalAmount,
+          promotion_code: createQuote.promotionCode || null,
+          discount_amount: discountAmount,
           note: createQuote.note,
           status: 'draft',
           created_at: now.toISOString(),
@@ -66,6 +94,8 @@ export class QuotationService {
       createdBy: createQuote.createdBy,
       items: createQuote.items,
       totalAmount,
+      promotionCode: createQuote.promotionCode || null,
+      discountAmount,
       note: createQuote.note,
       status: 'draft',
       createdAt: now,
@@ -192,6 +222,8 @@ export class QuotationService {
         note: updateData.note,
         status: updateData.status,
         total_amount: updateData.totalAmount,
+        promotion_code: updateData.promotionCode || null,
+        discount_amount: updateData.discountAmount,
         updated_at: updatedAt.toISOString(),
       })
       .eq('id', id)
@@ -200,10 +232,7 @@ export class QuotationService {
 
     if (error) throw new Error(`Supabase update error: ${error.message}`);
 
-    //Lấy lại bản ghi sau khi cập nhật (gồm items)
-    const quotation = await this.findOne(id);
-
-    return quotation;
+    return data;
   }
 
   //Xoá báo giá
@@ -231,58 +260,6 @@ export class QuotationService {
     }
   }
 
-  async convertToOrder(quotationId: string): Promise<CreateOrderDto> {
-    const quotation = await this.findOne(quotationId);
-    if (!quotation) throw new NotFoundException('Quotation not found');
-
-    const newOrder: CreateOrderDto = {
-      quotationId: quotation.id,
-      customerId: quotation.customerId,
-      createdBy: quotation.createdBy,
-      items: quotation.items,
-      totalAmount: quotation.totalAmount,
-      note: quotation.note,
-      status: 'pending',
-    };
-
-    const { error: insertError } = await this.supabase
-      .schema('sales')
-      .from('orders')
-      .insert([
-        {
-          id: uuid(),
-          quotation_id: newOrder.quotationId,
-          customer_id: newOrder.customerId,
-          created_by: newOrder.createdBy,
-          items: newOrder.items,
-          total_amount: newOrder.totalAmount,
-          note: newOrder.note,
-          status: newOrder.status,
-          created_at: new Date(
-            new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }),
-          ).toISOString(),
-          updated_at: new Date(
-            new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }),
-          ).toISOString(),
-        },
-      ]);
-
-    if (insertError) throw new Error(`Failed to create order: ${insertError.message}`);
-
-    await this.supabase
-      .schema('sales')
-      .from('quotations')
-      .update({
-        status: 'converted',
-        updated_at: new Date(
-          new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }),
-        ).toISOString(),
-      })
-      .eq('id', quotationId);
-
-    return newOrder;
-  }
-
   //Hàm helper: map dữ liệu từ DB về entity
   private mapRowToQuotation(row: any): Quotation {
     return {
@@ -291,6 +268,8 @@ export class QuotationService {
       createdBy: row.created_by,
       items: row.items,
       totalAmount: row.total_amount,
+      promotionCode: row.promotion_code,
+      discountAmount: row.discount_amount,
       note: row.note,
       status: row.status,
       createdAt: new Date(row.created_at),

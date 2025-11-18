@@ -1,19 +1,6 @@
 import { IsString, IsArray, IsNumber, ValidateNested, IsOptional, IsUUID } from 'class-validator';
 import { Type } from 'class-transformer';
-
-class QuotationItemDto {
-  @IsUUID()
-  productId: string;
-
-  @IsString()
-  productName: string;
-
-  @IsNumber()
-  unitPrice: number;
-
-  @IsNumber()
-  quantity: number;
-}
+import { QuotationItemDto } from './quotation-item.dto';
 
 export class CreateQuotationDto {
   @IsUUID()
@@ -28,6 +15,18 @@ export class CreateQuotationDto {
   items: QuotationItemDto[];
 
   @IsOptional()
+  @IsNumber()
+  vatRate?: number; // mặc định 0.1 (10%)
+
+  @IsOptional()
   @IsString()
   note?: string;
+
+  @IsOptional()
+  @IsString()
+  promotionCode?: string;
+
+  // @IsOptional()
+  // @IsNumber()
+  // discountAmount?: number;
 }

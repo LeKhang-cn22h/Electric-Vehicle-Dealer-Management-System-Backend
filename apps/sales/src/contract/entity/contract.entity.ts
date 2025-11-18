@@ -1,6 +1,7 @@
 export class Contract {
   id: string;
   contractNumber: string;
+  orderId: string;
   dealerId: string;
   description?: string;
   contractValue: number;

@@ -12,26 +12,62 @@ export class ContractsService {
     private readonly supabase: SupabaseClient,
   ) {}
 
+  // Generate code kiểu: CT-2025-00001
+  private async generateContractNumber(): Promise<string> {
+    const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
+    const date = now.toISOString().slice(0, 10).replace(/-/g, ''); // YYYYMMDD
+
+    // Lấy tất cả contract của ngày hôm nay
+    const { data, error } = await this.supabase
+      .schema('sales')
+      .from('contracts')
+      .select('id', { count: 'exact', head: true })
+      .gte('created_at', `${now.toISOString().slice(0, 10)}T00:00:00+07:00`)
+      .lte('created_at', `${now.toISOString().slice(0, 10)}T23:59:59+07:00`);
+
+    if (error) throw new Error('Cannot generate contract number');
+
+    const nextNumber = ((data?.length || 0) + 1).toString().padStart(4, '0');
+
+    return `CT-${date}-${nextNumber}`;
+  }
+
   async create(dto: CreateContractDto): Promise<Contract> {
     const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
 
+    // Lấy Order từ DB
+    const { data: order, error: orderError } = await this.supabase
+      .schema('sales')
+      .from('orders')
+      .select('*')
+      .eq('id', dto.orderId)
+      .single();
+
+    if (orderError || !order) throw new NotFoundException('Order not found');
+
+    // Tạo contractNumber tự động
+    const contractNumber = await this.generateContractNumber();
+
     const newContract: Contract = {
       id: uuid(),
-      contractNumber: dto.contractNumber,
-      dealerId: dto.dealerId,
+      orderId: dto.orderId,
+      contractNumber,
+      dealerId: order.dealer_id,
       description: dto.description,
-      contractValue: dto.contractValue,
-      startDate: new Date(dto.startDate),
+      contractValue: order.total_amount,
+      startDate: dto.startDate ? new Date(dto.startDate) : now,
       endDate: dto.endDate ? new Date(dto.endDate) : null,
       createdAt: now,
       updatedAt: now,
     };
 
+    // Insert vào DB
     const { error } = await this.supabase
       .schema('sales')
       .from('contracts')
       .insert({
         id: newContract.id,
+        order_id: newContract.orderId,
         contract_number: newContract.contractNumber,
         dealer_id: newContract.dealerId,
         description: newContract.description,
@@ -43,6 +79,7 @@ export class ContractsService {
       });
 
     if (error) throw new Error(error.message);
+
     return newContract;
   }
 
@@ -68,18 +105,13 @@ export class ContractsService {
   async update(id: string, dto: UpdateContractDto): Promise<Contract> {
     const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
 
-    const updateData = {
-      contract_number: dto.contractNumber,
-      dealer_id: dto.dealerId,
+    const updateData: any = {
       description: dto.description,
-      contract_value: dto.contractValue,
-      start_date: dto.startDate,
-      end_date: dto.endDate,
       updated_at: now.toISOString(),
     };
 
-    if (dto.startDate) updateData['start_date'] = new Date(dto.startDate).toISOString();
-    if (dto.endDate) updateData['end_date'] = new Date(dto.endDate).toISOString();
+    if (dto.startDate) updateData.start_date = new Date(dto.startDate).toISOString();
+    if (dto.endDate) updateData.end_date = new Date(dto.endDate).toISOString();
 
     const { data, error } = await this.supabase
       .schema('sales')
@@ -109,6 +141,7 @@ export class ContractsService {
   private mapRow(row: any): Contract {
     return {
       id: row.id,
+      orderId: row.order_id,
       contractNumber: row.contract_number,
       dealerId: row.dealer_id,
       description: row.description,
