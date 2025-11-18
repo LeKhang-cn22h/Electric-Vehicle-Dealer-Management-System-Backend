@@ -128,4 +128,57 @@ export class GatewayUsersController {
       authorization: auth,
     });
   }
+
+  @Get('dealer-staff')
+  async listDealerStaff(@Headers('authorization') auth: string) {
+    if (!auth) throw new BadRequestException('Missing Authorization header');
+
+    return this.c.users().get('/users/dealer-staff', {
+      authorization: auth,
+    });
+  }
+
+  @Post('dealer-staff')
+  async createDealerStaff(
+    @Body()
+    body: {
+      full_name: string;
+      email: string;
+      phone?: string;
+      password: string;
+    },
+    @Headers('authorization') auth: string,
+  ) {
+    if (!auth) throw new BadRequestException('Missing Authorization header');
+
+    return this.c.users().post('/users/dealer-staff', body, {
+      authorization: auth,
+    });
+  }
+
+  @Put('dealer-staff/:id')
+  async updateDealerStaff(
+    @Param('id') id: string,
+    @Body()
+    body: {
+      full_name?: string;
+      phone?: string;
+    },
+    @Headers('authorization') auth: string,
+  ) {
+    if (!auth) throw new BadRequestException('Missing Authorization header');
+
+    return this.c.users().put(`/users/dealer-staff/${id}`, body, {
+      authorization: auth,
+    });
+  }
+
+  @Delete('dealer-staff/:id')
+  async deleteDealerStaff(@Param('id') id: string, @Headers('authorization') auth: string) {
+    if (!auth) throw new BadRequestException('Missing Authorization header');
+
+    return this.c.users().delete(`/users/dealer-staff/${id}`, {
+      authorization: auth,
+    });
+  }
 }
