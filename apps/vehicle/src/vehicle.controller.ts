@@ -16,7 +16,8 @@ import {
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { VehicleService } from './vehicle.service';
 import { VehicleCompareDto } from './DTO/vehicle_compare.dto';
-import { DefaultValuePipe } from '@nestjs/common/pipes/default-value.pipe';
+import { CreateVehicleUnitDTO } from './DTO/vehicle_create.dto';
+
 @Controller('vehicle')
 export class VehicleController {
   constructor(private readonly vehicleService: VehicleService) {}
@@ -154,5 +155,18 @@ export class VehicleController {
   async compareVehicles(@Body() compareDto: VehicleCompareDto) {
     console.log('Endpoint so sánh xe được gọi với dữ liệu:', compareDto);
     return this.vehicleService.compareVehicles(compareDto.vehicleIds);
+  }
+  @Get(':id/similar')
+  getSimilar(@Param('id') id: number) {
+    return this.vehicleService.getSimilarVehicles(id);
+  }
+
+  @Get('new-arrivals')
+  getNewArrivals() {
+    return this.vehicleService.getNewArrivals();
+  }
+  @Post('VUnit')
+  async createVehicleUnit(@Body() dto: CreateVehicleUnitDTO) {
+    return this.vehicleService.createVehicleUnit(dto);
   }
 }
