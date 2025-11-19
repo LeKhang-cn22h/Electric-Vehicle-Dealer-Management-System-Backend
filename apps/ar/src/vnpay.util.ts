@@ -1,20 +1,27 @@
 import * as crypto from 'crypto';
 import * as qs from 'qs';
 
+// sort + encode giống đúng demo VNPay
 export function vnpaySortObject(obj: Record<string, any>) {
   const sorted: Record<string, any> = {};
-  Object.keys(obj)
-    .sort()
-    .forEach((k) => {
-      sorted[k] = obj[k];
-    });
+  const keys = Object.keys(obj).sort();
+
+  keys.forEach((key) => {
+    // encode value, đổi %20 => +
+    sorted[key] = encodeURIComponent(String(obj[key])).replace(/%20/g, '+');
+  });
+
   return sorted;
 }
 
 export function vnpaySign(params: Record<string, any>, secret: string) {
+  // luôn sort + encode trước khi ký
   const sorted = vnpaySortObject(params);
-  const signData = qs.stringify(sorted, { encode: true });
-  return crypto.createHmac('sha512', secret).update(signData, 'utf-8').digest('hex');
+  const signData = qs.stringify(sorted, { encode: false });
+
+  console.log('VNPAY signData =', signData);
+
+  return crypto.createHmac('sha512', secret).update(Buffer.from(signData, 'utf-8')).digest('hex');
 }
 
 export function buildVnpCreateParams(input: {
@@ -52,15 +59,31 @@ export function buildVnpCreateParams(input: {
     vnp_IpAddr: input.clientIp,
     vnp_CreateDate,
   };
-  if (input.bankCode) base['vnp_BankCode'] = input.bankCode;
-  if (input.ipnUrl) base['vnp_Url'] = input.ipnUrl;
 
-  return vnpaySortObject(base);
+  if (input.bankCode) base['vnp_BankCode'] = input.bankCode;
+  if (input.ipnUrl) base['vnp_IpnUrl'] = input.ipnUrl; // đúng tên param
+
+  return base; // trả về raw
 }
 
 export function makeVnpUrl(vnpBaseUrl: string, params: Record<string, any>, hashSecret: string) {
-  const vnp_SecureHash = vnpaySign(params, hashSecret);
-  const fullQuery = qs.stringify({ ...params, vnp_SecureHash }, { encode: true });
+  // sort + encode
+  const sorted = vnpaySortObject(params);
+  const signData = qs.stringify(sorted, { encode: false });
+
+  const vnp_SecureHash = crypto
+    .createHmac('sha512', hashSecret)
+    .update(Buffer.from(signData, 'utf-8'))
+    .digest('hex');
+
+  const fullQuery = qs.stringify(
+    {
+      ...sorted,
+      vnp_SecureHash,
+    },
+    { encode: false }, // vì value đã encode rồi
+  );
+
   return `${vnpBaseUrl}?${fullQuery}`;
 }
 
@@ -70,6 +93,15 @@ export function verifyVnpReturn(query: Record<string, any>, secret: string) {
   const toSign = { ...query };
   delete toSign['vnp_SecureHash'];
   delete toSign['vnp_SecureHashType'];
-  const calc = vnpaySign(toSign, secret).toLowerCase();
+
+  const sorted = vnpaySortObject(toSign);
+  const signData = qs.stringify(sorted, { encode: false });
+
+  const calc = crypto
+    .createHmac('sha512', secret)
+    .update(Buffer.from(signData, 'utf-8'))
+    .digest('hex')
+    .toLowerCase();
+
   return receivedHash === calc;
 }
