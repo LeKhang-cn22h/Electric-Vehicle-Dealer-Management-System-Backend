@@ -1,4 +1,19 @@
-import { Body, Controller, Get, Param, Post, Delete, Patch } from '@nestjs/common';
+// Đây là ở Backend
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  Delete,
+  Patch,
+  Headers,
+  Query,
+  HttpCode,
+  HttpStatus,
+  UseGuards,
+  ParseUUIDPipe,
+} from '@nestjs/common';
 import { ServiceClients } from '../service-clients';
 
 @Controller('sales')
@@ -9,134 +24,237 @@ export class GatewaySalesController {
   // PRICING
   // ------------------------------
   @Get('price')
-  findAllPricing() {
-    return this.c.sales().get('/pricing-promotion/price');
+  findAllPricing(@Query() query: any, @Headers('authorization') auth: string) {
+    return this.c.sales().get('/pricing-promotion/price', {
+      authorization: auth,
+      ...this.buildQueryHeaders(query),
+    });
+  }
+
+  @Get('price/:id')
+  findOnePricing(@Param('id', ParseUUIDPipe) id: string, @Headers('authorization') auth: string) {
+    return this.c.sales().get(`/pricing-promotion/price/${id}`, {
+      authorization: auth,
+    });
   }
 
   @Post('price')
-  createPricing(@Body() body: any) {
-    return this.c.sales().post('/pricing-promotion/price', body);
+  @HttpCode(HttpStatus.CREATED)
+  createPricing(@Body() body: any, @Headers('authorization') auth: string) {
+    return this.c.sales().post('/pricing-promotion/price', body, {
+      authorization: auth,
+    });
   }
 
   @Patch('price/:id')
-  updatePricing(@Param('id') id: string, @Body() body: any) {
-    return this.c.sales().put(`/pricing-promotion/price/${id}`, body);
+  updatePricing(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: any,
+    @Headers('authorization') auth: string,
+  ) {
+    return this.c.sales().patch(`/pricing-promotion/price/${id}`, body, {
+      authorization: auth,
+    });
   }
 
   @Delete('price/:id')
-  deletePricing(@Param('id') id: string) {
-    return this.c.sales().delete(`/pricing-promotion/price/${id}`);
+  @HttpCode(HttpStatus.NO_CONTENT)
+  deletePricing(@Param('id', ParseUUIDPipe) id: string, @Headers('authorization') auth: string) {
+    return this.c.sales().delete(`/pricing-promotion/price/${id}`, {
+      authorization: auth,
+    });
   }
 
   // ------------------------------
   // PROMOTIONS
   // ------------------------------
   @Get('promotions')
-  findAllPromotions() {
-    return this.c.sales().get('/pricing-promotion/promotion');
+  findAllPromotions(@Headers('authorization') auth: string) {
+    return this.c.sales().get('/pricing-promotion/promotion', {
+      authorization: auth,
+    });
   }
 
   @Get('promotions/:id')
-  findOnePromotion(@Param('id') id: string) {
-    return this.c.sales().get(`/pricing-promotion/promotion/${id}`);
+  findOnePromotion(@Param('id', ParseUUIDPipe) id: string, @Headers('authorization') auth: string) {
+    return this.c.sales().get(`/pricing-promotion/promotion/${id}`, {
+      authorization: auth,
+    });
   }
 
   @Post('promotions')
-  createPromotion(@Body() body: any) {
-    return this.c.sales().post('/pricing-promotion/promotion', body);
+  @HttpCode(HttpStatus.CREATED)
+  createPromotion(@Body() body: any, @Headers('authorization') auth: string) {
+    return this.c.sales().post('/pricing-promotion/promotion', body, {
+      authorization: auth,
+    });
   }
 
   @Patch('promotions/:id')
-  updatePromotion(@Param('id') id: string, @Body() body: any) {
-    return this.c.sales().put(`/pricing-promotion/promotion/${id}`, body);
+  updatePromotion(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: any,
+    @Headers('authorization') auth: string,
+  ) {
+    return this.c.sales().patch(`/pricing-promotion/promotion/${id}`, body, {
+      authorization: auth,
+    });
   }
 
   @Delete('promotions/:id')
-  deletePromotion(@Param('id') id: string) {
-    return this.c.sales().delete(`/pricing-promotion/promotion/${id}`);
+  @HttpCode(HttpStatus.NO_CONTENT)
+  deletePromotion(@Param('id', ParseUUIDPipe) id: string, @Headers('authorization') auth: string) {
+    return this.c.sales().delete(`/pricing-promotion/promotion/${id}`, {
+      authorization: auth,
+    });
   }
 
   // ------------------------------
   // QUOTATIONS
   // ------------------------------
   @Get('quotations')
-  findAllQuotations() {
-    return this.c.sales().get('/quotations');
+  findAllQuotations(@Query() query: any, @Headers('authorization') auth: string) {
+    return this.c.sales().get('/quotations', {
+      authorization: auth,
+      ...this.buildQueryHeaders(query),
+    });
   }
 
   @Get('quotations/:id')
-  findOneQuotation(@Param('id') id: string) {
-    return this.c.sales().get(`/quotations/${id}`);
+  findOneQuotation(@Param('id', ParseUUIDPipe) id: string, @Headers('authorization') auth: string) {
+    return this.c.sales().get(`/quotations/${id}`, {
+      authorization: auth,
+    });
   }
 
   @Post('quotations')
-  createQuotation(@Body() body: any) {
-    return this.c.sales().post('/quotations', body);
+  @HttpCode(HttpStatus.CREATED)
+  createQuotation(@Body() body: any, @Headers('authorization') auth: string) {
+    return this.c.sales().post('/quotations', body, {
+      authorization: auth,
+    });
   }
 
   @Patch('quotations/:id')
-  updateQuotation(@Param('id') id: string, @Body() body: any) {
-    return this.c.sales().patch(`/quotations/${id}`, body);
+  updateQuotation(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: any,
+    @Headers('authorization') auth: string,
+  ) {
+    return this.c.sales().patch(`/quotations/${id}`, body, {
+      authorization: auth,
+    });
   }
 
   @Delete('quotations/:id')
-  deleteQuotation(@Param('id') id: string) {
-    return this.c.sales().delete(`/quotations/${id}`);
+  @HttpCode(HttpStatus.NO_CONTENT)
+  deleteQuotation(@Param('id', ParseUUIDPipe) id: string, @Headers('authorization') auth: string) {
+    return this.c.sales().delete(`/quotations/${id}`, {
+      authorization: auth,
+    });
   }
 
   // ------------------------------
   // ORDERS
   // ------------------------------
   @Get('orders')
-  findAllOrders() {
-    return this.c.sales().get('/orders');
+  findAllOrders(@Query() query: any, @Headers('authorization') auth: string) {
+    return this.c.sales().get('/orders', {
+      authorization: auth,
+      ...this.buildQueryHeaders(query),
+    });
   }
 
   @Get('orders/:id')
-  findOneOrder(@Param('id') id: string) {
-    return this.c.sales().get(`/orders/${id}`);
+  findOneOrder(@Param('id', ParseUUIDPipe) id: string, @Headers('authorization') auth: string) {
+    return this.c.sales().get(`/orders/${id}`, {
+      authorization: auth,
+    });
   }
 
   @Post('orders')
-  createOrder(@Body() body: any) {
-    return this.c.sales().post('/orders', body);
+  @HttpCode(HttpStatus.CREATED)
+  createOrder(@Body() body: any, @Headers('authorization') auth: string) {
+    return this.c.sales().post('/orders', body, {
+      authorization: auth,
+    });
   }
 
   @Patch('orders/:id')
-  updateOrder(@Param('id') id: string, @Body() body: any) {
-    return this.c.sales().put(`/orders/${id}`, body);
+  updateOrder(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: any,
+    @Headers('authorization') auth: string,
+  ) {
+    return this.c.sales().patch(`/orders/${id}`, body, {
+      authorization: auth,
+    });
   }
 
   @Delete('orders/:id')
-  deleteOrder(@Param('id') id: string) {
-    return this.c.sales().delete(`/orders/${id}`);
+  @HttpCode(HttpStatus.NO_CONTENT)
+  deleteOrder(@Param('id', ParseUUIDPipe) id: string, @Headers('authorization') auth: string) {
+    return this.c.sales().delete(`/orders/${id}`, {
+      authorization: auth,
+    });
   }
 
   // ------------------------------
   // CONTRACTS
   // ------------------------------
   @Get('contracts')
-  findAllContracts() {
-    return this.c.sales().get('/contracts');
+  findAllContracts(@Query() query: any, @Headers('authorization') auth: string) {
+    return this.c.sales().get('/contracts', {
+      authorization: auth,
+      ...this.buildQueryHeaders(query),
+    });
   }
 
   @Get('contracts/:id')
-  findOneContract(@Param('id') id: string) {
-    return this.c.sales().get(`/contracts/${id}`);
+  findOneContract(@Param('id', ParseUUIDPipe) id: string, @Headers('authorization') auth: string) {
+    return this.c.sales().get(`/contracts/${id}`, {
+      authorization: auth,
+    });
   }
 
   @Post('contracts')
-  createContract(@Body() body: any) {
-    return this.c.sales().post('/contracts', body);
+  @HttpCode(HttpStatus.CREATED)
+  createContract(@Body() body: any, @Headers('authorization') auth: string) {
+    return this.c.sales().post('/contracts', body, {
+      authorization: auth,
+    });
   }
 
   @Patch('contracts/:id')
-  updateContract(@Param('id') id: string, @Body() body: any) {
-    return this.c.sales().put(`/contracts/${id}`, body);
+  updateContract(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: any,
+    @Headers('authorization') auth: string,
+  ) {
+    return this.c.sales().patch(`/contracts/${id}`, body, {
+      authorization: auth,
+    });
   }
 
   @Delete('contracts/:id')
-  deleteContract(@Param('id') id: string) {
-    return this.c.sales().delete(`/contracts/${id}`);
+  @HttpCode(HttpStatus.NO_CONTENT)
+  deleteContract(@Param('id', ParseUUIDPipe) id: string, @Headers('authorization') auth: string) {
+    return this.c.sales().delete(`/contracts/${id}`, {
+      authorization: auth,
+    });
+  }
+
+  // ------------------------------
+  // HELPER METHODS
+  // ------------------------------
+  private buildQueryHeaders(query: any): Record<string, string> {
+    const headers: Record<string, string> = {};
+
+    if (query.page) headers['x-page'] = query.page.toString();
+    if (query.limit) headers['x-limit'] = query.limit.toString();
+    if (query.sort) headers['x-sort'] = query.sort;
+    if (query.filter) headers['x-filter'] = query.filter;
+
+    return headers;
   }
 }
