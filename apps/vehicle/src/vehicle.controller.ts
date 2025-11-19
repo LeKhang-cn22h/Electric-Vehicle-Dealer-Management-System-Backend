@@ -12,6 +12,7 @@ import {
   Req,
   Query,
   ParseIntPipe,
+  DefaultValuePipe,
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { VehicleService } from './vehicle.service';
@@ -155,18 +156,5 @@ export class VehicleController {
   async compareVehicles(@Body() compareDto: VehicleCompareDto) {
     console.log('Endpoint so sánh xe được gọi với dữ liệu:', compareDto);
     return this.vehicleService.compareVehicles(compareDto.vehicleIds);
-  }
-  @Get(':id/similar')
-  getSimilar(@Param('id') id: number) {
-    return this.vehicleService.getSimilarVehicles(id);
-  }
-
-  @Get('new-arrivals')
-  getNewArrivals() {
-    return this.vehicleService.getNewArrivals();
-  }
-  @Post('VUnit')
-  async createVehicleUnit(@Body() dto: CreateVehicleUnitDTO) {
-    return this.vehicleService.createVehicleUnit(dto);
   }
 }
