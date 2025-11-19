@@ -1,10 +1,35 @@
-import { IsString, IsArray, IsNumber, ValidateNested, IsOptional, IsUUID } from 'class-validator';
+import {
+  IsString,
+  IsArray,
+  IsNumber,
+  ValidateNested,
+  IsOptional,
+  IsUUID,
+  IsEmail,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import { QuotationItemDto } from './quotation-item.dto';
 
 export class CreateQuotationDto {
+  @IsOptional()
   @IsUUID()
-  customerId: string;
+  customerId?: string;
+
+  @IsOptional()
+  @IsString()
+  customerName?: string;
+
+  @IsOptional()
+  @IsString()
+  customerPhone?: string;
+
+  @IsOptional()
+  @IsEmail()
+  customerEmail?: string;
+
+  @IsOptional()
+  @IsString()
+  customerAddress?: string;
 
   @IsUUID()
   createdBy: string;
