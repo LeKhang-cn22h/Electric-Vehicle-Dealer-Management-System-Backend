@@ -177,6 +177,48 @@ export class QuotationService {
     });
   }
 
+  async findAllByCreator(id: string): Promise<Quotation[]> {
+    //Lấy tất cả báo giá
+    const { data: quotations, error: quoteError } = await this.supabase
+      .schema('sales')
+      .from('quotations')
+      .select('*')
+      .eq('createdBy', id)
+      .order('created_at', { ascending: false });
+
+    if (quoteError) throw new Error(`Supabase fetch error: ${quoteError.message}`);
+
+    if (!quotations?.length) return [];
+
+    //Lấy tất cả items (chỉ những items thuộc các quotation hiện có)
+    const quotationIds = quotations.map((q) => q.id);
+    const { data: items, error: itemsError } = await this.supabase
+      .schema('sales')
+      .from('quotation_items')
+      .select('*')
+      .in('quotation_id', quotationIds);
+
+    if (itemsError) throw new Error(`Failed to fetch quotation items: ${itemsError.message}`);
+
+    //Gom nhóm items theo quotation_id
+    const itemsByQuotation = items.reduce(
+      (acc, item) => {
+        if (!acc[item.quotation_id]) acc[item.quotation_id] = [];
+        acc[item.quotation_id].push(item);
+        return acc;
+      },
+      {} as Record<string, any[]>,
+    );
+
+    //Trả về danh sách Quotation (gộp items tương ứng)
+    return quotations.map((row) =>
+      this.mapRowToQuotation({
+        ...row,
+        items: itemsByQuotation[row.id] || [],
+      }),
+    );
+  }
+
   //Cập nhật báo giá
   async update(id: string, updateData: Partial<Quotation>): Promise<Quotation> {
     const updatedAt = new Date(
