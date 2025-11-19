@@ -8,7 +8,7 @@ export class BillingService {
   private sb = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
     db: { schema: 'platform' },
   });
-
+  //Tạo hóa đơn mới
   async create(dto: CreateBillDto, idempotencyKey?: string) {
     const invoiceId = crypto.randomUUID();
     let subtotal = 0;
@@ -61,7 +61,7 @@ export class BillingService {
 
     return { message: 'Created', id: invoiceId };
   }
-
+  //Lấy chi tiết 1 hóa đơn
   async get(id: string) {
     const { data, error } = await this.sb
       .from('billing_invoices')
@@ -71,7 +71,7 @@ export class BillingService {
     if (error) throw error;
     return data;
   }
-
+  //Hủy hóa đơn
   async void(id: string) {
     const { error } = await this.sb
       .from('billing_invoices')
@@ -80,7 +80,7 @@ export class BillingService {
     if (error) throw error;
     return { message: 'Invoice voided' };
   }
-
+  //Đánh dấu đã thanh toán
   async markPaid(id: string) {
     const { error } = await this.sb
       .from('billing_invoices')
@@ -89,7 +89,7 @@ export class BillingService {
     if (error) throw error;
     return { message: 'Marked as paid' };
   }
-
+  //Liệt kê hóa đơn
   async list(query: ListBillsDto) {
     const { data, error } = await this.sb
       .from('billing_invoices')

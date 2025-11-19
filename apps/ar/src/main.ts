@@ -4,6 +4,9 @@ import { AppModule } from './ar.module';
 import { ConfigModule } from '@nestjs/config';
 
 async function bootstrap() {
+  console.log('VNP_TMNCODE =', process.env.VNP_TMNCODE);
+  console.log('VNP_HASHSECRET length =', process.env.VNP_HASHSECRET?.length);
+
   const app = await NestFactory.create(AppModule, { cors: true });
   ConfigModule.forRoot({
     isGlobal: true,

@@ -12,12 +12,14 @@ function sb() {
 @Injectable()
 export class ArService {
   private db = sb();
+  //Tạo giao dịch VNPay + trả URL thanh toán
   async createVnpayPayment(inv_id: string, req: any, locale?: 'vn' | 'en', bankCode?: string) {
     const inv = await this.db
       .from('billing_invoices')
       .select('id,total_cents,currency,status')
       .eq('id', inv_id)
       .single();
+
     if (inv.error) throw inv.error;
     if (inv.data.status === 'void') throw new Error('Invoice is void');
     if (inv.data.status === 'paid') return { alreadyPaid: true };
@@ -26,13 +28,14 @@ export class ArService {
     const secret = process.env.VNP_HASHSECRET!;
     const vnpUrl = process.env.VNP_URL!;
     const returnUrl = process.env.VNP_RETURN_URL!;
+
     const ip =
       (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || req.ip || '127.0.0.1';
 
-    // tạo orderId (vnp_TxnRef) duy nhất
+    const amountVnd = Math.round(inv.data.total_cents / 100);
+
     const orderId = `INV_${inv_id}_${Date.now()}`;
 
-    // lưu intent (pending)
     const intent = await this.db
       .from('ar_payment_intents')
       .insert({
@@ -50,7 +53,7 @@ export class ArService {
 
     const params = buildVnpCreateParams({
       tmnCode,
-      amountVnd: inv.data.total_cents,
+      amountVnd,
       orderId,
       orderInfo: `Payment for invoice ${inv_id}`,
       returnUrl,
@@ -144,6 +147,7 @@ export class ArService {
     }
   }
 
+  //Gửi request query trạng thái giao dịch lên VNPay
   async queryPayment(txnRef: string) {
     const secret = process.env.VNP_HASHSECRET!;
     const tmnCode = process.env.VNP_TMNCODE!;

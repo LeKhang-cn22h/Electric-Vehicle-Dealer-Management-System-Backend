@@ -27,6 +27,7 @@ import { GatewaySalesController } from './routes/gateway-sales.controller';
     GatewayEvmStaffCoordinationController,
     GatewayDealerAgreementController,
     GatewaySalesController,
+    GatewayARController,
   ],
 })
 export class EvDealerApiGatewayModule implements NestModule {
