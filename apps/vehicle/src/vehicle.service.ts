@@ -405,7 +405,6 @@ export class VehicleService {
       images: imagesWithUrl,
       benefits: data.benefits || [],
       features: data.features || [],
-      created_at: data.created_at,
       updated_at: data.updated_at,
     };
   }
@@ -660,12 +659,9 @@ export class VehicleService {
       name,
       model,
       version,
-      created_at,
       images(path, is_main)
     `,
-      )
-      .order('created_at', { ascending: false })
-      .limit(limit);
+      );
 
     if (error) {
       console.error('[VehicleService] New arrival error:', error);
@@ -687,7 +683,6 @@ export class VehicleService {
         name: v.name,
         model: v.model,
         version: v.version,
-        created_at: v.created_at,
         imageUrl: url,
       };
     });
@@ -718,11 +713,10 @@ export class VehicleService {
       name,
       model,
       version,
-      price,
       images(path, is_main)
     `,
       )
-      .neq('id', vehicleId) // loại xe hiện tại
+      .neq('id', vehicleId)
       .or(OR_CONDITION)
       .limit(limit);
 

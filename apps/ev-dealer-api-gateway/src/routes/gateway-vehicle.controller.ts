@@ -340,26 +340,26 @@ export class GatewayVehicleController {
       throw new InternalServerErrorException('Failed to get comparison suggestions');
     }
   }
-  //gợi ý sản phẩm mới
-  @Get('suggest/new-arrivals')
+  @Get('new-arrivals')
   async getNewArrivals(@Query('limit') limit?: string) {
     try {
       this.logger.log(`Getting new arrivals with limit=${limit}`);
 
-      const queryParams = new URLSearchParams();
-      if (limit) queryParams.append('limit', limit);
+      // tự build query string
+      const qs = limit ? `?limit=${encodeURIComponent(limit)}` : '';
+      const result = await this.c.vehicle().get(`/vehicle/new-arrivals${qs}`);
 
-      const url = `/vehicle/suggest/new-arrivals${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+      // result.data mới là mảng vehicle từ BE
+      const items = (result as any).data ?? result;
+      this.logger.log(`Success, got ${Array.isArray(items) ? items.length : 0} new vehicles`);
 
-      const result = await this.c.vehicle().get(url);
-
-      this.logger.log(`Success, got ${result.data?.length || 0} new vehicles`);
-      return result;
-    } catch (error) {
-      this.logger.error('Error fetching new arrivals:', error.message);
+      return items;
+    } catch (error: any) {
+      this.logger.error('Error fetching new arrivals:', error?.message || error);
       throw new InternalServerErrorException('Failed to fetch new arrivals');
     }
   }
+
   // gợi ý tương tự
   @Get(':id/similar')
   async getSimilarVehicles(@Param('id') id: string, @Query('limit') limit?: string) {
