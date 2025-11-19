@@ -15,6 +15,7 @@ import {
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { VehicleService } from './vehicle.service';
 import { VehicleCompareDto } from './DTO/vehicle_compare.dto';
+import { CreateVehicleUnitDTO } from './DTO/vehicle_create.dto';
 
 @Controller('vehicle')
 export class VehicleController {
@@ -152,5 +153,9 @@ export class VehicleController {
   @Get('new-arrivals')
   getNewArrivals() {
     return this.vehicleService.getNewArrivals();
+  }
+  @Post('VUnit')
+  async createVehicleUnit(@Body() dto: CreateVehicleUnitDTO) {
+    return this.vehicleService.createVehicleUnit(dto);
   }
 }

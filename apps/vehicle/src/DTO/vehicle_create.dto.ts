@@ -54,6 +54,10 @@ export class VehicleCreateDto {
 
   @IsOptional()
   @IsString()
+  fuel_type?: string;
+
+  @IsOptional()
+  @IsString()
   transmission?: string;
 
   @IsOptional()
@@ -85,6 +89,9 @@ export class VehicleCreateDto {
   @IsString()
   version?: string;
 
+  @IsOptional()
+  @IsNumber()
+  quantity: number = 0;
   // ---- Relations ----
   @IsOptional()
   @IsArray()
@@ -103,4 +110,18 @@ export class VehicleCreateDto {
   @ValidateNested({ each: true })
   @Type(() => FeatureDto)
   features?: FeatureDto[];
+}
+export class CreateVehicleUnitDTO {
+  @IsNumber()
+  vehicle_id: number;
+
+  @IsString()
+  vin: string;
+
+  @IsString()
+  color: string;
+
+  @IsOptional()
+  @IsString()
+  status?: string;
 }

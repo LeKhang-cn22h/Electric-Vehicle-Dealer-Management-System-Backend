@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { createClient } from '@supabase/supabase-js';
 import * as dotenv from 'dotenv';
-import { VehicleCreateDto } from './DTO/vehicle_create.dto';
+import { CreateVehicleUnitDTO, VehicleCreateDto } from './DTO/vehicle_create.dto';
 import { VehicleUpdateDto } from './DTO/vehicle_update.dto';
 import { AmqpConnection } from '@golevelup/nestjs-rabbitmq';
 
@@ -749,5 +749,53 @@ export class VehicleService {
         imageUrl: url,
       };
     });
+  }
+  async createVehicleUnit(dto: CreateVehicleUnitDTO) {
+    console.log('[VehicleService] Creating vehicle unit...', dto);
+    const { vehicle_id, vin, color, status = 'availabel' } = dto;
+    const { data: vehicle, error: vehicleErr } = await this.supabase
+      .schema('product')
+      .from('vehicle')
+      .select('id')
+      .eq('id', vehicle_id)
+      .single();
+    if (vehicleErr || !vehicle) {
+      throw new BadRequestException('Vehicle khong ton tai');
+    }
+    console.log('[VehicleService] Vehicle exists:', vehicle.name);
+    //Kiem tra VIN trung
+    const { data: vinCheck } = await this.supabase
+      .schema('product')
+      .from('vehicle_unit')
+      .select('id')
+      .eq('vin', vin)
+      .maybeSingle();
+    if (vinCheck) {
+      throw new BadRequestException('VIN đã tồn tại trong kho');
+    }
+    const { data, error } = await this.supabase
+      .schema('product')
+      .from('vehicle_unit')
+      .insert({
+        vehicle_id,
+        vin,
+        color,
+        status,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('[VehicleService] Insert vehicle unit error:', error);
+      throw new BadRequestException(error.message);
+    }
+
+    console.log('[VehicleService] Vehicle unit created:', data);
+
+    return {
+      success: true,
+      message: 'Tạo xe đơn vị (vehicle unit) thành công',
+      unit: data,
+    };
   }
 }
