@@ -11,6 +11,7 @@ import {
   UseInterceptors,
   Req,
   Query,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { VehicleService } from './vehicle.service';
@@ -21,6 +22,16 @@ import { CreateVehicleUnitDTO } from './DTO/vehicle_create.dto';
 export class VehicleController {
   constructor(private readonly vehicleService: VehicleService) {}
 
+  @Get(':id/similar')
+  getSimilar(@Param('id') id: number) {
+    return this.vehicleService.getSimilarVehicles(id);
+  }
+
+  @Get('new-arrivals')
+  getNewArrivals(@Query('limit', new DefaultValuePipe(8), ParseIntPipe) limit: number) {
+    console.log('Vehicle Service: new-arrivals limit =', limit);
+    return this.vehicleService.getNewArrivals(limit);
+  }
   @Get()
   async findAll(
     @Query('keyword') keyword?: string,
