@@ -380,4 +380,25 @@ export class GatewayVehicleController {
       throw new InternalServerErrorException('Failed to fetch similar vehicles');
     }
   }
+  @Post('Vunit')
+  async createVehicleUnit(@Body() dto: any, @Headers('authorization') auth: string) {
+    try {
+      this.logger.log('Comparing vehicles');
+      this.logger.log(` Vehicle IDs: ${dto.vehicle_id}`);
+
+      const headers: Record<string, string> = {};
+      if (auth) {
+        headers.authorization = auth;
+      }
+
+      const result = await this.c.vehicle().post('/vehicle/VUnit', dto, headers);
+
+      this.logger.log('VehicleUNit create successful');
+      return result;
+    } catch (error) {
+      this.logger.error(' Error create unit vehicles:', error.message);
+      this.logger.error('Response:', error.response?.data);
+      throw new InternalServerErrorException('Failed to Unit vehicles');
+    }
+  }
 }
