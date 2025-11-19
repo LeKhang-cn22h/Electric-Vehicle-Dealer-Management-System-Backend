@@ -54,10 +54,6 @@ export class VehicleCreateDto {
 
   @IsOptional()
   @IsString()
-  fuel_type?: string;
-
-  @IsOptional()
-  @IsString()
   transmission?: string;
 
   @IsOptional()

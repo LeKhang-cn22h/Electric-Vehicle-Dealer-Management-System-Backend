@@ -122,7 +122,7 @@ export class VehicleController {
       throw new BadRequestException('Invalid JSON in vehicle field');
     }
 
-    console.log('[VehicleService] Update request:', {
+    console.log('[VehicleService] Update request: ', {
       vehicleId,
       imagesCount: images?.length ?? 0,
       vehicleData,
@@ -144,9 +144,13 @@ export class VehicleController {
     console.log('Endpoint so sánh xe được gọi với dữ liệu:', compareDto);
     return this.vehicleService.compareVehicles(compareDto.vehicleIds);
   }
-  @Get(':id/compare-suggestions')
-  async getComparisonSuggestions(@Param('id') id: string, @Query('limit') limit?: string) {
-    console.log(`Lấy xe gợi ý so sánh cho xe ID: ${id}`);
-    return this.vehicleService.getComparisonSuggestions(parseInt(id), limit ? parseInt(limit) : 5);
+  @Get(':id/similar')
+  getSimilar(@Param('id') id: number) {
+    return this.vehicleService.getSimilarVehicles(id);
+  }
+
+  @Get('new-arrivals')
+  getNewArrivals() {
+    return this.vehicleService.getNewArrivals();
   }
 }

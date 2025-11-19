@@ -283,7 +283,7 @@ export class GatewayVehicleController {
   @Delete(':id')
   async remove(@Param('id') id: string) {
     try {
-      this.logger.log(`🗑️ Deleting vehicle ID: ${id}`);
+      this.logger.log(`Deleting vehicle ID: ${id}`);
       const result = await this.c.vehicle().delete(`/vehicle/${id}`);
       this.logger.log(`Successfully deleted vehicle ${id}`);
       return result;
@@ -338,6 +338,46 @@ export class GatewayVehicleController {
     } catch (error) {
       this.logger.error(` Error getting comparison suggestions for ${id}:`, error.message);
       throw new InternalServerErrorException('Failed to get comparison suggestions');
+    }
+  }
+  //gợi ý sản phẩm mới
+  @Get('suggest/new-arrivals')
+  async getNewArrivals(@Query('limit') limit?: string) {
+    try {
+      this.logger.log(`Getting new arrivals with limit=${limit}`);
+
+      const queryParams = new URLSearchParams();
+      if (limit) queryParams.append('limit', limit);
+
+      const url = `/vehicle/suggest/new-arrivals${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+
+      const result = await this.c.vehicle().get(url);
+
+      this.logger.log(`Success, got ${result.data?.length || 0} new vehicles`);
+      return result;
+    } catch (error) {
+      this.logger.error('Error fetching new arrivals:', error.message);
+      throw new InternalServerErrorException('Failed to fetch new arrivals');
+    }
+  }
+  // gợi ý tương tự
+  @Get(':id/similar')
+  async getSimilarVehicles(@Param('id') id: string, @Query('limit') limit?: string) {
+    try {
+      this.logger.log(`Getting similar vehicles for ID=${id}, limit=${limit}`);
+
+      const queryParams = new URLSearchParams();
+      if (limit) queryParams.append('limit', limit);
+
+      const url = `/vehicle/${id}/similar${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+
+      const result = await this.c.vehicle().get(url);
+
+      this.logger.log(`Success, found ${result.data?.length || 0} similar vehicles`);
+      return result;
+    } catch (error) {
+      this.logger.error(`Error fetching similar vehicles for ${id}:`, error.message);
+      throw new InternalServerErrorException('Failed to fetch similar vehicles');
     }
   }
 }

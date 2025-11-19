@@ -8,7 +8,7 @@
 // DTO cho từng loại xe trong yêu cầu
 export class VehicleItemDto {
   vehicle_id: string = '';
-  vehicle_model: string = '';
+
   quantity: number = 0;
   note?: string;
 }

@@ -98,9 +98,6 @@ export class VehicleService {
           version,
           year,
           engine,
-          power_hp,
-          fuel_consumption,
-          fuel_type,
           transmission,
           mileage,
           color,
@@ -149,10 +146,6 @@ export class VehicleService {
         model: data.model || '-',
         year: data.year || '-',
         engine: data.engine || '-',
-        power: data.power_hp ? `${data.power_hp} HP` : '-',
-        fuel: data.fuel_consumption ? `${data.fuel_consumption} L/100km` : data.fuel_type || '-',
-        // Các trường bổ sung có thể dùng để mở rộng
-        fuel_type: data.fuel_type || '-',
         transmission: data.transmission || '-',
         mileage: data.mileage ? `${data.mileage.toLocaleString()} km` : '-',
         color: data.color || '-',
@@ -178,87 +171,7 @@ export class VehicleService {
       { label: 'Dòng xe', key: 'model' },
       { label: 'Năm sản xuất', key: 'year' },
       { label: 'Động cơ', key: 'engine' },
-      { label: 'Công suất (HP)', key: 'power' },
-      { label: 'Mức tiêu thụ nhiên liệu', key: 'fuel' },
     ];
-  }
-
-  /**
-   * Lấy danh sách xe gợi ý để so sánh (cùng dòng xe)
-   */
-  async getComparisonSuggestions(vehicleId: number, limit = 5) {
-    console.log(`[VehicleService] Lấy xe gợi ý so sánh cho ID: ${vehicleId}`);
-
-    // Lấy thông tin xe hiện tại để biết dòng xe
-    const { data: currentVehicle, error } = await this.supabase
-      .schema('product')
-      .from('vehicle')
-      .select('model')
-      .eq('id', vehicleId)
-      .single();
-
-    if (error || !currentVehicle) {
-      throw new BadRequestException('Không tìm thấy xe');
-    }
-
-    // Lấy các xe cùng dòng (trừ xe hiện tại)
-    const { data: suggestions, error: suggestError } = await this.supabase
-      .schema('product')
-      .from('vehicle')
-      .select(
-        `
-        id,
-        name,
-        model,
-        version,
-        year,
-        images(path, is_main)
-      `,
-      )
-      .eq('model', currentVehicle.model)
-      .neq('id', vehicleId)
-      .eq('status', 'còn hàng')
-      .limit(limit);
-
-    if (suggestError) {
-      console.error('[VehicleService] Lỗi khi lấy xe gợi ý:', suggestError);
-      throw new BadRequestException(suggestError.message);
-    }
-
-    // Xử lý ảnh cho các xe gợi ý
-    const suggestionsWithImages = suggestions.map((vehicle) => {
-      let imageUrl = 'https://via.placeholder.com/200x150?text=Không+có+ảnh';
-
-      if (vehicle.images) {
-        let mainImage: { path: string; is_main?: boolean } | null = null;
-
-        if (Array.isArray(vehicle.images)) {
-          mainImage = vehicle.images.find((img) => img?.is_main) || vehicle.images[0];
-        } else if (vehicle.images.path) {
-          mainImage = vehicle.images;
-        }
-
-        if (mainImage?.path) {
-          const { data: urlData } = this.supabase.storage
-            .from('Vehicle')
-            .getPublicUrl(mainImage.path);
-          imageUrl = urlData.publicUrl;
-        }
-      }
-
-      return {
-        id: vehicle.id,
-        name: vehicle.name,
-        model: vehicle.model,
-        version: vehicle.version,
-        year: vehicle.year,
-        imageUrl,
-      };
-    });
-
-    console.log(`[VehicleService] Tìm thấy ${suggestionsWithImages.length} xe gợi ý`);
-
-    return suggestionsWithImages;
   }
 
   async findAll(filters?: SearchFilters) {
@@ -283,7 +196,6 @@ export class VehicleService {
         status,
         model,
         year,
-        fuel_type,
         transmission,
         mileage,
         images(path, is_main)
@@ -374,7 +286,6 @@ export class VehicleService {
         status: v.status || 'còn hàng',
         model: v.model,
         year: v.year,
-        fuel_type: v.fuel_type,
         transmission: v.transmission,
         mileage: v.mileage,
         imageUrl,
@@ -483,7 +394,6 @@ export class VehicleService {
       tagline: data.tagline,
       year: data.year,
       mileage: data.mileage,
-      fuel_type: data.fuel_type,
       transmission: data.transmission,
       color: data.color,
       engine: data.engine,
@@ -736,5 +646,108 @@ export class VehicleService {
       message: 'hàng đã hết',
       data,
     };
+  }
+  //gợi ý sản phẩm mới
+  async getNewArrivals(limit: number = 6) {
+    console.log('[VehicleService] Fetching new arrivals...');
+
+    const { data, error } = await this.supabase
+      .schema('product')
+      .from('vehicle')
+      .select(
+        `
+      id,
+      name,
+      model,
+      version,
+      created_at,
+      images(path, is_main)
+    `,
+      )
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    if (error) {
+      console.error('[VehicleService] New arrival error:', error);
+      throw new BadRequestException(error.message);
+    }
+
+    return data.map((v) => {
+      const main = v.images?.find((i) => i.is_main) || v.images?.[0];
+      let url = 'https://via.placeholder.com/300x200?text=No+Image';
+
+      if (main?.path) {
+        const { data: urlData } = this.supabase.storage.from('Vehicle').getPublicUrl(main.path);
+
+        url = urlData.publicUrl;
+      }
+
+      return {
+        id: v.id,
+        name: v.name,
+        model: v.model,
+        version: v.version,
+        created_at: v.created_at,
+        imageUrl: url,
+      };
+    });
+  }
+  //gợi ý xe tương tự
+  async getSimilarVehicles(vehicleId: number, limit: number = 6) {
+    console.log('[VehicleService] Fetching similar vehicles for ID:', vehicleId);
+
+    // 1) Lấy thông tin xe gốc
+    const vehicle = await this.findOne(vehicleId);
+    if (!vehicle) {
+      throw new BadRequestException('Vehicle not found');
+    }
+
+    const filters: string[] = [];
+
+    if (vehicle.model) filters.push(`model.eq.${vehicle.model}`);
+    if (vehicle.version) filters.push(`version.eq.${vehicle.version}`);
+
+    const OR_CONDITION = filters.join(',');
+
+    const { data, error } = await this.supabase
+      .schema('product')
+      .from('vehicle')
+      .select(
+        `
+      id,
+      name,
+      model,
+      version,
+      price,
+      images(path, is_main)
+    `,
+      )
+      .neq('id', vehicleId) // loại xe hiện tại
+      .or(OR_CONDITION)
+      .limit(limit);
+
+    if (error) {
+      console.error('[VehicleService] Similar vehicle error:', error);
+      throw new BadRequestException(error.message);
+    }
+
+    return data.map((v) => {
+      const main = v.images?.find((i) => i.is_main) || v.images?.[0];
+      let url = 'https://via.placeholder.com/300x200?text=No+Image';
+
+      if (main?.path) {
+        const { data: urlData } = this.supabase.storage.from('Vehicle').getPublicUrl(main.path);
+
+        url = urlData.publicUrl;
+      }
+
+      return {
+        id: v.id,
+        name: v.name,
+        model: v.model,
+        version: v.version,
+        imageUrl: url,
+      };
+    });
   }
 }
