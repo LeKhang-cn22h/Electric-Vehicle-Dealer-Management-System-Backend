@@ -283,7 +283,7 @@ export class GatewayVehicleController {
   @Delete(':id')
   async remove(@Param('id') id: string) {
     try {
-      this.logger.log(`🗑️ Deleting vehicle ID: ${id}`);
+      this.logger.log(`Deleting vehicle ID: ${id}`);
       const result = await this.c.vehicle().delete(`/vehicle/${id}`);
       this.logger.log(`Successfully deleted vehicle ${id}`);
       return result;
@@ -338,6 +338,67 @@ export class GatewayVehicleController {
     } catch (error) {
       this.logger.error(` Error getting comparison suggestions for ${id}:`, error.message);
       throw new InternalServerErrorException('Failed to get comparison suggestions');
+    }
+  }
+  @Get('new-arrivals')
+  async getNewArrivals(@Query('limit') limit?: string) {
+    try {
+      this.logger.log(`Getting new arrivals with limit=${limit}`);
+
+      // tự build query string
+      const qs = limit ? `?limit=${encodeURIComponent(limit)}` : '';
+      const result = await this.c.vehicle().get(`/vehicle/new-arrivals${qs}`);
+
+      // result.data mới là mảng vehicle từ BE
+      const items = (result as any).data ?? result;
+      this.logger.log(`Success, got ${Array.isArray(items) ? items.length : 0} new vehicles`);
+
+      return items;
+    } catch (error: any) {
+      this.logger.error('Error fetching new arrivals:', error?.message || error);
+      throw new InternalServerErrorException('Failed to fetch new arrivals');
+    }
+  }
+
+  // gợi ý tương tự
+  @Get(':id/similar')
+  async getSimilarVehicles(@Param('id') id: string, @Query('limit') limit?: string) {
+    try {
+      this.logger.log(`Getting similar vehicles for ID=${id}, limit=${limit}`);
+
+      const queryParams = new URLSearchParams();
+      if (limit) queryParams.append('limit', limit);
+
+      const url = `/vehicle/${id}/similar${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+
+      const result = await this.c.vehicle().get(url);
+
+      this.logger.log(`Success, found ${result.data?.length || 0} similar vehicles`);
+      return result;
+    } catch (error) {
+      this.logger.error(`Error fetching similar vehicles for ${id}:`, error.message);
+      throw new InternalServerErrorException('Failed to fetch similar vehicles');
+    }
+  }
+  @Post('Vunit')
+  async createVehicleUnit(@Body() dto: any, @Headers('authorization') auth: string) {
+    try {
+      this.logger.log('Comparing vehicles');
+      this.logger.log(` Vehicle IDs: ${dto.vehicle_id}`);
+
+      const headers: Record<string, string> = {};
+      if (auth) {
+        headers.authorization = auth;
+      }
+
+      const result = await this.c.vehicle().post('/vehicle/VUnit', dto, headers);
+
+      this.logger.log('VehicleUNit create successful');
+      return result;
+    } catch (error) {
+      this.logger.error(' Error create unit vehicles:', error.message);
+      this.logger.error('Response:', error.response?.data);
+      throw new InternalServerErrorException('Failed to Unit vehicles');
     }
   }
 }

@@ -55,10 +55,6 @@ export class VehicleUpdateDto {
 
   @IsOptional()
   @IsString()
-  fuel_type?: string;
-
-  @IsOptional()
-  @IsString()
   transmission?: string;
 
   @IsOptional()

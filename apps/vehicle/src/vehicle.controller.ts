@@ -11,15 +11,27 @@ import {
   UseInterceptors,
   Req,
   Query,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { VehicleService } from './vehicle.service';
 import { VehicleCompareDto } from './DTO/vehicle_compare.dto';
+import { CreateVehicleUnitDTO } from './DTO/vehicle_create.dto';
 
 @Controller('vehicle')
 export class VehicleController {
   constructor(private readonly vehicleService: VehicleService) {}
 
+  @Get(':id/similar')
+  getSimilar(@Param('id') id: number) {
+    return this.vehicleService.getSimilarVehicles(id);
+  }
+
+  @Get('new-arrivals')
+  getNewArrivals(@Query('limit', new DefaultValuePipe(8), ParseIntPipe) limit: number) {
+    console.log('Vehicle Service: new-arrivals limit =', limit);
+    return this.vehicleService.getNewArrivals(limit);
+  }
   @Get()
   async findAll(
     @Query('keyword') keyword?: string,
@@ -122,7 +134,7 @@ export class VehicleController {
       throw new BadRequestException('Invalid JSON in vehicle field');
     }
 
-    console.log('[VehicleService] Update request:', {
+    console.log('[VehicleService] Update request: ', {
       vehicleId,
       imagesCount: images?.length ?? 0,
       vehicleData,
@@ -144,9 +156,17 @@ export class VehicleController {
     console.log('Endpoint so sánh xe được gọi với dữ liệu:', compareDto);
     return this.vehicleService.compareVehicles(compareDto.vehicleIds);
   }
-  @Get(':id/compare-suggestions')
-  async getComparisonSuggestions(@Param('id') id: string, @Query('limit') limit?: string) {
-    console.log(`Lấy xe gợi ý so sánh cho xe ID: ${id}`);
-    return this.vehicleService.getComparisonSuggestions(parseInt(id), limit ? parseInt(limit) : 5);
+  @Get(':id/similar')
+  getSimilar(@Param('id') id: number) {
+    return this.vehicleService.getSimilarVehicles(id);
+  }
+
+  @Get('new-arrivals')
+  getNewArrivals() {
+    return this.vehicleService.getNewArrivals();
+  }
+  @Post('VUnit')
+  async createVehicleUnit(@Body() dto: CreateVehicleUnitDTO) {
+    return this.vehicleService.createVehicleUnit(dto);
   }
 }
