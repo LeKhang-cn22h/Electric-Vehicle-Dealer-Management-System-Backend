@@ -183,7 +183,7 @@ export class QuotationService {
       .schema('sales')
       .from('quotations')
       .select('*')
-      .eq('createdBy', id)
+      .eq('created_by', id)
       .order('created_at', { ascending: false });
 
     if (quoteError) throw new Error(`Supabase fetch error: ${quoteError.message}`);
