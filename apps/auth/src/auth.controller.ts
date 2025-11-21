@@ -6,10 +6,18 @@ import { BadRequestException } from '@nestjs/common';
 import { ChangePasswordDto } from './dtos/change-password.dto';
 import { ForgotPasswordDto } from './dtos/forgot-password.dto';
 import { ResetPasswordDto } from './dtos/reset-password.dto';
+import { MessagePattern } from '@nestjs/microservices';
+
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
+  @MessagePattern({ exchange: 'auth_exchange', routingKey: 'get_uid_by_token' })
+  async getUidByToken(msg: { token: string }) {
+    const user = await this.authService.me(msg.token);
+    console.log('Received RPC request in AuthService:', msg);
 
+    return user.id;
+  }
   @Get('health')
   health() {
     return { status: 'ok', ts: new Date().toISOString() };
