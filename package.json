@@ -27,7 +27,7 @@
     "start:sales": "cross-env PORT=4007 nest start sales --watch",
     "start:billing": "cross-env PORT=4300 nest start billing --watch",
     "start:vehicle": "cross-env PORT=4001 nest start vehicle --watch",
-    "start:customer": "cross-env PORT=4009 nest start customer --watch",
+    "start:customer": "cross-env PORT=4404 nest start customer --watch",
     "start:evm-coordination": "cross-env PORT=3002 nest start evm-staff-coordination-service --watch",
     "start:ar": "cross-env PORT=4400 nest start ar --watch",
     "start:dealer-agreement": "nest build dealer-agreement-service"

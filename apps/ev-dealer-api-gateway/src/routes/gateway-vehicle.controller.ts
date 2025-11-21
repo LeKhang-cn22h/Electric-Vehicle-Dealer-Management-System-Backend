@@ -401,4 +401,18 @@ export class GatewayVehicleController {
       throw new InternalServerErrorException('Failed to Unit vehicles');
     }
   }
+  @Post('list')
+  async findList(@Body('vehicleIds') vehicleIds: number[], @Headers('authorization') auth: string) {
+    if (!vehicleIds || !Array.isArray(vehicleIds) || vehicleIds.length === 0) {
+      throw new Error('vehicleIds phải là mảng và không được để trống');
+    }
+
+    // Gửi đúng body đến microservice / API
+    const result = await this.c.vehicle().post('/vehicle/list', { vehicleIds });
+
+    return {
+      success: true,
+      data: result,
+    };
+  }
 }

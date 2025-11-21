@@ -5,11 +5,11 @@ import { IsString, IsNumber, IsOptional } from 'class-validator';
 export class UpdateFeedbackDto extends PartialType(CreateFeedbackDto) {
   @IsNumber()
   @IsOptional()
-  admin_id?: number;
+  admin_uid?: number;
 
   @IsString()
   @IsOptional()
-  admin_reply?: string;
+  reply?: string;
 
   @IsString()
   @IsOptional()
