@@ -2,7 +2,6 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { SupabaseService } from '../supabase/supabase.service';
 import { CreateFeedbackDto } from './dto/create-feedback.dto';
 import { UpdateFeedbackDto } from './dto/update-feedback.dto';
-import { ReplyFeedbackDto } from './dto/reply-feedback.dto';
 
 @Injectable()
 export class FeedbackCustomerService {
@@ -11,41 +10,40 @@ export class FeedbackCustomerService {
   constructor(private supabaseService: SupabaseService) {
     this.supabase = this.supabaseService.getClient();
   }
+  async createFeedback(req, createFeedbackDto: CreateFeedbackDto) {
+    // 1️⃣ Lấy user từ JWT trong header
+    const user = await this.supabaseService.getUserFromRequest(req);
+    if (!user) throw new Error('Unauthorized: Token missing or invalid');
 
-  async createFeedback(createFeedbackDto: CreateFeedbackDto) {
+    // 2️⃣ Gắn uid từ Supabase
+    const feedbackData = {
+      ...createFeedbackDto,
+      customer_uid: user.id,
+    };
+
+    // 3️⃣ Lưu feedback
     const { data, error } = await this.supabase
       .schema('customer')
       .from('feedback')
-      .insert([createFeedbackDto])
+      .insert([feedbackData])
       .select()
       .single();
 
-    if (error) {
-      throw new Error(`Failed to create feedback: ${error.message}`);
-    }
+    if (error) throw new Error(`Failed to create feedback: ${error.message}`);
 
     return data;
   }
 
-  async findAllFeedbacks(status?: string, customer_id?: number) {
-    let query = this.supabase
+  async findAllFeedbacks() {
+    const query = this.supabase
       .schema('customer')
       .from('feedback')
       .select(
         `
         *,
-        customer:customer_id (id, name, email, phone)
       `,
       )
       .order('created_at', { ascending: false });
-
-    if (status) {
-      query = query.eq('status', status);
-    }
-
-    if (customer_id) {
-      query = query.eq('customer_id', customer_id);
-    }
 
     const { data, error } = await query;
 
@@ -55,6 +53,24 @@ export class FeedbackCustomerService {
 
     return data;
   }
+  async findAllFeedbacksCustomer(req) {
+    const user = await this.supabaseService.getUserFromRequest(req);
+    if (!user) throw new Error('Unauthorized: Token missing or invalid');
+
+    const query = this.supabase
+      .schema('customer')
+      .from('feedback')
+      .select('title, status, created_at')
+      .order('created_at', { ascending: false })
+      .eq('customer_uid', user.id);
+    const { data, error } = await query;
+
+    if (error) {
+      throw new Error(`Failed to fetch feedbacks: ${error.message}`);
+    }
+    console.log('🔍 Data from Supabase:', JSON.stringify(data, null, 2));
+    return data;
+  }
 
   async findFeedbackById(id: number) {
     const { data, error } = await this.supabase
@@ -62,8 +78,7 @@ export class FeedbackCustomerService {
       .from('feedback')
       .select(
         `
-        *,
-        customer:customer_id (id, name, email, phone)
+        *
       `,
       )
       .eq('id', id)
@@ -79,16 +94,19 @@ export class FeedbackCustomerService {
     return data;
   }
 
-  async updateFeedback(id: number, updateFeedbackDto: UpdateFeedbackDto) {
+  async updateFeedback(req, id: number, updateFeedbackDto: UpdateFeedbackDto) {
     // Check if feedback exists
     await this.findFeedbackById(id);
-
+    // 1️⃣ Lấy admin từ JWT trong header
+    const admin = await this.supabaseService.getUserFromRequest(req);
+    if (!admin) throw new Error('Unauthorized: Token missing or invalid');
     const { data, error } = await this.supabase
       .schema('customer')
       .from('feedback')
       .update({
         ...updateFeedbackDto,
         updated_at: new Date().toISOString(),
+        admin_uid: admin.id,
       })
       .eq('id', id)
       .select()
@@ -100,76 +118,21 @@ export class FeedbackCustomerService {
 
     return data;
   }
-
-  async replyToFeedback(id: number, replyFeedbackDto: ReplyFeedbackDto) {
-    // Check if feedback exists
-    await this.findFeedbackById(id);
-
-    const { data, error } = await this.supabase
-      .schema('customer')
-      .from('feedback')
-      .update({
-        admin_id: replyFeedbackDto.admin_id,
-        admin_reply: replyFeedbackDto.admin_reply,
-        status: replyFeedbackDto.status,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', id)
-      .select()
-      .single();
-
-    if (error) {
-      throw new Error(`Failed to reply to feedback: ${error.message}`);
-    }
-
-    return data;
-  }
-
   async deleteFeedback(id: number) {
     // Check if feedback exists
     await this.findFeedbackById(id);
-
-    const { error } = await this.supabase.schema('customer').from('feedback').delete().eq('id', id);
+    const { error } = await this.supabase
+      .schema('customer')
+      .from('feedback')
+      .update({
+        status: 'Hidden',
+      })
+      .eq('id', id);
 
     if (error) {
       throw new Error(`Failed to delete feedback: ${error.message}`);
     }
 
     return { message: 'Feedback deleted successfully' };
-  }
-
-  async getFeedbacksByCustomer(customer_id: number) {
-    const { data, error } = await this.supabase
-      .schema('customer')
-      .from('feedback')
-      .select('*')
-      .eq('customer_id', customer_id)
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      throw new Error(`Failed to fetch customer feedbacks: ${error.message}`);
-    }
-
-    return data;
-  }
-
-  async getFeedbackStats() {
-    const { data, error } = await this.supabase
-      .schema('customer')
-      .from('feedback')
-      .select('status');
-
-    if (error) {
-      throw new Error(`Failed to fetch feedback stats: ${error.message}`);
-    }
-
-    const stats = {
-      total: data.length,
-      pending: data.filter((item) => item.status === 'pending').length,
-      reviewed: data.filter((item) => item.status === 'reviewed').length,
-      resolved: data.filter((item) => item.status === 'resolved').length,
-    };
-
-    return stats;
   }
 }

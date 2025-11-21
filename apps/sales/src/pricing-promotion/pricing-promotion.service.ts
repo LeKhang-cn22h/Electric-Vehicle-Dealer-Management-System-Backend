@@ -26,6 +26,18 @@ export class PricingPromotionService {
     const price = await this.getPrice(msg.vehicleId.toString());
     return { ...msg, price };
   }
+  @RabbitRPC({
+    exchange: 'vehicle_exchange',
+    routingKey: 'listprice.request',
+    queue: 'listprice_queue',
+  })
+  public async handleListPriceRequest(msg: { vehicleIds: number[] }) {
+    console.log('Received listprice.request:', msg);
+
+    const list = await this.getPricesForVehicles(msg.vehicleIds);
+
+    return list; // đúng format Array<{ vehicleId, price }>
+  }
 
   private async getPrice(vehicleId: string): Promise<number> {
     const { data, error } = await this.supabase
@@ -47,6 +59,27 @@ export class PricingPromotionService {
     // Trả về discounted_price của bản ghi đầu tiên
     return data[0].discounted_price;
   }
+
+  private async getPricesForVehicles(vehicleIds: number[]) {
+    if (!vehicleIds || vehicleIds.length === 0) return [];
+
+    const { data, error } = await this.supabase
+      .schema('sales')
+      .from('prices')
+      .select('product_id, discounted_price')
+      .in('product_id', vehicleIds);
+
+    if (error) {
+      console.error('Error fetching price list:', error);
+      throw new Error(`Failed to fetch price list: ${error.message}`);
+    }
+
+    return data.map((row) => ({
+      vehicleId: Number(row.product_id),
+      price: row.discounted_price,
+    }));
+  }
+
   /* ---------------- PRICE ---------------- */
   async createPrice(dto: CreatePriceDto): Promise<Price> {
     const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));

@@ -34,7 +34,6 @@ export class AuthService {
 
   private readonly logger = new Logger(AuthService.name);
   constructor(private readonly supabase: SupabaseService) {}
-
   async signup(dto: SignupDto) {
     if (!dto.email || !dto.password) {
       throw new BadRequestException('Email and password are required');

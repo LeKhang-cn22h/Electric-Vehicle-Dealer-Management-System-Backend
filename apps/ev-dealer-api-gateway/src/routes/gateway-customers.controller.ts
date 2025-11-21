@@ -3,13 +3,14 @@ import {
   Get,
   Post,
   Put,
-  Delete,
   Body,
   Param,
   Query,
   // BadRequestException,
   InternalServerErrorException,
   Logger,
+  Headers,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { ServiceClients } from '../service-clients';
 
@@ -28,7 +29,7 @@ export class GatewayCustomersController {
   async findAll() {
     try {
       this.logger.log(' Đang gọi service khách hàng để lấy danh sách');
-      const result = await this.c.customer().get('/customer');
+      const result = await this.c.customer().get('/profile-customer');
       this.logger.log('Thành công, đã nhận dữ liệu khách hàng');
       return result;
     } catch (error) {
@@ -48,7 +49,7 @@ export class GatewayCustomersController {
   async findOne(@Param('id') id: string) {
     try {
       this.logger.log(` Đang lấy thông tin khách hàng với ID: ${id}`);
-      const result = await this.c.customer().get(`/customer/${id}`);
+      const result = await this.c.customer().get(`/profile-customer/${id}`);
       this.logger.log(`Thành công, đã lấy thông tin khách hàng ID: ${id}`);
       return result;
     } catch (error) {
@@ -61,11 +62,13 @@ export class GatewayCustomersController {
    * Tạo mới một khách hàng
    */
   @Post()
-  async create(@Body() body: any) {
+  async create(@Headers('authorization') auth: string, @Body() body: any) {
     try {
       this.logger.log('Đang tạo mới khách hàng');
-      const result = await this.c.customer().post('/customer', body);
+      const result = await this.c.customer().post('/profile-customer', body);
       this.logger.log('Thành công, đã tạo khách hàng mới');
+      this.logger.log(`- Auth header:`, auth ? 'Present' : 'Missing');
+
       return result;
     } catch (error) {
       this.logger.error('Lỗi khi tạo khách hàng mới:', error);
@@ -77,10 +80,12 @@ export class GatewayCustomersController {
    * Cập nhật thông tin khách hàng
    */
   @Put(':id')
-  async update(@Param('id') id: string, @Body() body: any) {
+  async update(@Param('id') id: string, @Headers('authorization') auth: string, @Body() body: any) {
     try {
       this.logger.log(`Đang cập nhật thông tin khách hàng ID: ${id}`);
-      const result = await this.c.customer().put(`/customer/${id}`, body);
+      const result = await this.c.customer().put(`/profile-customer/${id}`, body);
+      this.logger.log(`- Auth header:`, auth ? 'Present' : 'Missing');
+
       this.logger.log(`Thành công, đã cập nhật khách hàng ID: ${id}`);
       return result;
     } catch (error) {
@@ -92,30 +97,41 @@ export class GatewayCustomersController {
   /**
    * Xóa một khách hàng
    */
-  @Delete(':id')
-  async remove(@Param('id') id: string) {
+  // ✅ SỬA THÀNH - Đúng endpoint
+  @Put('delete/:id')
+  async remove(@Param('id') id: string, @Headers('authorization') auth: string) {
     try {
       this.logger.log(`Đang xóa khách hàng ID: ${id}`);
-      const result = await this.c.customer().delete(`/customer/${id}`);
+
+      const headers: any = {};
+      if (auth) {
+        headers.authorization = auth;
+      }
+
+      const result = await this.c
+        .customer()
+        .put(`/profile-customer/delete/${id}`, undefined, { headers });
+
       this.logger.log(`Thành công, đã xóa khách hàng ID: ${id}`);
-      return result;
+      return result.data; // ✅ QUAN TRỌNG: Trả về result.data
     } catch (error) {
-      this.logger.error(`Lỗi khi xóa khách hàng ID ${id}:`, error);
-      throw error;
+      this.logger.error(`Lỗi khi xóa khách hàng ID ${id}:`, error.message);
+
+      // ✅ Forward lỗi từ customer service
+      if (error.response?.data) {
+        throw error;
+      }
+
+      throw new InternalServerErrorException('Không thể xóa khách hàng');
     }
   }
 
   // ========== ENDPOINTS CHO PHẢN HỒI ==========
 
-  /**
-   * Lấy tất cả phản hồi với bộ lọc tùy chọn
-   * @param status - Trạng thái phản hồi (pending, reviewed, resolved)
-   * @param customer_id - ID khách hàng để lọc
-   */
   @Get('feedback/all')
   async findAllFeedbacks(
     @Query('status') status?: string,
-    @Query('customer_id') customer_id?: string,
+    @Query('customer_uid') customer_uid?: string,
   ) {
     try {
       this.logger.log(' Đang lấy danh sách tất cả phản hồi');
@@ -124,7 +140,7 @@ export class GatewayCustomersController {
       let url = '/feedback-customer';
       const queryParams = new URLSearchParams();
       if (status) queryParams.append('status', status);
-      if (customer_id) queryParams.append('customer_id', customer_id);
+      if (customer_uid) queryParams.append('customer_uid', customer_uid);
 
       const queryString = queryParams.toString();
       if (queryString) {
@@ -142,22 +158,27 @@ export class GatewayCustomersController {
       throw new InternalServerErrorException('Không thể lấy danh sách phản hồi');
     }
   }
-
-  /**
-   * Lấy thống kê về phản hồi
-   */
-  @Get('feedback/stats')
-  async getFeedbackStats() {
+  // lấy những feedback của người gửi
+  @Get('feedback/allU')
+  async FindFeedbackCustomer(@Headers('authorization') auth: string) {
     try {
-      this.logger.log('Đang lấy thống kê phản hồi');
-      const result = await this.c.customer().get('/feedback-customer/stats');
-      this.logger.log('Thành công, đã lấy thống kê phản hồi');
+      this.logger.log('Đang lấy danh sách dành cho customer');
+
+      if (!auth) {
+        throw new UnauthorizedException('Missing Authorization header');
+      }
+
+      const result = await this.c.customer().get('/feedback-customer/customer', {
+        authorization: auth,
+      } as any);
+
+      this.logger.log('Thành công, đã lấy phản hồi');
       return result;
     } catch (error) {
-      this.logger.error('Lỗi khi lấy thống kê phản hồi:');
+      this.logger.error('Lỗi khi lấy phản hồi:');
       this.logger.error('Thông báo lỗi:', error.message);
       this.logger.error('Phản hồi từ service:', error.response?.data);
-      throw new InternalServerErrorException('Không thể lấy thống kê phản hồi');
+      throw new InternalServerErrorException('Không thể lấy phản hồi');
     }
   }
 
@@ -182,15 +203,15 @@ export class GatewayCustomersController {
   /**
    * Lấy tất cả phản hồi của một khách hàng cụ thể
    */
-  @Get('customer/:customer_id/feedbacks')
-  async getFeedbacksByCustomer(@Param('customer_id') customer_id: string) {
+  @Get('customer/:customer_uid/feedbacks')
+  async getFeedbacksByCustomer(@Param('customer_uid') customer_uid: string) {
     try {
-      this.logger.log(` Đang lấy phản hồi của khách hàng ID: ${customer_id}`);
-      const result = await this.c.customer().get(`/feedback-customer/customer/${customer_id}`);
-      this.logger.log(`Thành công, đã lấy phản hồi của khách hàng ID: ${customer_id}`);
+      this.logger.log(` Đang lấy phản hồi của khách hàng ID: ${customer_uid}`);
+      const result = await this.c.customer().get(`/feedback-customer/customer/${customer_uid}`);
+      this.logger.log(`Thành công, đã lấy phản hồi của khách hàng ID: ${customer_uid}`);
       return result;
     } catch (error) {
-      this.logger.error(`Lỗi khi lấy phản hồi của khách hàng ID ${customer_id}:`);
+      this.logger.error(`Lỗi khi lấy phản hồi của khách hàng ID ${customer_uid}:`);
       this.logger.error('Thông báo lỗi:', error.message);
       this.logger.error('Phản hồi từ service:', error.response?.data);
       throw new InternalServerErrorException('Không thể lấy phản hồi của khách hàng');
@@ -201,11 +222,22 @@ export class GatewayCustomersController {
    * Tạo mới một phản hồi
    */
   @Post('feedback')
-  async createFeedback(@Body() body: any) {
+  async createFeedback(@Headers('authorization') auth: string, @Body() body: any) {
     try {
       this.logger.log('Đang tạo phản hồi mới');
-      const result = await this.c.customer().post('/feedback-customer', body);
+
+      if (!auth) {
+        throw new UnauthorizedException('Missing Authorization header');
+      }
+
+      // ⬅️ Forward token sang Feedback service
+      const result = await this.c.customer().post('/feedback-customer', body, {
+        authorization: auth,
+      });
+
       this.logger.log('Thành công, đã tạo phản hồi mới');
+      this.logger.log(`- Auth header:`, auth ? 'Present' : 'Missing');
+
       return result;
     } catch (error) {
       this.logger.error('Lỗi khi tạo phản hồi mới:');
@@ -216,32 +248,22 @@ export class GatewayCustomersController {
   }
 
   /**
-   * Cập nhật thông tin phản hồi
-   */
-  @Put('feedback/:id')
-  async updateFeedback(@Param('id') id: string, @Body() body: any) {
-    try {
-      this.logger.log(`Đang cập nhật phản hồi ID: ${id}`);
-      const result = await this.c.customer().put(`/feedback-customer/${id}`, body);
-      this.logger.log(`Thành công, đã cập nhật phản hồi ID: ${id}`);
-      return result;
-    } catch (error) {
-      this.logger.error(`Lỗi khi cập nhật phản hồi ID ${id}:`);
-      this.logger.error('Thông báo lỗi:', error.message);
-      this.logger.error('Phản hồi từ service:', error.response?.data);
-      throw new InternalServerErrorException('Không thể cập nhật phản hồi');
-    }
-  }
-
-  /**
    * Phản hồi lại từ admin cho một phản hồi của khách hàng
    */
   @Put('feedback/:id/reply')
-  async replyToFeedback(@Param('id') id: string, @Body() body: any) {
+  async replyToFeedback(
+    @Param('id') id: string,
+    @Headers('authorization') auth: string,
+    @Body() body: any,
+  ) {
     try {
       this.logger.log(`Đang gửi phản hồi từ admin cho phản hồi ID: ${id}`);
-      const result = await this.c.customer().put(`/feedback-customer/${id}/reply`, body);
+      const result = await this.c.customer().put(`/feedback-customer/${id}/reply`, body, {
+        authorization: auth,
+      });
       this.logger.log(`Thành công, đã gửi phản hồi cho phản hồi ID: ${id}`);
+      this.logger.log(`- Auth header:`, auth ? 'Present' : 'Missing');
+
       return result;
     } catch (error) {
       this.logger.error(`Lỗi khi gửi phản hồi cho phản hồi ID ${id}:`);
@@ -254,11 +276,13 @@ export class GatewayCustomersController {
   /**
    * Xóa một phản hồi
    */
-  @Delete('feedback/:id')
-  async deleteFeedback(@Param('id') id: string) {
+  @Put('deletefeedback/:id')
+  async deleteFeedback(@Param('id') id: string, @Headers('authorization') auth: string) {
     try {
       this.logger.log(`Đang xóa phản hồi ID: ${id}`);
-      const result = await this.c.customer().delete(`/feedback-customer/${id}`);
+      this.logger.log(`- Auth header:`, auth ? 'Present' : 'Missing');
+
+      const result = await this.c.customer().put(`/feedback-customer/${id}`, undefined);
       this.logger.log(`Thành công, đã xóa phản hồi ID: ${id}`);
       return result;
     } catch (error) {
@@ -266,6 +290,24 @@ export class GatewayCustomersController {
       this.logger.error('Thông báo lỗi:', error.message);
       this.logger.error('Phản hồi từ service:', error.response?.data);
       throw new InternalServerErrorException('Không thể xóa phản hồi');
+    }
+  }
+  // điều hướng đến liên kết hồ sơ
+  @Post('auto-link')
+  async autoLinkProfile(@Body() body: any) {
+    try {
+      this.logger.log('Đang forward auto-link hồ sơ khách hàng đến service customer');
+
+      const result = await this.c.customer().post('/profile-customer/auto-link', body);
+
+      this.logger.log('Thành công, đã auto-link hồ sơ khách hàng');
+      return result;
+    } catch (error) {
+      this.logger.error('Lỗi auto-link hồ sơ khách hàng:');
+      this.logger.error('Message:', error.message);
+      this.logger.error('Response:', error.response?.data);
+
+      throw new InternalServerErrorException('Không thể tự động liên kết hồ sơ');
     }
   }
 }
