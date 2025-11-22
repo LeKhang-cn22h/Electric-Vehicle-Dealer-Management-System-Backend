@@ -161,4 +161,8 @@ export class ServiceClients {
     const url = process.env.COMMISSION_SERVICE_URL || 'http://localhost:4500';
     return this.base(url);
   }
+  evmStaffAgreement(): ServiceClient {
+    const url = process.env.EVM_STAFF_AGREEMENT_SERVICE_URL || 'http://localhost:3004';
+    return this.base(url);
+  }
 }
