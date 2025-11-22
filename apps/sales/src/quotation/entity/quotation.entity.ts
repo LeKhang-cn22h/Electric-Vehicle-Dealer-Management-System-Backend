@@ -3,18 +3,14 @@ import { QuotationItem } from './quotation-item.entity';
 export class Quotation {
   id: string;
   customerId?: string;
-  customerName?: string;
-  customerPhone?: string;
-  customerEmail?: string;
-  customerAddress?: string;
   createdBy: string;
   items: QuotationItem[];
   totalAmount: number;
-  promotionCode?: string | null;
+  promotionCode?: string[] | null;
   discountAmount: number;
   vatRate?: number;
   note?: string;
-  status: 'draft' | 'sent' | 'accepted' | 'rejected';
+  status: 'draft' | 'converted';
   createdAt: Date;
   updatedAt: Date;
 }

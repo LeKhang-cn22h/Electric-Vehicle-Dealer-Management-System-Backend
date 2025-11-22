@@ -12,24 +12,8 @@ import { QuotationItemDto } from './quotation-item.dto';
 
 export class CreateQuotationDto {
   @IsOptional()
-  @IsUUID()
+  @IsString()
   customerId?: string;
-
-  @IsOptional()
-  @IsString()
-  customerName?: string;
-
-  @IsOptional()
-  @IsString()
-  customerPhone?: string;
-
-  @IsOptional()
-  @IsEmail()
-  customerEmail?: string;
-
-  @IsOptional()
-  @IsString()
-  customerAddress?: string;
 
   @IsUUID()
   createdBy: string;
@@ -48,8 +32,9 @@ export class CreateQuotationDto {
   note?: string;
 
   @IsOptional()
-  @IsString()
-  promotionCode?: string;
+  @IsArray()
+  @IsString({ each: true })
+  promotionCode?: string[];
 
   // @IsOptional()
   // @IsNumber()
