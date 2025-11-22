@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { SupabaseService } from '../supabase/supabase.service';
 import { CreateCustomerDto } from './DTO/create-customer.dto';
 import { UpdateCustomerDto } from './DTO/update-customer.dto';
+import { RabbitRPC } from '@golevelup/nestjs-rabbitmq';
 
 @Injectable()
 export class ProfileCustomerService {
@@ -14,6 +15,16 @@ export class ProfileCustomerService {
   // ==========================
   // CRUD API USING SUPABASE
   // ==========================
+  @RabbitRPC({
+    exchange: 'customer_quotaion', // Exchange để nhận message
+    routingKey: 'quotaion.customer', // Routing key để filter message
+    queue: 'quotaion_request_customer', // Queue để message tồn tại nếu consumer offline
+  })
+  public async quotationRequestCustomer(msg: { id: number }) {
+    console.log('Received customer request:', msg);
+    const customer = await this.findOne(msg.id);
+    return customer;
+  }
 
   async findAll() {
     const { data, error } = await this.supabase.schema('customer').from('customers').select('*');
@@ -31,6 +42,7 @@ export class ProfileCustomerService {
       .single();
 
     if (error) throw new Error(error.message);
+    // console.log(data);
     return data;
   }
 
