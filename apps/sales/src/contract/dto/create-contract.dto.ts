@@ -7,13 +7,6 @@ export class CreateContractDto {
   @IsString()
   dealerId: string;
 
-  @IsOptional()
-  @IsString()
-  description?: string;
-
-  @IsNumber()
-  contractValue: number;
-
   @IsDateString()
   startDate: string;
 
