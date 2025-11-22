@@ -4,7 +4,12 @@ import { EvmStaffAgreementServiceService } from './evm-staff-agreement-service.s
 import { ContractRequestController } from './evm-staff-agreement-service.controller';
 
 @Module({
-  imports: [ConfigModule.forRoot({ isGlobal: true })],
+  imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: ['apps/evm-staff-agreement-service/.env', '.env'],
+    }),
+  ],
   providers: [EvmStaffAgreementServiceService],
   controllers: [ContractRequestController],
 })
