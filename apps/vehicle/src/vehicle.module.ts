@@ -12,7 +12,21 @@ import { vehicleNewModule } from './vehicle-new/src/vehicle-new.module';
   imports: [
     ConfigModule.forRoot({ isGlobal: true, envFilePath: 'apps/vehicle/.env' }),
     RabbitMQModule.forRoot({
-      exchanges: [{ name: 'vehicle_exchange', type: 'direct' }],
+      exchanges: [
+        { name: 'vehicle_exchange', type: 'direct' },
+        {
+          name: 'quotation_vehicle',
+          type: 'direct',
+        },
+        {
+          name: 'order_vehicle',
+          type: 'direct',
+        },
+        {
+          name: 'contract_vehicle',
+          type: 'direct',
+        },
+      ],
       uri: process.env.RABBITMQ_URI,
       connectionInitOptions: { wait: false },
     }),
