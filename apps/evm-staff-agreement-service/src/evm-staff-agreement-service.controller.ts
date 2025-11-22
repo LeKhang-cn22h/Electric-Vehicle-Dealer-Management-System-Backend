@@ -1,4 +1,12 @@
-import { Controller, Get, Post, Body, Param, ParseIntPipe } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  ParseIntPipe,
+  BadRequestException,
+} from '@nestjs/common';
 import { EvmStaffAgreementServiceService } from './evm-staff-agreement-service.service';
 
 @Controller('contract-requests')
@@ -21,6 +29,10 @@ export class ContractRequestController {
     @Param('id') id: number,
     @Body() body: { sales_target: number; order_limit: number },
   ) {
+    // Validate body exists và có required fields
+    if (!body) {
+      throw new BadRequestException('Request body is required');
+    }
     const result = await this.agreementService.approveRequestAndCreateContract(
       id,
       body.sales_target,
