@@ -143,24 +143,6 @@
       "compilerOptions": {
         "tsConfigPath": "apps/vehicle/tsconfig.app.json"
       }
-    },
-    "vehicle/appointments": {
-      "type": "application",
-      "root": "apps/vehicle/appointments",
-      "entryFile": "main",
-      "sourceRoot": "apps/vehicle/appointments/src",
-      "compilerOptions": {
-        "tsConfigPath": "apps/vehicle/appointments/tsconfig.app.json"
-      }
-    },
-    "vehicle/vehicle-new": {
-      "type": "application",
-      "root": "apps/vehicle/vehicle-new",
-      "entryFile": "main",
-      "sourceRoot": "apps/vehicle/vehicle-new/src",
-      "compilerOptions": {
-        "tsConfigPath": "apps/vehicle/vehicle-new/tsconfig.app.json"
-      }
     }
   }
 }

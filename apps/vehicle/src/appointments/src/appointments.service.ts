@@ -1,41 +1,17 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
-import { SupabaseService } from 'vehicle/supabase/supabase.service';
+import { SupabaseService } from '../../../supabase/supabase.service';
 import { CreateAppointmentDto } from './DTO/create-appointment.dto';
 import { UpdateAppointmentDto } from './DTO/update-appointment.dto';
-import { AmqpConnection } from '@golevelup/nestjs-rabbitmq';
 
 @Injectable()
 export class AppointmentsService {
   private supabase;
 
-  constructor(
-    private supabaseService: SupabaseService,
-    private readonly amqpConnection: AmqpConnection, // để gọi Auth service
-  ) {
+  constructor(private supabaseService: SupabaseService) {
     this.supabase = this.supabaseService.getClient();
   }
 
-  /** Gọi Auth service để lấy UID từ token */
-  private async getUidFromToken(token: string): Promise<number> {
-    if (!token) throw new BadRequestException('Token is required');
-    try {
-      const uid = await this.amqpConnection.request<number>({
-        exchange: 'auth_exchange',
-        routingKey: 'get_uid_by_token',
-        payload: { token },
-        timeout: 10000,
-      });
-      return uid;
-    } catch (err) {
-      throw new BadRequestException(`Failed to get UID from token: ${err.message}`);
-    }
-  }
-
-  async create(dto: CreateAppointmentDto & { adminToken: string; customerToken: string }) {
-    // 1️⃣ Lấy UID từ token
-    const admin_uid = await this.getUidFromToken(dto.adminToken);
-    const customer_uid = await this.getUidFromToken(dto.customerToken);
-
+  async create(dto: CreateAppointmentDto) {
     // 2️⃣ Lưu appointment
     const { data, error } = await this.supabase
       .schema('product')
@@ -43,8 +19,6 @@ export class AppointmentsService {
       .insert([
         {
           ...dto,
-          admin_uid,
-          customer_uid,
         },
       ])
       .select()

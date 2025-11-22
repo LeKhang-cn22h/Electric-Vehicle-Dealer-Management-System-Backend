@@ -2,8 +2,9 @@
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     "declaration": false,
-    "outDir": "../../dist/apps/vehicle"
+    "outDir": "../../dist/apps/vehicle",
+    "rootDir": "../../"  
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*.ts", "supabase/**/*.ts"], 
   "exclude": ["node_modules", "dist", "test", "**/*spec.ts"]
 }
