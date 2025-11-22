@@ -12,6 +12,7 @@ export class Quotation {
   totalAmount: number;
   promotionCode?: string | null;
   discountAmount: number;
+  vatRate?: number;
   note?: string;
   status: 'draft' | 'sent' | 'accepted' | 'rejected';
   createdAt: Date;
