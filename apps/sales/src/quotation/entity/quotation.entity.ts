@@ -2,7 +2,11 @@ import { QuotationItem } from './quotation-item.entity';
 
 export class Quotation {
   id: string;
-  customerId: string;
+  customerId?: string;
+  customerName?: string;
+  customerPhone?: string;
+  customerEmail?: string;
+  customerAddress?: string;
   createdBy: string;
   items: QuotationItem[];
   totalAmount: number;

@@ -37,7 +37,7 @@ import { GatewayEvmStaffAgreementController } from './routes/gateway-evm-staff-a
 export class EvDealerApiGatewayModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
     consumer
-      .apply(slidingWindow(10, 60)) // limit 10 req/60s
+      .apply(slidingWindow(20, 60)) // limit 10 req/60s
       .forRoutes('*');
   }
 }

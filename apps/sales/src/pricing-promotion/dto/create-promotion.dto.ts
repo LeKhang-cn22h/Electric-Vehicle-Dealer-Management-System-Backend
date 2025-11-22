@@ -2,7 +2,7 @@ import { IsString, IsOptional, IsNumber, IsIn, IsDateString, IsBoolean } from 'c
 
 export class CreatePromotionDto {
   @IsString()
-  code: string; // unique
+  code: string;
 
   @IsOptional()
   @IsString()
