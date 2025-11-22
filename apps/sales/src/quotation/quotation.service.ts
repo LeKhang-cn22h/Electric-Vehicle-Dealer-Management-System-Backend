@@ -56,6 +56,10 @@ export class QuotationService {
         {
           id: quotationId,
           customer_id: createQuote.customerId,
+          customer_name: createQuote.customerName,
+          customer_phone: createQuote.customerPhone,
+          customer_email: createQuote.customerEmail,
+          customer_address: createQuote.customerAddress,
           created_by: createQuote.createdBy,
           total_amount: totalAmount,
           promotion_code: createQuote.promotionCode || null,
@@ -91,6 +95,10 @@ export class QuotationService {
     return {
       id: quotationId,
       customerId: createQuote.customerId,
+      customerName: createQuote.customerName,
+      customerPhone: createQuote.customerPhone,
+      customerEmail: createQuote.customerEmail,
+      customerAddress: createQuote.customerAddress,
       createdBy: createQuote.createdBy,
       items: createQuote.items,
       totalAmount,
@@ -183,7 +191,7 @@ export class QuotationService {
       .schema('sales')
       .from('quotations')
       .select('*')
-      .eq('createdBy', id)
+      .eq('created_by', id)
       .order('created_at', { ascending: false });
 
     if (quoteError) throw new Error(`Supabase fetch error: ${quoteError.message}`);

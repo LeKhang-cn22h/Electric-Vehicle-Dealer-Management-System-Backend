@@ -15,6 +15,12 @@ import {
   ParseUUIDPipe,
 } from '@nestjs/common';
 import { ServiceClients } from '../service-clients';
+import { IsUUID } from 'class-validator';
+
+export class FindQuotationsByCreatorDto {
+  @IsUUID()
+  createBy: string;
+}
 
 @Controller('sales')
 export class GatewaySalesController {
@@ -75,6 +81,16 @@ export class GatewaySalesController {
     });
   }
 
+  @Get('promotions/aplied')
+  findAllAppliedPromotions(
+    @Query('minOrderValue') minOrderValue = 0,
+    @Query('minQuantity') minQuantity = 0,
+    @Headers('authorization') auth: string,
+  ) {
+    const url = `/pricing-promotion/promotion/aplied?minOrderValue=${minOrderValue}&minQuantity=${minQuantity}`;
+    return this.c.sales().get(url, { authorization: auth });
+  }
+
   @Get('promotions/:id')
   findOnePromotion(@Param('id', ParseUUIDPipe) id: string, @Headers('authorization') auth: string) {
     return this.c.sales().get(`/pricing-promotion/promotion/${id}`, {
@@ -125,6 +141,21 @@ export class GatewaySalesController {
     return this.c.sales().get(`/quotations/${id}`, {
       authorization: auth,
     });
+  }
+
+  @Get('quotations/creator/:id')
+  async findAllByCreator(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Headers('authorization') auth: string,
+  ) {
+    try {
+      const url = `/quotations/creator/${id}`;
+      const res = await this.c.sales().get(url, { authorization: auth });
+      return res;
+    } catch (e) {
+      console.error('[GatewaySalesController] findAllByCreator error:', e);
+      throw e;
+    }
   }
 
   @Post('quotations')

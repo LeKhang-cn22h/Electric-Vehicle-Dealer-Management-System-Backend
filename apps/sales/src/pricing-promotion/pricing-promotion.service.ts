@@ -8,6 +8,7 @@ import { CreatePromotionDto } from './dto/create-promotion.dto';
 import { Promotion } from './entity/promotion.entity';
 import { UpdatePromotionDto } from './dto/update-promotion.dto';
 import { RabbitRPC } from '@golevelup/nestjs-rabbitmq';
+import { FilterPromotionDto } from './dto/filter-promotion.dto';
 
 @Injectable()
 export class PricingPromotionService {
@@ -230,6 +231,25 @@ export class PricingPromotionService {
     if (error || !data) throw new NotFoundException('Promotion not found');
 
     return this.mapPromotionRow(data);
+  }
+
+  async findAllApplied(filters: FilterPromotionDto): Promise<Promotion[]> {
+    const { minOrderValue, minQuantity } = filters;
+    const today = new Date().toISOString(); // định dạng ISO cho Supabase
+
+    const { data, error } = await this.supabase
+      .schema('sales')
+      .from('promotions')
+      .select('*')
+      .lte('min_order_value', minOrderValue)
+      .lte('min_quantity', minQuantity)
+      .lte('start_date', today) // start_date <= hôm nay
+      .or(`end_date.gte.${today},end_date.is.null`) // end_date >= hôm nay OR end_date IS NULL
+      .order('created_at', { ascending: false });
+
+    if (error) throw new Error(error.message);
+
+    return data.map((promotion) => this.mapPromotionRow(promotion));
   }
 
   async updatePromotion(id: string, dto: UpdatePromotionDto): Promise<Promotion> {
