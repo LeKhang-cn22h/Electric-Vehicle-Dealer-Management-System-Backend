@@ -8,15 +8,15 @@ export class OrderController {
   constructor(private readonly orderService: OrderService) {}
 
   //Tạo đơn hàng từ báo giá
-  @Post()
+  @Post('create')
   async createFromQuotation(@Body() createOrdertion: CreateOrderDto): Promise<Order> {
     return this.orderService.createFromQuotation(createOrdertion);
   }
 
   //Lấy tất cả đơn hàng
-  @Get()
-  async findAll(): Promise<Order[]> {
-    return this.orderService.findAll();
+  @Post()
+  async findAll(@Body() filters: any): Promise<any> {
+    return this.orderService.findAll(filters);
   }
 
   //Lấy đơn hàng theo ID
