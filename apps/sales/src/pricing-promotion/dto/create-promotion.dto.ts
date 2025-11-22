@@ -1,4 +1,12 @@
-import { IsString, IsOptional, IsNumber, IsIn, IsDateString, IsBoolean } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsNumber,
+  IsIn,
+  IsDateString,
+  IsBoolean,
+  Min,
+} from 'class-validator';
 
 export class CreatePromotionDto {
   @IsString()
@@ -16,10 +24,12 @@ export class CreatePromotionDto {
 
   @IsOptional()
   @IsNumber()
+  @Min(0)
   minOrderValue?: number;
 
   @IsOptional()
   @IsNumber()
+  @Min(0)
   minQuantity?: number;
 
   @IsDateString()

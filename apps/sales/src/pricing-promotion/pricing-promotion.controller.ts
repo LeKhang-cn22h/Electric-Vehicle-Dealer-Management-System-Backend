@@ -1,9 +1,10 @@
-import { Controller, Get, Post, Body, Param, Patch, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Patch, Delete, Query } from '@nestjs/common';
 import { PricingPromotionService } from './pricing-promotion.service';
 import { CreatePriceDto } from './dto/create-price.dto';
 import { UpdatePriceDto } from './dto/update-price.dto';
 import { CreatePromotionDto } from './dto/create-promotion.dto';
 import { UpdatePromotionDto } from './dto/update-promotion.dto';
+import { FilterPromotionDto } from './dto/filter-promotion.dto';
 
 @Controller('pricing-promotion')
 export class PricingPromotionController {
@@ -44,6 +45,19 @@ export class PricingPromotionController {
   @Get('promotion')
   findAllPromotion() {
     return this.service.findAllPromotions();
+  }
+
+  @Get('promotion/aplied')
+  findAllApplied(
+    @Query('minOrderValue') minOrderValue: number = 0,
+    @Query('minQuantity') minQuantity: number = 0,
+  ) {
+    // Tạo DTO từ query params
+    const dto: FilterPromotionDto = {
+      minOrderValue,
+      minQuantity,
+    };
+    return this.service.findAllApplied(dto);
   }
 
   @Get('promotion/:id')

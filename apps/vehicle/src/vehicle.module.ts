@@ -18,6 +18,7 @@ import { vehicleNewModule } from './vehicle-new/src/vehicle-new.module';
     }),
     SupabaseModule,
     AppointmentsModule,
+    vehicleNewModule,
   ],
   controllers: [VehicleController],
   providers: [VehicleService],
