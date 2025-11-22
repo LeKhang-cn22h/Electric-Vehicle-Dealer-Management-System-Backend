@@ -27,13 +27,21 @@ import { CreateVehicleRequestDto } from './dto/create-vehicle-request.dto';
 export class DealerCoordinationController {
   constructor(private readonly dealerService: DealerCoordinationService) {}
 
-  @Post(' ')
+  @Post()
   async createRequest(@Body() body: CreateVehicleRequestDto) {
+    const vehicles = (body.vehicles || []).map((v: any) => ({
+      vehicle_id: v.vehicle_id,
+      // ensure the required field `vehicle_model` exists (try common alternatives)
+      vehicle_model: v.vehicle_model ?? v.model ?? v.vehicleModel ?? '',
+      quantity: v.quantity,
+      note: v.note,
+    }));
+
     const result = await this.dealerService.createVehicleRequest(
       body.dealer_id,
       body.dealer_name,
       body.request_type,
-      body.vehicles,
+      vehicles,
     );
 
     return {
