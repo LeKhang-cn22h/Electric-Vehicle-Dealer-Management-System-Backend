@@ -72,6 +72,24 @@
         "tsConfigPath": "apps/deale-coordination/tsconfig.app.json"
       }
     },
+    "dealer-agreement": {
+      "type": "application",
+      "root": "apps/dealer-agreement",
+      "entryFile": "main",
+      "sourceRoot": "apps/dealer-agreement/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/dealer-agreement/tsconfig.app.json"
+      }
+    },
+    "evm-staff-agreement-service": {
+      "type": "application",
+      "root": "apps/evm-staff-agreement-service",
+      "entryFile": "main",
+      "sourceRoot": "apps/evm-staff-agreement-service/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/evm-staff-agreement-service/tsconfig.app.json"
+      }
+    },
     "ev-dealer-api-gateway": {
       "type": "application",
       "root": "apps/ev-dealer-api-gateway",
