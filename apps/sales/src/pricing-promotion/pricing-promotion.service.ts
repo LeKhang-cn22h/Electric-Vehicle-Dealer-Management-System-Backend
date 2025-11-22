@@ -16,6 +16,7 @@ export class PricingPromotionService {
     @Inject('SUPABASE_CLIENT')
     private readonly supabase: SupabaseClient,
   ) {}
+
   @RabbitRPC({
     exchange: 'vehicle_exchange', // Exchange để nhận message
     routingKey: 'price.request', // Routing key để filter message
@@ -26,6 +27,7 @@ export class PricingPromotionService {
     const price = await this.getPrice(msg.vehicleId.toString());
     return { ...msg, price };
   }
+
   @RabbitRPC({
     exchange: 'vehicle_exchange',
     routingKey: 'listprice.request',
