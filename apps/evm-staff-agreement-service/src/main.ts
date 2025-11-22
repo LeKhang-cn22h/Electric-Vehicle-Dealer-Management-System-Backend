@@ -1,8 +1,8 @@
 import { NestFactory } from '@nestjs/core';
-import { EvmAgreementModule } from './evm-staff-agreement-service.module';
+import { EvmStaffAgreementModule } from './evm-staff-agreement-service.module';
 
 async function bootstrap() {
-  const app = await NestFactory.create(EvmAgreementModule);
+  const app = await NestFactory.create(EvmStaffAgreementModule);
   await app.listen(process.env.PORT ? Number(process.env.PORT) : 3004);
   console.log(`🚀 EVM Staff Agreement Service is running on port ${process.env.PORT || 3004}`);
 }
