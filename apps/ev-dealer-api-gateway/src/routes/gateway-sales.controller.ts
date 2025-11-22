@@ -11,7 +11,7 @@ import {
   Query,
   HttpCode,
   HttpStatus,
-  UseGuards,
+  // UseGuards,
   ParseUUIDPipe,
 } from '@nestjs/common';
 import { ServiceClients } from '../service-clients';
