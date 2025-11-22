@@ -1,14 +1,4 @@
-import {
-  IsString,
-  IsOptional,
-  IsUUID,
-  IsArray,
-  IsNumber,
-  IsEnum,
-  IsNotEmpty,
-  ValidateNested,
-} from 'class-validator';
-import { Type } from 'class-transformer';
+import { IsString, IsOptional, IsUUID, IsNumber, IsEnum, Min } from 'class-validator';
 
 export class CreateOrderDto {
   @IsOptional()
@@ -16,28 +6,29 @@ export class CreateOrderDto {
   quotationId?: string;
 
   @IsUUID()
-  customerId: string;
-
-  @IsUUID()
   createdBy: string;
 
-  @IsArray()
-  items: any[];
-
-  @IsNumber()
-  totalAmount: number;
-
-  @IsOptional()
-  @IsString()
-  note?: string;
-
   // Payment
-  @IsEnum(['cash', 'bank_transfer', 'card'])
-  paymentMethod: 'cash' | 'bank_transfer' | 'card';
+  @IsEnum(['cash', 'bank_transfer'])
+  paymentMethod: 'cash' | 'bank_transfer';
 
   @IsEnum(['unpaid', 'paid', 'partial'])
   paymentStatus: 'unpaid' | 'paid' | 'partial';
 
   @IsNumber()
   paymentAmount: number;
+
+  @IsString()
+  @IsOptional()
+  bank: string;
+
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  term: number;
+
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  downPayment: number;
 }
