@@ -1,13 +1,14 @@
 import { Module } from '@nestjs/common';
 import { SalesController } from './sales.controller';
 import { SalesService } from './sales.service';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { SupabaseModule } from './supabase/supabase.module';
 import { TestSupabaseModule } from './supabase/test-supabase.module';
 import { QuotationModule } from './quotation/quotation.module';
 import { OrderModule } from './order/order.module';
 import { PricingPromotionModule } from './pricing-promotion/pricing-promotion.module';
 import { ContractModule } from './contract/contract.module';
+import { RabbitMQModule } from '@golevelup/nestjs-rabbitmq';
 
 @Module({
   imports: [
