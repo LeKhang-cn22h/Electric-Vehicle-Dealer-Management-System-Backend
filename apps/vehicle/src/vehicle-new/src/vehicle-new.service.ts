@@ -1,9 +1,10 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { createClient } from '@supabase/supabase-js';
 import * as dotenv from 'dotenv';
 import { CreateVehicleUnitDTO, VehicleCreateDto } from './DTO/vehicle_create.dto';
 import { VehicleUpdateDto } from './DTO/vehicle_update.dto';
 import { AmqpConnection } from '@golevelup/nestjs-rabbitmq';
+import { NotFoundError } from 'rxjs';
 
 dotenv.config();
 
@@ -775,6 +776,7 @@ export class vehicleNewService {
       };
     });
   }
+  // tạo xe thực
   async createVehicleUnit(dto: CreateVehicleUnitDTO) {
     console.log('[VehicleService] Creating vehicle unit...', dto);
     const { vehicle_id, vin, color, status = 'availabel' } = dto;
@@ -822,5 +824,30 @@ export class vehicleNewService {
       message: 'Tạo xe đơn vị (vehicle unit) thành công',
       unit: data,
     };
+  }
+  async PayVehicle(vin: string) {
+    const { data, error } = await this.supabase
+      .schema('product')
+      .from('vehicle_unit')
+      .select('id')
+      .update({
+        status: 'pay',
+      })
+      .eq('vin', vin)
+      .single();
+    const { dataQ: currentData } = await this.supabase
+      .from('vehice')
+      .select('quantity')
+      .eq('id', data.id)
+      .single();
+
+    if (currentData) {
+      const { error } = await this.supabase
+        .from('vehicle')
+        .update({ quantity: currentData.quantity - 1 })
+        .eq('id', data.id);
+      if (error) throw new NotFoundException('khong tim thay ma vin');
+      return data;
+    }
   }
 }
