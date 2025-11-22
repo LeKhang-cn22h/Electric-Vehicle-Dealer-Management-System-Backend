@@ -1,8 +1,8 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
-import { SupabaseService } from 'vehicle/supabase/supabase.service';
 import { CreateAppointmentDto } from './DTO/create-appointment.dto';
 import { UpdateAppointmentDto } from './DTO/update-appointment.dto';
 import { AmqpConnection } from '@golevelup/nestjs-rabbitmq';
+import { SupabaseService } from 'vehicle/supabase/supabase.service';
 
 @Injectable()
 export class AppointmentsService {

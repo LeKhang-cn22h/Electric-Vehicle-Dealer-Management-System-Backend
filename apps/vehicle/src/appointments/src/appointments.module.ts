@@ -1,9 +1,9 @@
 import { Module } from '@nestjs/common';
 import { AppointmentsService } from './appointments.service';
 import { AppointmentsController } from './appointments.controller';
-import { SupabaseModule } from 'vehicle/supabase/supabase.module';
 import { RabbitMQModule } from '@golevelup/nestjs-rabbitmq';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { SupabaseModule } from 'vehicle/supabase/supabase.module';
 
 @Module({
   imports: [
