@@ -188,12 +188,15 @@ export class GatewaySalesController {
   // ------------------------------
   // ORDERS
   // ------------------------------
-  @Get('orders')
-  findAllOrders(@Query() query: any, @Headers('authorization') auth: string) {
-    return this.c.sales().get('/orders', {
-      authorization: auth,
-      ...this.buildQueryHeaders(query),
-    });
+  @Post('orders')
+  async findAllOrders(@Body() filters: any, @Headers('authorization') auth: string) {
+    try {
+      const res = await this.c.sales().post('/orders', filters, { authorization: auth });
+      return res;
+    } catch (err) {
+      console.error('Error in findAllOrders:', err);
+      throw err;
+    }
   }
 
   @Get('orders/:id')
@@ -203,12 +206,17 @@ export class GatewaySalesController {
     });
   }
 
-  @Post('orders')
+  @Post('orders/create')
   @HttpCode(HttpStatus.CREATED)
-  createOrder(@Body() body: any, @Headers('authorization') auth: string) {
-    return this.c.sales().post('/orders', body, {
-      authorization: auth,
-    });
+  async createOrder(@Body() body: any, @Headers('authorization') auth: string) {
+    try {
+      return await this.c.sales().post('/orders/create', body, {
+        authorization: auth,
+      });
+    } catch (err: any) {
+      console.error('[Gateway] CreateOrder ERROR:', err?.response?.data || err?.message || err);
+      throw err;
+    }
   }
 
   @Patch('orders/:id')
