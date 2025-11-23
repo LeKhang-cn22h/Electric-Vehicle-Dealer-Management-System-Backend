@@ -8,13 +8,14 @@ export class SupabaseService {
 
   constructor(private config: ConfigService) {
     const url = this.config.get<string>('SUPABASE_URL');
-    const anonKey = this.config.get<string>('SUPABASE_ANON_KEY');
+    const serviceKey = this.config.get<string>('SUPABASE_SERVICE_ROLE_KEY');
 
-    if (!url || !anonKey) {
-      throw new Error('Missing SUPABASE_URL or SUPABASE_ANON_KEY in .env');
+    if (!url || !serviceKey) {
+      throw new Error('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in .env');
     }
 
-    this.client = createClient(url, anonKey);
+    // Chỉ tạo client với service key cho backend
+    this.client = createClient(url, serviceKey);
   }
 
   getClient(): SupabaseClient {
@@ -28,6 +29,7 @@ export class SupabaseService {
   async getPublicUrl(bucket: string, path: string) {
     return this.client.storage.from(bucket).getPublicUrl(path).data.publicUrl;
   }
+
   async getUserFromRequest(req: Request) {
     const authHeader = req.headers['authorization'];
     if (!authHeader) return null;
@@ -35,7 +37,6 @@ export class SupabaseService {
     const token = authHeader.replace('Bearer ', '');
 
     const { data, error } = await this.client.auth.getUser(token);
-
     if (error) throw new Error('Invalid token');
 
     return data.user;
