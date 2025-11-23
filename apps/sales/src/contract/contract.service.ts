@@ -26,24 +26,27 @@ export class ContractsService {
     });
     return response;
   }
-  // Generate code kiểu: CT-2025-00001
   private async generateContractNumber(): Promise<string> {
     const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
-    const date = now.toISOString().slice(0, 10).replace(/-/g, ''); // YYYYMMDD
 
-    // Lấy tất cả contract của ngày hôm nay
-    const { data, error } = await this.supabase
+    const dateStr = now.toISOString().slice(0, 10); // YYYY-MM-DD
+    const date = dateStr.replace(/-/g, ''); // YYYYMMDD
+    const prefix = `CT-${date}-`;
+
+    const { count, error } = await this.supabase
       .schema('sales')
       .from('contracts')
       .select('id', { count: 'exact', head: true })
-      .gte('created_at', `${now.toISOString().slice(0, 10)}T00:00:00+07:00`)
-      .lte('created_at', `${now.toISOString().slice(0, 10)}T23:59:59+07:00`);
+      .like('contract_number', `${prefix}%`);
 
-    if (error) throw new Error('Cannot generate contract number');
+    if (error) {
+      console.error('[generateContractNumber] Supabase error:', error);
+      throw new Error('Cannot generate contract number');
+    }
 
-    const nextNumber = ((data?.length || 0) + 1).toString().padStart(4, '0');
+    const nextNumber = ((count || 0) + 1).toString().padStart(4, '0');
 
-    return `CT-${date}-${nextNumber}`;
+    return `${prefix}${nextNumber}`;
   }
 
   async create(dto: CreateContractDto): Promise<Contract> {
