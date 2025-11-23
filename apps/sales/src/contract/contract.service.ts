@@ -26,24 +26,27 @@ export class ContractsService {
     });
     return response;
   }
-  // Generate code kiểu: CT-2025-00001
   private async generateContractNumber(): Promise<string> {
     const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
-    const date = now.toISOString().slice(0, 10).replace(/-/g, ''); // YYYYMMDD
 
-    // Lấy tất cả contract của ngày hôm nay
-    const { data, error } = await this.supabase
+    const dateStr = now.toISOString().slice(0, 10); // YYYY-MM-DD
+    const date = dateStr.replace(/-/g, ''); // YYYYMMDD
+    const prefix = `CT-${date}-`;
+
+    const { count, error } = await this.supabase
       .schema('sales')
       .from('contracts')
       .select('id', { count: 'exact', head: true })
-      .gte('created_at', `${now.toISOString().slice(0, 10)}T00:00:00+07:00`)
-      .lte('created_at', `${now.toISOString().slice(0, 10)}T23:59:59+07:00`);
+      .like('contract_number', `${prefix}%`);
 
-    if (error) throw new Error('Cannot generate contract number');
+    if (error) {
+      console.error('[generateContractNumber] Supabase error:', error);
+      throw new Error('Cannot generate contract number');
+    }
 
-    const nextNumber = ((data?.length || 0) + 1).toString().padStart(4, '0');
+    const nextNumber = ((count || 0) + 1).toString().padStart(4, '0');
 
-    return `CT-${date}-${nextNumber}`;
+    return `${prefix}${nextNumber}`;
   }
 
   async create(dto: CreateContractDto): Promise<Contract> {
@@ -66,7 +69,7 @@ export class ContractsService {
       id: uuid(),
       orderId: dto.orderId,
       contractNumber,
-      dealerId: order.dealer_id,
+      dealerId: dto.dealerId,
       contractValue: order.total_amount,
       startDate: dto.startDate ? new Date(dto.startDate) : now,
       endDate: dto.endDate ? new Date(dto.endDate) : null,
@@ -90,10 +93,9 @@ export class ContractsService {
         created_at: now.toISOString(),
         updated_at: now.toISOString(),
       });
-
+    if (error) throw new Error(error.message);
     const response = await this.orderService.update(newContract.orderId, { status: 'confirmed' });
     console.log('Đã update', response);
-    if (error) throw new Error(error.message);
 
     return newContract;
   }
