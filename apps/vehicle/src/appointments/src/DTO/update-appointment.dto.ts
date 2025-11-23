@@ -1,5 +1,15 @@
+import { IsInt, IsOptional, IsString } from 'class-validator';
+
 export class UpdateAppointmentDto {
-  appointment_time?: string;
-  status?: 'pending' | 'confirmed' | 'canceled' | 'done';
-  notes?: string;
+  @IsOptional()
+  @IsInt()
+  customer_uid?: number;
+
+  @IsOptional()
+  @IsInt()
+  test_drive_slot_id?: number;
+
+  @IsOptional()
+  @IsString()
+  status?: string;
 }
