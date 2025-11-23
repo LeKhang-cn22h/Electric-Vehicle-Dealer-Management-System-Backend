@@ -4,6 +4,7 @@ import { Quotation } from './entity/quotation.entity';
 import { v4 as uuid } from 'uuid';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { PricingPromotionService } from '../pricing-promotion/pricing-promotion.service';
+import { AmqpConnection } from '@golevelup/nestjs-rabbitmq';
 
 @Injectable()
 export class QuotationService {
@@ -11,109 +12,133 @@ export class QuotationService {
     @Inject('SUPABASE_CLIENT')
     private readonly supabase: SupabaseClient,
     private readonly pricingPromotionService: PricingPromotionService,
+    private readonly amqpConnection: AmqpConnection,
   ) {}
 
+  async getCustomerById(id: number) {
+    const response = await this.amqpConnection.request<{ customer: any }>({
+      exchange: 'customer_quotaion',
+      routingKey: 'quotaion.customer',
+      payload: { id },
+      timeout: 160000,
+    });
+    return response;
+  }
+
+  async getVehicleId(id: number) {
+    const response = await this.amqpConnection.request<{ vehicle: any }>({
+      exchange: 'quotation_vehicle',
+      routingKey: 'quotaion.vehicle',
+      payload: { id },
+      timeout: 160000,
+    });
+    return response;
+  }
+
   //Tạo báo giá
-  async create(createQuote: CreateQuotationDto): Promise<Quotation> {
-    // Tổng tiền sản phẩm
-    const subtotal = createQuote.items.reduce(
-      (sum, item) => sum + item.unitPrice * item.quantity,
-      0,
-    );
+  async create(createQuote: CreateQuotationDto): Promise<any> {
+    try {
+      console.log('createQuote', createQuote);
 
-    // Tiền giảm giá từ khuyến mãi
-    let discountAmount = 0;
-    if (createQuote.promotionCode) {
-      const promotion = await this.pricingPromotionService.findOnePromotion(
-        createQuote.promotionCode,
-      );
+      // Tổng tiền sản phẩm
+      const subtotal = createQuote.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
-      if (promotion) {
-        if (promotion.discountType === 'percent') {
-          discountAmount = subtotal * promotion.discountValue;
-        } else if (promotion.discountType === 'amount') {
-          discountAmount = promotion.discountValue;
+      // Tiền giảm giá từ khuyến mãi
+      let discountAmount = 0;
+      if (createQuote.promotionCode && createQuote.promotionCode.length > 0) {
+        // Lấy toàn bộ promotions theo code
+        const promotions = await Promise.all(
+          createQuote.promotionCode.map((code) =>
+            this.pricingPromotionService.findOnePromotion(code),
+          ),
+        );
+
+        // Tính tổng discount
+        for (const promo of promotions) {
+          if (!promo) continue;
+
+          if (promo.discountType === 'percent') {
+            discountAmount += subtotal * (promo.discountValue / 100);
+          } else if (promo.discountType === 'amount') {
+            discountAmount += promo.discountValue;
+          }
         }
       }
+      const subtotalAfterDiscount = subtotal - discountAmount;
+
+      // Tiền VAT
+      let vatAmount = 0;
+      if (createQuote.vatRate) vatAmount = subtotal * createQuote.vatRate;
+
+      // Tổng tiền phải trả
+      const totalAmount = subtotalAfterDiscount + vatAmount;
+      console.log('totalAmount', totalAmount);
+      const quotationId = uuid();
+      const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
+
+      //Tạo bản ghi báo giá chính
+      const { error: quotationError } = await this.supabase
+        .schema('sales')
+        .from('quotations')
+        .insert([
+          {
+            id: quotationId,
+            customer_id: createQuote.customerId,
+            created_by: createQuote.createdBy,
+            total_amount: totalAmount,
+            promotion_code: createQuote.promotionCode || null,
+            discount_amount: discountAmount,
+            vat: createQuote.vatRate,
+            note: createQuote.note,
+            status: 'draft',
+            created_at: now.toISOString(),
+            updated_at: now.toISOString(),
+          },
+        ]);
+
+      if (quotationError)
+        throw new Error(`Supabase insert quotation error: ${quotationError.message}`);
+
+      //Thêm chi tiết sản phẩm
+      const itemsData = createQuote.items.map((item) => ({
+        id: uuid(),
+        quotation_id: quotationId,
+        product_id: item.id,
+        quantity: item.quantity,
+        unit_price: item.price,
+        created_at: now.toISOString(),
+      }));
+
+      const { error: itemsError } = await this.supabase
+        .schema('sales')
+        .from('quotation_items')
+        .insert(itemsData);
+
+      if (itemsError) throw new Error(`Supabase insert items error: ${itemsError.message}`);
+
+      //Trả về object tổng hợp
+      return {
+        id: quotationId,
+        customerId: createQuote.customerId,
+        createdBy: createQuote.createdBy,
+        items: createQuote.items,
+        totalAmount,
+        promotionCode: createQuote.promotionCode || null,
+        discountAmount,
+        note: createQuote.note,
+        status: 'draft',
+        createdAt: now,
+        updatedAt: now,
+      };
+    } catch (error) {
+      console.error('Lỗi khi tạo báo giá:', error);
+      console.error('Error response:', error.response?.data); // Thêm dòng này
     }
-    const subtotalAfterDiscount = subtotal - discountAmount;
-
-    // Tiền VAT
-    let vatAmount = 0;
-    if (createQuote.vatRate) vatAmount = subtotalAfterDiscount * createQuote.vatRate;
-
-    // Tổng tiền phải trả
-    const totalAmount = subtotalAfterDiscount + vatAmount;
-
-    const quotationId = uuid();
-    const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
-
-    //Tạo bản ghi báo giá chính
-    const { error: quotationError } = await this.supabase
-      .schema('sales')
-      .from('quotations')
-      .insert([
-        {
-          id: quotationId,
-          customer_id: createQuote.customerId,
-          customer_name: createQuote.customerName,
-          customer_phone: createQuote.customerPhone,
-          customer_email: createQuote.customerEmail,
-          customer_address: createQuote.customerAddress,
-          created_by: createQuote.createdBy,
-          total_amount: totalAmount,
-          promotion_code: createQuote.promotionCode || null,
-          discount_amount: discountAmount,
-          note: createQuote.note,
-          status: 'draft',
-          created_at: now.toISOString(),
-          updated_at: now.toISOString(),
-        },
-      ]);
-
-    if (quotationError)
-      throw new Error(`Supabase insert quotation error: ${quotationError.message}`);
-
-    //Thêm chi tiết sản phẩm
-    const itemsData = createQuote.items.map((item) => ({
-      id: uuid(),
-      quotation_id: quotationId,
-      product_id: item.productId,
-      quantity: item.quantity,
-      unit_price: item.unitPrice,
-      created_at: now.toISOString(),
-    }));
-
-    const { error: itemsError } = await this.supabase
-      .schema('sales')
-      .from('quotation_items')
-      .insert(itemsData);
-
-    if (itemsError) throw new Error(`Supabase insert items error: ${itemsError.message}`);
-
-    //Trả về object tổng hợp
-    return {
-      id: quotationId,
-      customerId: createQuote.customerId,
-      customerName: createQuote.customerName,
-      customerPhone: createQuote.customerPhone,
-      customerEmail: createQuote.customerEmail,
-      customerAddress: createQuote.customerAddress,
-      createdBy: createQuote.createdBy,
-      items: createQuote.items,
-      totalAmount,
-      promotionCode: createQuote.promotionCode || null,
-      discountAmount,
-      note: createQuote.note,
-      status: 'draft',
-      createdAt: now,
-      updatedAt: now,
-    };
   }
 
   //Lấy tất cả báo giá
   async findAll(): Promise<Quotation[]> {
-    //Lấy tất cả báo giá
+    // Lấy tất cả báo giá
     const { data: quotations, error: quoteError } = await this.supabase
       .schema('sales')
       .from('quotations')
@@ -124,8 +149,9 @@ export class QuotationService {
 
     if (!quotations?.length) return [];
 
-    //Lấy tất cả items (chỉ những items thuộc các quotation hiện có)
+    // Lấy tất cả items theo quotation_id
     const quotationIds = quotations.map((q) => q.id);
+
     const { data: items, error: itemsError } = await this.supabase
       .schema('sales')
       .from('quotation_items')
@@ -134,7 +160,7 @@ export class QuotationService {
 
     if (itemsError) throw new Error(`Failed to fetch quotation items: ${itemsError.message}`);
 
-    //Gom nhóm items theo quotation_id
+    // Gom nhóm items theo quotation_id
     const itemsByQuotation = items.reduce(
       (acc, item) => {
         if (!acc[item.quotation_id]) acc[item.quotation_id] = [];
@@ -144,17 +170,28 @@ export class QuotationService {
       {} as Record<string, any[]>,
     );
 
-    //Trả về danh sách Quotation (gộp items tương ứng)
-    return quotations.map((row) =>
+    // Lấy thông tin customer cho từng quotation
+    const quotationsWithCustomer = await Promise.all(
+      quotations.map(async (quote) => ({
+        ...quote,
+        customer: await this.getCustomerById(quote.customer_id),
+      })),
+    );
+
+    // Map final response
+    const res = quotationsWithCustomer.map((row) =>
       this.mapRowToQuotation({
         ...row,
         items: itemsByQuotation[row.id] || [],
+        customer: row.customer,
       }),
     );
+
+    return res;
   }
 
   //Lấy báo giá theo ID
-  async findOne(id: string): Promise<Quotation> {
+  async findOne(id: string): Promise<any> {
     //Lấy thông tin báo giá
     const { data: quotation, error: quoteError } = await this.supabase
       .schema('sales')
@@ -178,11 +215,28 @@ export class QuotationService {
       throw new Error(`Failed to fetch quotation items: ${itemsError.message}`);
     }
 
-    //Gộp items vào data và gọi hàm mapRowToQuotation
-    return this.mapRowToQuotation({
+    const customer = await this.getCustomerById(quotation.customer_id);
+
+    const vehicle = await Promise.all(
+      items.map(async (item) => await this.getVehicleId(item.product_id)),
+    );
+    console.log('vehicle', vehicle);
+    const promotions = await Promise.all(
+      quotation.promotion_code.map(
+        async (promo_id) => await this.pricingPromotionService.findOnePromotion(promo_id),
+      ),
+    );
+    console.log('promotions', promotions);
+    const quotationDetail = this.mapRowToQuotation({
       ...quotation,
-      items, // thêm field items vào object quotation
+      items: items, // thêm field items vào object quotation
+      customer: customer,
+      promotions: promotions,
+      vehicle: vehicle,
     });
+    console.log('quotationDetail', quotationDetail);
+    //Gộp items vào data và gọi hàm mapRowToQuotation
+    return quotationDetail;
   }
 
   async findAllByCreator(id: string): Promise<Quotation[]> {
@@ -217,14 +271,23 @@ export class QuotationService {
       },
       {} as Record<string, any[]>,
     );
-
-    //Trả về danh sách Quotation (gộp items tương ứng)
-    return quotations.map((row) =>
+    const quotationsWithCustomer = await Promise.all(
+      quotations.map(async (quote) => ({
+        ...quote,
+        customer: await this.getCustomerById(quote.customer_id),
+      })),
+    );
+    console.log('quotationsWithCustomer', quotationsWithCustomer);
+    const res = quotationsWithCustomer.map((row) =>
       this.mapRowToQuotation({
         ...row,
         items: itemsByQuotation[row.id] || [],
+        customer: row.customer,
       }),
     );
+    console.log('res', res);
+    //Trả về danh sách Quotation (gộp items tương ứng)
+    return res;
   }
 
   //Cập nhật báo giá
@@ -311,10 +374,13 @@ export class QuotationService {
   }
 
   //Hàm helper: map dữ liệu từ DB về entity
-  private mapRowToQuotation(row: any): Quotation {
+  private mapRowToQuotation(row: any) {
     return {
       id: row.id,
       customerId: row.customer_id,
+      customer: row.customer || null,
+      vehicles: row.vehicle || null,
+      promotions: row.promotions || null,
       createdBy: row.created_by,
       items: row.items,
       totalAmount: row.total_amount,

@@ -11,6 +11,18 @@ import { RabbitMQModule } from '@golevelup/nestjs-rabbitmq';
           name: 'vehicle_exchange',
           type: 'direct',
         },
+        {
+          name: 'quotation_vehicle',
+          type: 'direct',
+        },
+        {
+          name: 'order_vehicle',
+          type: 'direct',
+        },
+        {
+          name: 'contract_vehicle',
+          type: 'direct',
+        },
       ],
       uri: process.env.RABBITMQ_URL || 'amqp://localhost:5672',
       connectionInitOptions: {

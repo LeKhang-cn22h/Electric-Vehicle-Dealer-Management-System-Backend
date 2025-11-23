@@ -1,7 +1,11 @@
+// create-appointment.dto.ts
+import { IsInt, IsOptional, IsString } from 'class-validator';
+
 export class CreateAppointmentDto {
-  admin_uid: number;
-  customer_uid: number;
-  vehicle_id: number;
-  appointment_time: string;
-  notes?: string;
+  @IsInt()
+  test_drive_slot_id: number;
+
+  @IsOptional()
+  @IsString()
+  status?: string; // default 'pending'
 }

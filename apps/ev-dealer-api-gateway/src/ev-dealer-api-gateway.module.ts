@@ -14,6 +14,7 @@ import { CommissionGatewayController } from './routes/gateway-commission.control
 import { GatewayDealerAgreementController } from './routes/gateway-dealer-agreement.controller';
 import { slidingWindow } from './middlewares/rateLimiter';
 import { GatewaySalesController } from './routes/gateway-sales.controller';
+import { GatewayEvmStaffAgreementController } from './routes/gateway-evm-staff-agreement-service.controller';
 @Module({
   imports: [HttpModule.register({ timeout: 160000 })],
   providers: [ServiceClients],
@@ -28,6 +29,9 @@ import { GatewaySalesController } from './routes/gateway-sales.controller';
     GatewayDealerAgreementController,
     GatewaySalesController,
     GatewayARController,
+    GatewayRbacController,
+    CommissionGatewayController,
+    GatewayEvmStaffAgreementController,
   ],
 })
 export class EvDealerApiGatewayModule implements NestModule {

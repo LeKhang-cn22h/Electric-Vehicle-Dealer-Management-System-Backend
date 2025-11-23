@@ -4,14 +4,28 @@ import { UpdateContractDto } from './dto/update-contract.dto';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { v4 as uuid } from 'uuid';
 import { Contract } from './entity/contract.entity';
+import { OrderService } from '../order/order.service';
+import { AmqpConnection } from '@golevelup/nestjs-rabbitmq';
+import { PricingPromotionService } from '../pricing-promotion/pricing-promotion.service';
 
 @Injectable()
 export class ContractsService {
   constructor(
     @Inject('SUPABASE_CLIENT')
     private readonly supabase: SupabaseClient,
+    private readonly orderService: OrderService,
+    private readonly pricingPromotionService: PricingPromotionService,
+    private readonly amqpConnection: AmqpConnection,
   ) {}
-
+  async getVehicleId(id: number) {
+    const response = await this.amqpConnection.request<{ vehicle: any }>({
+      exchange: 'contract_vehicle',
+      routingKey: 'contract.vehicle',
+      payload: { id },
+      timeout: 160000,
+    });
+    return response;
+  }
   // Generate code kiểu: CT-2025-00001
   private async generateContractNumber(): Promise<string> {
     const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
@@ -53,7 +67,6 @@ export class ContractsService {
       orderId: dto.orderId,
       contractNumber,
       dealerId: order.dealer_id,
-      description: dto.description,
       contractValue: order.total_amount,
       startDate: dto.startDate ? new Date(dto.startDate) : now,
       endDate: dto.endDate ? new Date(dto.endDate) : null,
@@ -78,6 +91,8 @@ export class ContractsService {
         updated_at: now.toISOString(),
       });
 
+    const response = await this.orderService.update(newContract.orderId, { status: 'confirmed' });
+    console.log('Đã update', response);
     if (error) throw new Error(error.message);
 
     return newContract;
@@ -90,23 +105,76 @@ export class ContractsService {
     return data.map(this.mapRow);
   }
 
-  async findOne(id: string): Promise<Contract> {
-    const { data, error } = await this.supabase
+  async findOne(id: string): Promise<any> {
+    const { data: contract, error } = await this.supabase
       .schema('sales')
       .from('contracts')
       .select('*')
       .eq('id', id)
       .single();
 
-    if (error || !data) throw new NotFoundException('Contract not found');
-    return this.mapRow(data);
+    if (error || !contract) throw new NotFoundException('Contract not found');
+
+    const { data: order, error: orderError } = await this.supabase
+      .schema('sales')
+      .from('orders')
+      .select('*')
+      .eq('id', contract.order_id)
+      .single();
+
+    if (orderError || !order) throw new NotFoundException('Order not found');
+
+    // 2. Lấy quotation liên quan
+    const { data: quotation, error: qError } = await this.supabase
+      .schema('sales')
+      .from('quotations')
+      .select('*')
+      .eq('id', order.quotation_id)
+      .single();
+
+    if (qError) throw new Error(qError.message);
+
+    // 3. Lấy items của quotation
+    const { data: items, error: itemsError } = await this.supabase
+      .schema('sales')
+      .from('quotation_items')
+      .select('*')
+      .eq('quotation_id', order.quotation_id);
+
+    if (itemsError) throw new Error(itemsError.message);
+
+    const vehicle = await Promise.all(
+      items.map(async (item) => await this.getVehicleId(item.product_id)),
+    );
+
+    const promotions = await Promise.all(
+      quotation.promotion_code.map(
+        async (promo_id) => await this.pricingPromotionService.findOnePromotion(promo_id),
+      ),
+    );
+    // 4. Lấy thông tin customer
+    const { data: customer, error: cError } = await this.supabase
+      .schema('customer')
+      .from('customers')
+      .select('*')
+      .eq('id', quotation.customer_id)
+      .single();
+
+    return {
+      ...this.mapRow(contract),
+      order: order,
+      quotation: quotation,
+      promotions: promotions,
+      items: items || [],
+      vehicles: vehicle || [],
+      customer: customer || null,
+    };
   }
 
   async update(id: string, dto: UpdateContractDto): Promise<Contract> {
     const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
 
     const updateData: any = {
-      description: dto.description,
       updated_at: now.toISOString(),
     };
 
@@ -138,7 +206,7 @@ export class ContractsService {
     return { message: `Contract ${id} deleted successfully` };
   }
 
-  private mapRow(row: any): Contract {
+  private mapRow(row: any): any {
     return {
       id: row.id,
       orderId: row.order_id,

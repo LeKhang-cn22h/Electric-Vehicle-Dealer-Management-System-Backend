@@ -27,14 +27,21 @@ import { CreateVehicleRequestDto } from './dto/create-vehicle-request.dto';
 export class DealerCoordinationController {
   constructor(private readonly dealerService: DealerCoordinationService) {}
 
-  // ✅ Tạo nhiều yêu cầu xe trong một lần
-  @Post('create-request')
+  @Post()
   async createRequest(@Body() body: CreateVehicleRequestDto) {
+    const vehicles = (body.vehicles || []).map((v: any) => ({
+      vehicle_id: v.vehicle_id,
+      // ensure the required field `vehicle_model` exists (try common alternatives)
+      vehicle_model: v.vehicle_model ?? v.model ?? v.vehicleModel ?? '',
+      quantity: v.quantity,
+      note: v.note,
+    }));
+
     const result = await this.dealerService.createVehicleRequest(
       body.dealer_id,
       body.dealer_name,
       body.request_type,
-      body.vehicles,
+      vehicles,
     );
 
     return {
@@ -53,7 +60,6 @@ export class DealerCoordinationController {
     };
   }
 
-  // ✅ Lấy requests theo dealer_name
   @Get('requests')
   async getRequestsByDealerName(@Query('dealer_name') dealer_name?: string) {
     const requests = await this.dealerService.getVehicleRequestsByDealerName(dealer_name);
@@ -63,7 +69,6 @@ export class DealerCoordinationController {
     };
   }
 
-  // ✅ Lấy tất cả requests
   @Get('all')
   async getAllRequests() {
     const requests = await this.dealerService.getAllVehicleRequests();

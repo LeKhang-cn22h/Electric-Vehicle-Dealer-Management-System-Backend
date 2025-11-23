@@ -18,13 +18,12 @@ import { ServiceClients } from '../service-clients';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { Req } from '@nestjs/common';
 import FormData from 'form-data';
-
 @Controller('api/vehicle')
 export class GatewayVehicleController {
   private readonly logger = new Logger(GatewayVehicleController.name);
 
   constructor(private readonly c: ServiceClients) {}
-
+  //lấy tất cả xe
   @Get()
   async findAll(
     @Query('keyword') keyword?: string,
@@ -66,6 +65,7 @@ export class GatewayVehicleController {
       throw new InternalServerErrorException('Failed to fetch vehicles');
     }
   }
+  // tìm kiếm xe
 
   @Get('search')
   async searchAll(
@@ -91,7 +91,7 @@ export class GatewayVehicleController {
       throw new InternalServerErrorException('Failed to search vehicles');
     }
   }
-
+  // lọc xe theo model
   @Get('filter/model')
   async filterByModel(
     @Query('model') model: string,
@@ -116,7 +116,7 @@ export class GatewayVehicleController {
       throw new InternalServerErrorException('Failed to filter vehicles by model');
     }
   }
-
+  //lấy tên tất cả các model
   @Get('models')
   async getAllModels() {
     try {
@@ -129,7 +129,7 @@ export class GatewayVehicleController {
       throw new InternalServerErrorException('Failed to fetch vehicle models');
     }
   }
-
+  //lấy xe cụ thể
   @Get(':id')
   async findOne(@Param('id') id: string) {
     try {
@@ -145,7 +145,7 @@ export class GatewayVehicleController {
       throw error;
     }
   }
-
+  // tạo xe
   @Post()
   @UseInterceptors(FilesInterceptor('images', 10))
   async createVehicle(
@@ -219,7 +219,7 @@ export class GatewayVehicleController {
       );
     }
   }
-
+  //cập nhật xe
   @Put(':id')
   @UseInterceptors(FilesInterceptor('images', 10))
   async updateVehicle(
@@ -279,7 +279,7 @@ export class GatewayVehicleController {
       );
     }
   }
-
+  // xóa xe
   @Delete(':id')
   async remove(@Param('id') id: string) {
     try {
@@ -292,6 +292,7 @@ export class GatewayVehicleController {
       throw error;
     }
   }
+  //so sánh xe
   @Post('compare')
   async compareVehicles(@Body() compareDto: any, @Headers('authorization') auth: string) {
     try {
@@ -313,6 +314,7 @@ export class GatewayVehicleController {
       throw new InternalServerErrorException('Failed to compare vehicles');
     }
   }
+  // tiến hành so sánh xe
   @Get(':id/compare-suggestions')
   async getComparisonSuggestions(
     @Param('id') id: string,
@@ -340,6 +342,7 @@ export class GatewayVehicleController {
       throw new InternalServerErrorException('Failed to get comparison suggestions');
     }
   }
+  //lấy xe mới
   @Get('new-arrivals')
   async getNewArrivals(@Query('limit') limit?: string) {
     try {
@@ -380,6 +383,7 @@ export class GatewayVehicleController {
       throw new InternalServerErrorException('Failed to fetch similar vehicles');
     }
   }
+  //tạo xe cụ thể
   @Post('Vunit')
   async createVehicleUnit(@Body() dto: any, @Headers('authorization') auth: string) {
     try {
@@ -401,18 +405,287 @@ export class GatewayVehicleController {
       throw new InternalServerErrorException('Failed to Unit vehicles');
     }
   }
+  //gửi danh sách xe
   @Post('list')
   async findList(@Body('vehicleIds') vehicleIds: number[], @Headers('authorization') auth: string) {
     if (!vehicleIds || !Array.isArray(vehicleIds) || vehicleIds.length === 0) {
       throw new Error('vehicleIds phải là mảng và không được để trống');
     }
-
-    // Gửi đúng body đến microservice / API
     const result = await this.c.vehicle().post('/vehicle/list', { vehicleIds });
 
     return {
       success: true,
       data: result,
     };
+  }
+  // APPOINTMENTS (Lịch hẹn lái thử)
+  // ===========================
+
+  // Tạo lịch hẹn (khách đặt)
+  @Post('appointments')
+  async createAppointment(@Headers('authorization') auth: string, @Body() dto: any) {
+    try {
+      this.logger.log(`Creating appointment for customer`);
+
+      const headers: Record<string, string> = {};
+      if (auth) {
+        headers.authorization = auth;
+      }
+
+      const result = await this.c.vehicle().post('/appointments', dto, headers);
+      this.logger.log('Appointment created successfully');
+      return result;
+    } catch (err: any) {
+      this.logger.error('Error creating appointment:', err.message);
+      this.logger.error('Response:', err.response?.data);
+      throw new BadRequestException(err.response?.data?.message || err.message);
+    }
+  }
+
+  // Lấy lịch sử đặt lái thử của khách hàng
+  @Get('appointments/history/customer')
+  async findAppointmentHistoryForCustomer(@Headers('authorization') auth: string) {
+    try {
+      this.logger.log('Fetching appointment history for customer');
+
+      const headers: Record<string, string> = {};
+      if (auth) {
+        headers.authorization = auth;
+      }
+
+      const result = await this.c.vehicle().get('/appointments/history/customer', headers);
+      this.logger.log('Appointment history fetched successfully');
+      return result;
+    } catch (err: any) {
+      this.logger.error('Error fetching appointment history:', err.message);
+      throw new InternalServerErrorException(err.response?.data?.message || err.message);
+    }
+  }
+
+  // Lấy tất cả lịch hẹn (admin)
+  @Get('appointments/all')
+  async findAllAppointments(@Headers('authorization') auth: string) {
+    try {
+      this.logger.log('Fetching all appointments (admin)');
+
+      // Tạo headers với authorization
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+
+      // QUAN TRỌNG: Truyền authorization header xuống service vehicle
+      if (auth) {
+        headers.authorization = auth;
+        this.logger.log('Authorization header included');
+      } else {
+        this.logger.warn('No authorization header provided');
+      }
+
+      // Gọi service vehicle với headers đầy đủ
+      const result = await this.c.vehicle().get('/appointments/all', {
+        auth, // Đảm bảo truyền headers
+      });
+
+      this.logger.log(`Success, got ${result.data?.length || 0} appointments`);
+      return result;
+    } catch (err: any) {
+      this.logger.error('Error fetching appointments:', err.message);
+      this.logger.error('Error details:', err.response?.data);
+      throw new InternalServerErrorException(err.response?.data?.message || err.message);
+    }
+  }
+
+  // Lấy chi tiết 1 lịch hẹn
+  @Get('appointments/:id')
+  async findOneAppointment(@Param('id') id: string, @Headers('authorization') auth: string) {
+    try {
+      this.logger.log(`Fetching appointment ID=${id}`);
+
+      const headers: Record<string, string> = {};
+      if (auth) {
+        headers.authorization = auth;
+      }
+
+      const result = await this.c.vehicle().get(`/appointments/${id}`, headers);
+      this.logger.log(`Success, found appointment ${id}`);
+      return result;
+    } catch (err: any) {
+      this.logger.error(`Error fetching appointment ${id}:`, err.message);
+      throw new BadRequestException(err.response?.data?.message || err.message);
+    }
+  }
+
+  // Cập nhật lịch hẹn
+  @Put('appointments/:id')
+  async updateAppointment(
+    @Param('id') id: string,
+    @Body() dto: any,
+    @Headers('authorization') auth: string,
+  ) {
+    try {
+      this.logger.log(`Updating appointment ID=${id}`);
+
+      const headers: Record<string, string> = {};
+      if (auth) {
+        headers.authorization = auth;
+      }
+
+      const result = await this.c.vehicle().put(`/appointments/${id}`, dto, headers);
+      this.logger.log(`Appointment ${id} updated successfully`);
+      return result;
+    } catch (err: any) {
+      this.logger.error(`Error updating appointment ${id}:`, err.message);
+      throw new BadRequestException(err.response?.data?.message || err.message);
+    }
+  }
+
+  // Xóa lịch hẹn
+  @Delete('appointments/:id')
+  async removeAppointment(@Param('id') id: string, @Headers('authorization') auth: string) {
+    try {
+      this.logger.log(`Deleting appointment ID=${id}`);
+
+      const headers: Record<string, string> = {};
+      if (auth) {
+        headers.authorization = auth;
+      }
+
+      const result = await this.c.vehicle().delete(`/appointments/${id}`, headers);
+      this.logger.log(`Appointment ${id} deleted successfully`);
+      return result;
+    } catch (err: any) {
+      this.logger.error(`Error deleting appointment ${id}:`, err.message);
+      throw new BadRequestException(err.response?.data?.message || err.message);
+    }
+  }
+
+  // ===========================
+  // TEST DRIVE SLOTS (Slot lái thử)
+  // ===========================
+
+  // Khách xem slot available
+  @Get('test-drive-slots')
+  async findAllSlotsForCustomer(@Headers('authorization') auth?: string) {
+    try {
+      this.logger.log('Fetching available test drive slots for customer');
+
+      const headers: Record<string, string> = {};
+      if (auth) {
+        headers.authorization = auth;
+      }
+
+      const result = await this.c.vehicle().get('/appointments/test-drive-slots', headers);
+      this.logger.log(`Success, got ${result.data?.length || 0} available slots`);
+      return result;
+    } catch (err: any) {
+      this.logger.error('Error fetching slots:', err.message);
+      throw new InternalServerErrorException(err.response?.data?.message || err.message);
+    }
+  }
+
+  // Admin xem tất cả slot
+  @Get('test-drive-slots/admin')
+  async findAllSlotsForAdmin(@Headers('authorization') auth: string) {
+    try {
+      this.logger.log('Fetching all test drive slots (admin)');
+
+      const headers: Record<string, string> = {};
+      if (auth) {
+        headers.authorization = auth;
+      }
+
+      const result = await this.c.vehicle().get('/appointments/test-drive-slots/admin', headers);
+      this.logger.log(`Success, got ${result.data?.length || 0} slots`);
+      return result;
+    } catch (err: any) {
+      this.logger.error('Error fetching slots:', err.message);
+      throw new InternalServerErrorException(err.response?.data?.message || err.message);
+    }
+  }
+
+  // Tạo slot mới (admin)
+  @Post('test-drive-slots')
+  async createSlot(@Body() dto: any, @Headers('authorization') auth: string) {
+    try {
+      this.logger.log('Creating new test drive slot');
+
+      const headers: Record<string, string> = {};
+      if (auth) {
+        headers.authorization = auth;
+      }
+
+      const result = await this.c.vehicle().post('/appointments/test-drive-slots', dto, headers);
+      this.logger.log('Test drive slot created successfully');
+      return result;
+    } catch (err: any) {
+      this.logger.error('Error creating test drive slot:', err.message);
+      throw new BadRequestException(err.response?.data?.message || err.message);
+    }
+  }
+
+  // Lấy chi tiết 1 slot
+  @Get('test-drive-slots/:id')
+  async findOneSlot(@Param('id') id: string, @Headers('authorization') auth?: string) {
+    try {
+      this.logger.log(`Fetching test drive slot ID=${id}`);
+
+      const headers: Record<string, string> = {};
+      if (auth) {
+        headers.authorization = auth;
+      }
+
+      const result = await this.c.vehicle().get(`/appointments/test-drive-slots/${id}`, headers);
+      this.logger.log(`Success, found slot ${id}`);
+      return result;
+    } catch (err: any) {
+      this.logger.error(`Error fetching slot ${id}:`, err.message);
+      throw new BadRequestException(err.response?.data?.message || err.message);
+    }
+  }
+
+  // Cập nhật slot
+  @Put('test-drive-slots/:id')
+  async updateSlot(
+    @Param('id') id: string,
+    @Body() dto: any,
+    @Headers('authorization') auth: string,
+  ) {
+    try {
+      this.logger.log(`Updating test drive slot ID=${id}`);
+
+      const headers: Record<string, string> = {};
+      if (auth) {
+        headers.authorization = auth;
+      }
+
+      const result = await this.c
+        .vehicle()
+        .put(`/appointments/test-drive-slots/${id}`, dto, headers);
+      this.logger.log(`Slot ${id} updated successfully`);
+      return result;
+    } catch (err: any) {
+      this.logger.error(`Error updating slot ${id}:`, err.message);
+      throw new BadRequestException(err.response?.data?.message || err.message);
+    }
+  }
+
+  // Xóa/Ẩn slot
+  @Delete('test-drive-slots/:id')
+  async removeSlot(@Param('id') id: string, @Headers('authorization') auth: string) {
+    try {
+      this.logger.log(`Hiding test drive slot ID=${id}`);
+
+      const headers: Record<string, string> = {};
+      if (auth) {
+        headers.authorization = auth;
+      }
+
+      const result = await this.c.vehicle().delete(`/appointments/test-drive-slots/${id}`, headers);
+      this.logger.log(`Slot ${id} hidden successfully`);
+      return result;
+    } catch (err: any) {
+      this.logger.error(`Error hiding slot ${id}:`, err.message);
+      throw new BadRequestException(err.response?.data?.message || err.message);
+    }
   }
 }

@@ -2,13 +2,13 @@ import { IsString, IsNumber, IsUUID } from 'class-validator';
 
 export class QuotationItemDto {
   @IsString()
-  productId: string;
+  id: string;
 
   @IsString()
-  productName: string;
+  name: string;
 
   @IsNumber()
-  unitPrice: number;
+  price: number;
 
   @IsNumber()
   quantity: number;

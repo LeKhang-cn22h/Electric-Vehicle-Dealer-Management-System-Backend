@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import * as dotenv from 'dotenv';
 import { CreateVehicleUnitDTO, VehicleCreateDto } from './DTO/vehicle_create.dto';
 import { VehicleUpdateDto } from './DTO/vehicle_update.dto';
-import { AmqpConnection } from '@golevelup/nestjs-rabbitmq';
+import { AmqpConnection, RabbitRPC } from '@golevelup/nestjs-rabbitmq';
 import { NotFoundError } from 'rxjs';
 
 dotenv.config();
@@ -69,6 +69,39 @@ export class vehicleNewService {
     console.log('Merged result:', result);
 
     return result;
+  }
+
+  @RabbitRPC({
+    exchange: 'quotation_vehicle',
+    routingKey: 'quotaion.vehicle',
+    queue: 'quotaion_request_vehicle',
+  })
+  public async handleQuotationVehicle(msg: { id: number }) {
+    return this.getVehicleWithPriceHandler(msg);
+  }
+
+  @RabbitRPC({
+    exchange: 'order_vehicle',
+    routingKey: 'order.vehicle',
+    queue: 'order_request_vehicle',
+  })
+  public async handleOrderVehicle(msg: { id: number }) {
+    return this.getVehicleWithPriceHandler(msg);
+  }
+
+  @RabbitRPC({
+    exchange: 'contract_vehicle',
+    routingKey: 'contract.vehicle',
+    queue: 'contract_request_vehicle',
+  })
+  public async handleContractVehicle(msg: { id: number }) {
+    return this.getVehicleWithPriceHandler(msg);
+  }
+  // Dùng chung function xử lý logic
+  private async getVehicleWithPriceHandler(msg: { id: number }) {
+    console.log('Received vehicle request:', msg);
+    if (!msg.id) return null;
+    return await this.getVehicleWithPrice(msg.id);
   }
 
   // ===========================
