@@ -254,6 +254,13 @@ export class OrderService {
     const updatedAt = new Date(
       new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }),
     );
+    const payload: any = {
+      updated_at: updatedAt.toISOString(),
+    };
+    if (updateData.invoiceId !== undefined) {
+      payload.invoice_id = updateData.invoiceId;
+    }
+
     const { data, error } = await this.supabase
       .schema('sales')
       .from('orders')
@@ -266,6 +273,7 @@ export class OrderService {
         payment_method: updateData.paymentMethod,
         payment_status: updateData.paymentStatus,
         payment_amount: updateData.paymentAmount,
+        invoice_id: updateData.invoiceId,
 
         bank: updateData.bank,
         term: updateData.term,
@@ -314,6 +322,7 @@ export class OrderService {
       bank: row.bank,
       term: row.term,
       downPayment: row.downPayment,
+      invoiceId: row.invoice_id ?? null,
 
       status: row.status,
       createdAt: new Date(row.created_at),

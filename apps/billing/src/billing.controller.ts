@@ -18,9 +18,15 @@ import { ListBillsDto } from './dtos/list-bills.dto';
 export class BillingController {
   constructor(private readonly svc: BillingService) {}
 
+  // @Post()
+  // create(@Body() dto: CreateBillDto, @Headers('Idempotency-Key') key?: string) {
+  //   return this.svc.create(dto, key);
+  // }
+
   @Post()
-  create(@Body() dto: CreateBillDto, @Headers('Idempotency-Key') key?: string) {
-    return this.svc.create(dto, key);
+  async create(@Body() dto: CreateBillDto, @Headers('Idempotency-Key') idempotencyKey?: string) {
+    console.log('[BillingController] DTO nhận từ FE:', JSON.stringify(dto, null, 2));
+    return this.svc.create(dto, idempotencyKey);
   }
 
   @Get(':id')

@@ -238,6 +238,17 @@ export class GatewaySalesController {
     });
   }
 
+  @Patch('orders/:id/invoice')
+  attachInvoice(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: { invoiceId: string },
+    @Headers('authorization') auth: string,
+  ) {
+    return this.c.sales().patch(`/orders/${id}/invoice`, body, {
+      authorization: auth,
+    });
+  }
+
   // ------------------------------
   // CONTRACTS
   // ------------------------------

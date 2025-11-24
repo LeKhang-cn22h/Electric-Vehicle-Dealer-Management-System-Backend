@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { createClient } from '@supabase/supabase-js';
 import { CreateBillDto } from './dtos/create-bill.dto';
 import { ListBillsDto } from './dtos/list-bills.dto';
+import * as crypto from 'crypto';
 
 @Injectable()
 export class BillingService {
@@ -61,6 +62,7 @@ export class BillingService {
 
     return { message: 'Created', id: invoiceId };
   }
+
   //Lấy chi tiết 1 hóa đơn
   async get(id: string) {
     const { data, error } = await this.sb

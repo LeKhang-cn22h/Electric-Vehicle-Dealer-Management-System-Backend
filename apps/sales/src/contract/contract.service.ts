@@ -93,9 +93,21 @@ export class ContractsService {
         created_at: now.toISOString(),
         updated_at: now.toISOString(),
       });
-    if (error) throw new Error(error.message);
-    const response = await this.orderService.update(newContract.orderId, { status: 'confirmed' });
-    console.log('Đã update', response);
+    // Chỉ xác nhận đơn hàng, không đụng vào các field payment
+    const { data: updatedOrder, error: updateOrderError } = await this.supabase
+      .schema('sales')
+      .from('orders')
+      .update({ status: 'confirmed', updated_at: now.toISOString() })
+      .eq('id', newContract.orderId)
+      .select('*')
+      .single();
+
+    if (updateOrderError) {
+      console.error('[ContractsService] Cannot confirm order:', updateOrderError);
+      throw new Error('Cannot confirm order');
+    }
+
+    console.log('Đã confirm order', updatedOrder);
 
     return newContract;
   }
