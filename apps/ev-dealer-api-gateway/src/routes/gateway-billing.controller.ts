@@ -64,16 +64,9 @@ export class GatewayBillingController {
 
   @Patch('/bills/:id/paid')
   async markPaid(@Param('id') id: string) {
-    try {
-      const res$ = this.http.patch(`${this.billingURL}/bills/${id}/paid`, {});
-      const res = await firstValueFrom(res$);
-      return res.data;
-    } catch (err: any) {
-      throw new HttpException(
-        err?.response?.data || 'Billing service error',
-        err?.response?.status || 500,
-      );
-    }
+    const res$ = this.http.patch(`${this.billingURL}/bills/${id}/paid`, {});
+    const res = await firstValueFrom(res$);
+    return res.data;
   }
 
   @Patch('/bills/:id/void')

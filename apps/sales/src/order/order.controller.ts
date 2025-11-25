@@ -28,8 +28,8 @@ export class OrderController {
 
   //Cập nhật đơn hàng
   @Patch(':id')
-  async update(@Param('id') id: string, @Body() updateData: Partial<Order>): Promise<Order> {
-    return this.orderService.update(id, updateData);
+  async update(@Param('id') id: string, @Body() updateData: Partial<Order>): Promise<any> {
+    return this.orderService.update_invoiceID(id, updateData);
   }
 
   //Xoá đơn hàng
@@ -42,7 +42,7 @@ export class OrderController {
   async updateInvoiceId(@Param('id') id: string, @Body() body: UpdateOrderInvoiceDto) {
     const { invoiceId } = body;
 
-    const updated = await this.orderService.update(id, {
+    const updated = await this.orderService.update_invoiceID(id, {
       invoiceId: invoiceId,
     });
 

@@ -4,6 +4,7 @@ import {
   Get,
   Headers,
   Param,
+  Patch,
   Post,
   Query,
   UsePipes,
@@ -39,7 +40,7 @@ export class BillingController {
     return this.svc.void(id);
   }
 
-  @Post(':id/mark-paid')
+  @Patch(':id/paid')
   markPaid(@Param('id') id: string) {
     return this.svc.markPaid(id);
   }

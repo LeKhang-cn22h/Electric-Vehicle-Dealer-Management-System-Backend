@@ -283,7 +283,35 @@ export class OrderService {
   }
 
   //Cập nhật đơn hàng
-  async update(id: string, updateData: Partial<Order>): Promise<Order> {
+  async update(id: string, updateData: Partial<Order>): Promise<any> {
+    try {
+      const updatedAt = new Date(
+        new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }),
+      );
+
+      let payload: any = {};
+      if (updateData.status !== undefined) payload.status = updateData.status;
+      if (updateData.paymentMethod !== undefined) payload.payment_method = updateData.paymentMethod;
+      if (updateData.paymentStatus !== undefined) payload.payment_status = updateData.paymentStatus;
+      if (updateData.downPayment !== undefined) payload.down_payment = updateData.downPayment;
+
+      const { data, error } = await this.supabase
+        .schema('sales')
+        .from('orders')
+        .update({ ...payload, updated_at: updatedAt.toISOString() })
+        .eq('id', id)
+        .select('*')
+        .single();
+
+      if (error) throw new Error(`Supabase update error: ${error.message}`);
+      return this.mapRowToOrder(data);
+    } catch (error) {
+      console.error('Lỗi khi thêm sản phẩm trong báo giá:', error);
+      console.error('Error response:', error.response?.data); // Thêm dòng này
+    }
+  }
+
+  async update_invoiceID(id: string, updateData: Partial<Order>): Promise<Order> {
     const updatedAt = new Date(
       new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }),
     );
