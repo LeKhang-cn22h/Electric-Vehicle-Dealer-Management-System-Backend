@@ -110,10 +110,12 @@ import {
 import { EvmStaffAgreementServiceService } from './evm-staff-agreement-service.service';
 import { CreateDealerDto } from './DTO/createdealer.dto';
 import { HttpException, HttpStatus } from '@nestjs/common';
+import { Logger } from '@nestjs/common';
 
 @Controller('contract-requests')
 export class EvmStaffAgreementController {
   constructor(private readonly evmStaffService: EvmStaffAgreementServiceService) {}
+  private readonly logger = new Logger(EvmStaffAgreementController.name);
 
   @Get()
   async getContractRequests(@Headers('authorization') auth: string) {
