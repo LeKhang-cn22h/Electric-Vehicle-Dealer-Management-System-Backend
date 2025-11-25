@@ -27,7 +27,7 @@ export class OrderController {
 
   //Cập nhật đơn hàng
   @Patch(':id')
-  async update(@Param('id') id: string, @Body() updateData: Partial<Order>): Promise<Order> {
+  async update(@Param('id') id: string, @Body() updateData: Partial<Order>): Promise<any> {
     return this.orderService.update(id, updateData);
   }
 
