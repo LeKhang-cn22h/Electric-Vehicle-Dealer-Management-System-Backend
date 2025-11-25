@@ -11,7 +11,7 @@ import {
   AdjustInventoryDto,
   InventoryResponseDto,
   InventorySummaryDto,
-} from './dto/Inventory.dto';
+} from './dto/inventory.dto';
 
 @Injectable()
 export class InventoryService {
