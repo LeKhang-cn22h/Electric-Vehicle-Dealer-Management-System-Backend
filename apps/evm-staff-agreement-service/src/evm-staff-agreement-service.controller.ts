@@ -1,4 +1,102 @@
-// apps/evm-staff-agreement-service/src/evm-staff-agreement.controller.ts
+// import { Controller, Get, Post, Body, Param, Headers } from '@nestjs/common';
+// import { EvmStaffAgreementServiceService } from './evm-staff-agreement-service.service';
+
+// @Controller('contract-requests')
+// export class ContractRequestController {
+//   constructor(private readonly agreementService: EvmStaffAgreementServiceService) {}
+
+//   @Get()
+//   async getAllRequests() {
+//     return this.agreementService.getContractRequests();
+//   }
+
+//   @Post()
+//   async createRequest(
+//     @Body() body: { dealer_name: string; address: string; phone: string; email: string },
+//   ) {
+//     return this.agreementService.createContractRequest(body);
+//   }
+
+//   @Post('contract-requests/:id/approve')
+//   approveRequest(
+//     @Param('id') id: string,
+//     @Body() body: { sales_target: number; order_limit: number },
+//     @Headers('authorization') auth: string,
+//   ) {
+//     return this.service.approveRequestAndCreateContract(
+//       Number(id),
+//       body.sales_target,
+//       body.order_limit,
+//       auth,
+//     );
+//   }
+// }
+// evm-staff-agreement.controller.ts
+// import {
+//   Controller,
+//   Post,
+//   Get,
+//   Param,
+//   Body,
+//   Headers,
+//   BadRequestException,
+//   ParseIntPipe,
+// } from '@nestjs/common';
+// import { EvmStaffAgreementServiceService } from './evm-staff-agreement-service.service';
+
+// @Controller('contract-requests')
+// export class EvmStaffAgreementController {
+//   constructor(private readonly evmStaffService: EvmStaffAgreementServiceService) {}
+
+//   @Get()
+//   async getContractRequests(@Headers('authorization') auth: string) {
+//     if (!auth) {
+//       throw new BadRequestException('Missing Authorization header');
+//     }
+//     return this.evmStaffService.getContractRequests();
+//   }
+
+//   @Post()
+//   async createContractRequest(
+//     @Body()
+//     body: {
+//       dealer_name: string;
+//       address: string;
+//       phone: string;
+//       email: string;
+//     },
+//     @Headers('authorization') auth: string,
+//   ) {
+//     if (!auth) {
+//       throw new BadRequestException('Missing Authorization header');
+//     }
+//     return this.evmStaffService.createContractRequest(body);
+//   }
+
+//   @Post(':id/approve')
+//   async approveRequest(
+//     @Param('id', ParseIntPipe) id: number,
+//     @Body()
+//     body: {
+//       sales_target: number;
+//       order_limit: number;
+//     },
+//     @Headers('authorization') auth: string,
+//   ) {
+//     if (!auth) {
+//       throw new BadRequestException('Missing Authorization header');
+//     }
+
+//     return this.evmStaffService.approveRequestAndCreateContract(
+//       id,
+//       body.sales_target,
+//       body.order_limit,
+//       auth, // ← Truyền token để gọi Gateway
+//     );
+//   }
+// }
+
+// evm-staff-agreement.controller.ts
 import {
   Controller,
   Post,
@@ -7,19 +105,17 @@ import {
   Body,
   Headers,
   BadRequestException,
-  HttpException,
-  HttpStatus,
-  Logger,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { EvmStaffAgreementServiceService } from './evm-staff-agreement-service.service';
+import { CreateDealerDto } from './DTO/createdealer.dto';
+import { HttpException, HttpStatus } from '@nestjs/common';
 
-@Controller()
+@Controller('contract-requests')
 export class EvmStaffAgreementController {
-  private readonly logger = new Logger(EvmStaffAgreementController.name);
-
   constructor(private readonly evmStaffService: EvmStaffAgreementServiceService) {}
 
-  @Get('contract-requests')
+  @Get()
   async getContractRequests(@Headers('authorization') auth: string) {
     if (!auth) {
       throw new BadRequestException('Missing Authorization header');
@@ -27,10 +123,7 @@ export class EvmStaffAgreementController {
     return this.evmStaffService.getContractRequests();
   }
 
-  /**
-   * ✅ TẠO CONTRACT REQUEST với FCM token
-   */
-  @Post('contract-requests')
+  @Post()
   async createContractRequest(
     @Body()
     body: {

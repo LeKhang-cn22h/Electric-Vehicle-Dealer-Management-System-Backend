@@ -9,12 +9,27 @@ import { OrderModule } from './order/order.module';
 import { PricingPromotionModule } from './pricing-promotion/pricing-promotion.module';
 import { ContractModule } from './contract/contract.module';
 import { RabbitMQModule } from '@golevelup/nestjs-rabbitmq';
+import { OrderService } from './order/order.service';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: './apps/sales/.env',
+    }),
+    RabbitMQModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: (configService: ConfigService) => ({
+        exchanges: [
+          {
+            name: 'order_payment',
+            type: 'direct',
+          },
+        ],
+        uri: configService.get<string>('RABBITMQ_URI'), // đọc từ env
+        connectionInitOptions: { wait: false },
+      }),
+      inject: [ConfigService],
     }),
     SupabaseModule,
     TestSupabaseModule,
@@ -24,6 +39,6 @@ import { RabbitMQModule } from '@golevelup/nestjs-rabbitmq';
     ContractModule,
   ],
   controllers: [SalesController],
-  providers: [SalesService],
+  providers: [SalesService, OrderService],
 })
 export class SalesModule {}

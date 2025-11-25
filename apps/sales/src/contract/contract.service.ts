@@ -26,7 +26,6 @@ export class ContractsService {
     });
     return response;
   }
-  // Generate code kiểu: CT-2025-00001
   private async generateContractNumber(): Promise<string> {
     const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
     const date = now.toISOString().slice(0, 10).replace(/-/g, ''); // YYYYMMDD
@@ -39,7 +38,10 @@ export class ContractsService {
       .gte('created_at', `${now.toISOString().slice(0, 10)}T00:00:00+07:00`)
       .lte('created_at', `${now.toISOString().slice(0, 10)}T23:59:59+07:00`);
 
-    if (error) throw new Error('Cannot generate contract number');
+    if (error) {
+      console.error('[generateContractNumber] Supabase error:', error);
+      throw new Error('Cannot generate contract number');
+    }
 
     const nextNumber = ((count || 0) + 1).toString().padStart(4, '0');
     console.log(`CT-${date}-${nextNumber}`);

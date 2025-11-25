@@ -17,6 +17,7 @@
 // evm-staff-agreement.module.ts
 // apps/evm-staff-agreement-service/src/app.module.ts
 import { Module } from '@nestjs/common';
+import { HttpModule } from '@nestjs/axios';
 import { ConfigModule } from '@nestjs/config';
 import { HttpModule } from '@nestjs/axios';
 import { EvmStaffAgreementController } from './evm-staff-agreement-service.controller';

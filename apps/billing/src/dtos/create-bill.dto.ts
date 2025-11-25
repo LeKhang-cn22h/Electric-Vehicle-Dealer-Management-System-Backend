@@ -1,4 +1,4 @@
-import { IsArray, IsNotEmpty, IsOptional, IsString, ValidateNested } from 'class-validator';
+import { IsArray, IsInt, IsNotEmpty, IsOptional, IsString, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 
 class BillItemDto {
@@ -19,8 +19,8 @@ class BillItemDto {
 }
 
 export class CreateBillDto {
-  @IsString()
-  customer_id: string;
+  @IsInt()
+  customer_id: number;
 
   @IsString()
   dealer_id: string;

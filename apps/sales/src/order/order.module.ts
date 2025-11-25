@@ -22,6 +22,10 @@ import { PricingPromotionModule } from '../pricing-promotion/pricing-promotion.m
             name: 'order_vehicle',
             type: 'direct',
           },
+          {
+            name: 'order_payment',
+            type: 'direct',
+          },
         ],
         uri: configService.get<string>('RABBITMQ_URI'), // đọc từ env
         connectionInitOptions: { wait: false },
