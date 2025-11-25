@@ -1,5 +1,5 @@
-// src/dealer-agreement/dealer-agreement.controller.ts
-import { Controller, Post, Body } from '@nestjs/common';
+import { Controller, Post, Body, Req } from '@nestjs/common';
+import type { Request } from 'express';
 import { DealerAgreementService } from './dealer-agreement.service';
 import { CreateContractRequestDto } from './dto/create-contract-request.dto';
 
@@ -9,9 +9,10 @@ export class DealerAgreementController {
 
   @Post('contract-request')
   async createContractRequest(
+    @Req() req: Request,
     @Body() createDto: CreateContractRequestDto,
   ): Promise<{ message: string }> {
-    await this.dealerAgreementService.createContractRequest(createDto);
+    await this.dealerAgreementService.createContractRequest(req, createDto);
     return { message: 'Yêu cầu hợp đồng đã được gửi thành công' };
   }
 }
