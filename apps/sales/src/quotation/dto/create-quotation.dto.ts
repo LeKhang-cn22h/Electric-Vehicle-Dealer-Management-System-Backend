@@ -35,8 +35,4 @@ export class CreateQuotationDto {
   @IsArray()
   @IsString({ each: true })
   promotionCode?: string[];
-
-  // @IsOptional()
-  // @IsNumber()
-  // discountAmount?: number;
 }

@@ -283,32 +283,35 @@ export class OrderService {
   }
 
   //Cập nhật đơn hàng
-  async update(id: string, updateData: Partial<Order>): Promise<any> {
-    try {
-      const updatedAt = new Date(
-        new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }),
-      );
+  async update(id: string, updateData: Partial<Order>): Promise<Order> {
+    const updatedAt = new Date(
+      new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }),
+    );
+    const { data, error } = await this.supabase
+      .schema('sales')
+      .from('orders')
+      .update({
+        quotation_id: updateData.quotationId,
+        created_by: updateData.createdBy,
+        total_amount: updateData.totalAmount,
+        status: updateData.status,
 
-      let payload: any = {};
-      if (updateData.status !== undefined) payload.status = updateData.status;
-      if (updateData.paymentMethod !== undefined) payload.payment_method = updateData.paymentMethod;
-      if (updateData.paymentStatus !== undefined) payload.payment_status = updateData.paymentStatus;
-      if (updateData.downPayment !== undefined) payload.down_payment = updateData.downPayment;
+        payment_method: updateData.paymentMethod,
+        payment_status: updateData.paymentStatus,
+        payment_amount: updateData.paymentAmount,
 
-      const { data, error } = await this.supabase
-        .schema('sales')
-        .from('orders')
-        .update({ ...payload, updated_at: updatedAt.toISOString() })
-        .eq('id', id)
-        .select('*')
-        .single();
+        bank: updateData.bank,
+        term: updateData.term,
+        downPayment: updateData.downPayment,
 
-      if (error) throw new Error(`Supabase update error: ${error.message}`);
-      return this.mapRowToOrder(data);
-    } catch (error) {
-      console.error('Lỗi khi thêm sản phẩm trong báo giá:', error);
-      console.error('Error response:', error.response?.data); // Thêm dòng này
-    }
+        updated_at: updatedAt.toISOString(),
+      })
+      .eq('id', id)
+      .select('*')
+      .single();
+
+    if (error) throw new Error(`Supabase update error: ${error.message}`);
+    return this.mapRowToOrder(data);
   }
 
   async update_invoiceID(id: string, updateData: Partial<Order>): Promise<Order> {
@@ -363,7 +366,6 @@ export class OrderService {
     if (!data || data.length === 0) {
       throw new NotFoundException(`Không tìm thấy đơn hàng có id = ${id}`);
     }
-
     return { message: `Xóa thành công đơn hàng ${id}` };
   }
 
@@ -376,13 +378,13 @@ export class OrderService {
 
       totalAmount: row.total_amount,
 
-      paymentMethod: row.paymentMethod,
-      paymentStatus: row.paymentStatus,
-      paymentAmount: row.paymentAmount,
+      paymentMethod: row.payment_method,
+      paymentStatus: row.payment_status,
+      paymentAmount: row.payment_amount,
 
       bank: row.bank,
       term: row.term,
-      downPayment: row.downPayment,
+      downPayment: row.down_payment,
       invoiceId: row.invoice_id ?? null,
 
       status: row.status,

@@ -19,7 +19,6 @@
 import { Module } from '@nestjs/common';
 import { HttpModule } from '@nestjs/axios';
 import { ConfigModule } from '@nestjs/config';
-import { HttpModule } from '@nestjs/axios';
 import { EvmStaffAgreementController } from './evm-staff-agreement-service.controller';
 import { EvmStaffAgreementServiceService } from './evm-staff-agreement-service.service';
 import { NotificationService } from './notification/notification.service';

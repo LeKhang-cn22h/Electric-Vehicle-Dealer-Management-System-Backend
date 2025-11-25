@@ -54,6 +54,15 @@
         "tsConfigPath": "libs/contracts/tsconfig.lib.json"
       }
     },
+    "coordination-request": {
+      "type": "application",
+      "root": "apps/coordination-request",
+      "entryFile": "main",
+      "sourceRoot": "apps/coordination-request/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/coordination-request/tsconfig.app.json"
+      }
+    },
     "customer": {
       "type": "application",
       "root": "apps/customer",
@@ -81,15 +90,6 @@
         "tsConfigPath": "apps/dealer-agreement/tsconfig.app.json"
       }
     },
-    "evm-staff-agreement-service": {
-      "type": "application",
-      "root": "apps/evm-staff-agreement-service",
-      "entryFile": "main",
-      "sourceRoot": "apps/evm-staff-agreement-service/src",
-      "compilerOptions": {
-        "tsConfigPath": "apps/evm-staff-agreement-service/tsconfig.app.json"
-      }
-    },
     "ev-dealer-api-gateway": {
       "type": "application",
       "root": "apps/ev-dealer-api-gateway",
@@ -99,6 +99,15 @@
         "tsConfigPath": "apps/ev-dealer-api-gateway/tsconfig.app.json"
       }
     },
+    "evm-staff-agreement-service": {
+      "type": "application",
+      "root": "apps/evm-staff-agreement-service",
+      "entryFile": "main",
+      "sourceRoot": "apps/evm-staff-agreement-service/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/evm-staff-agreement-service/tsconfig.app.json"
+      }
+    },
     "evm-staff-coordination-service": {
       "type": "application",
       "root": "apps/evm-staff-coordination-service",
@@ -106,6 +115,15 @@
       "sourceRoot": "apps/evm-staff-coordination-service/src",
       "compilerOptions": {
         "tsConfigPath": "apps/evm-staff-coordination-service/tsconfig.app.json"
+      }
+    },
+    "inventory": {
+      "type": "application",
+      "root": "apps/inventory",
+      "entryFile": "main",
+      "sourceRoot": "apps/inventory/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/inventory/tsconfig.app.json"
       }
     },
     "product-service": {

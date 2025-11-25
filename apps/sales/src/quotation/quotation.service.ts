@@ -5,6 +5,8 @@ import { v4 as uuid } from 'uuid';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { PricingPromotionService } from '../pricing-promotion/pricing-promotion.service';
 import { AmqpConnection } from '@golevelup/nestjs-rabbitmq';
+import { UpdateQuotationDto } from './dto/update-quotation.dto';
+import { QuotationItemDto } from './dto/quotation-item.dto';
 
 @Injectable()
 export class QuotationService {
@@ -64,7 +66,7 @@ export class QuotationService {
           }
         }
       }
-      const subtotalAfterDiscount = subtotal - discountAmount;
+      const subtotalAfterDiscount = Math.max(subtotal - discountAmount, 0);
 
       // Tiền VAT
       let vatAmount = 0;
@@ -291,7 +293,7 @@ export class QuotationService {
   }
 
   //Cập nhật báo giá
-  async update(id: string, updateData: Partial<Quotation>): Promise<Quotation> {
+  async update(id: string, updateData: Partial<UpdateQuotationDto>): Promise<Quotation> {
     const updatedAt = new Date(
       new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }),
     );
@@ -308,37 +310,21 @@ export class QuotationService {
       if (delError) throw new Error(`Failed to delete old items: ${delError.message}`);
 
       // Thêm lại items mới
-      const { error: insertError } = await this.supabase
-        .schema('sales')
-        .from('quotation_items')
-        .insert(
-          updateData.items.map((item) => ({
-            id: uuid(),
-            quotation_id: id,
-            product_id: item.productId,
-            quantity: item.quantity,
-            unit_price: item.unitPrice,
-            created_at: new Date(
-              new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }),
-            ).toISOString(),
-          })),
-        );
-
-      if (insertError) throw new Error(`Failed to insert new items: ${insertError.message}`);
+      updateData.items.map(async (item) => await this.createQuoteItems(id, item));
     }
+
+    let payload: any = {};
+
+    if (updateData.customerId !== undefined) payload.customer_id = updateData.customerId;
+    if (updateData.createdBy !== undefined) payload.created_by = updateData.createdBy;
+    if (updateData.vatRate !== undefined) payload.vat = updateData.vatRate;
+    if (updateData.note !== undefined) payload.note = updateData.note;
 
     //Cập nhật thông tin báo giá chính (trừ items)
     const { data, error } = await this.supabase
       .schema('sales')
       .from('quotations')
-      .update({
-        note: updateData.note,
-        status: updateData.status,
-        total_amount: updateData.totalAmount,
-        promotion_code: updateData.promotionCode || null,
-        discount_amount: updateData.discountAmount,
-        updated_at: updatedAt.toISOString(),
-      })
+      .update({ ...payload, updated_at: updatedAt.toISOString() })
       .eq('id', id)
       .select('*')
       .single();
@@ -346,6 +332,24 @@ export class QuotationService {
     if (error) throw new Error(`Supabase update error: ${error.message}`);
 
     return data;
+  }
+
+  async createQuoteItems(quotation_id: string, dto: QuotationItemDto) {
+    try {
+      const payload = {
+        id: uuid(),
+        quotation_id,
+        product_id: dto.id,
+        quantity: dto.quantity,
+        unit_price: dto.price,
+        created_at: new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' })),
+      };
+      const { error } = await this.supabase.schema('sales').from('quotation_items').insert(payload);
+      return { message: 'Tạo sản phẩm báo giá thành công' };
+    } catch (error) {
+      console.error('Lỗi khi thêm sản phẩm trong báo giá:', error);
+      console.error('Error response:', error.response?.data); // Thêm dòng này
+    }
   }
 
   //Xoá báo giá
