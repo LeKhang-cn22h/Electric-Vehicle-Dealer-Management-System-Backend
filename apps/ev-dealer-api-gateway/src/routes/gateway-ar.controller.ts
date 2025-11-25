@@ -18,10 +18,8 @@ export class GatewayARController {
     console.log('[GATEWAY] VNPay return query from FE:', q);
     const params = new URLSearchParams(q as Record<string, string>).toString();
     const base = process.env.AR_SERVICE_URL || 'http://localhost:4400';
-
     const url = `${base}/vnpay/return?${params}`;
     console.log('[GATEWAY] Forwarding to AR URL =', url);
-
     const resp = await axios.get(url);
     return resp.data;
   }

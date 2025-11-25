@@ -2,11 +2,9 @@ import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { v4 as uuid } from 'uuid';
 import { Order } from './entity/order.entity';
-import { QuotationService } from '../quotation/quotation.service';
 import { CreateOrderDto } from './dto/create-order.dto';
-import { Quotation } from '../quotation/entity/quotation.entity';
 import { PricingPromotionService } from '../pricing-promotion/pricing-promotion.service';
-import { AmqpConnection } from '@golevelup/nestjs-rabbitmq';
+import { AmqpConnection, RabbitSubscribe } from '@golevelup/nestjs-rabbitmq';
 
 @Injectable()
 export class OrderService {
@@ -16,6 +14,41 @@ export class OrderService {
     private readonly pricingPromotionService: PricingPromotionService,
     private readonly amqpConnection: AmqpConnection,
   ) {}
+
+  @RabbitSubscribe({
+    exchange: 'order_payment',
+    routingKey: 'order.paymentSucceeded',
+    queue: 'sales.order.paymentSucceeded',
+  })
+  async handleOrderPaymentSucceeded(msg: {
+    invoice_id: string;
+    provider: string;
+    provider_txn: string;
+    amount_cents: number;
+  }) {
+    if (!msg.invoice_id) {
+    }
+
+    const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
+    const { data, error } = await this.supabase
+      .schema('sales')
+      .from('orders')
+      .update({
+        payment_status: 'paid',
+        updated_at: now.toISOString(),
+      })
+      .eq('invoice_id', msg.invoice_id)
+      .select('id')
+      .maybeSingle();
+
+    if (error) {
+      return;
+    }
+    if (!data) {
+      return;
+    }
+  }
+
   async getVehicleId(id: number) {
     const response = await this.amqpConnection.request<{ vehicle: any }>({
       exchange: 'order_vehicle',

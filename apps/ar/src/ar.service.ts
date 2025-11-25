@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { createClient } from '@supabase/supabase-js';
 import { buildVnpCreateParams, makeVnpUrl, verifyVnpReturn } from './vnpay.util';
 import * as crypto from 'crypto';
+import { AmqpConnection } from '@golevelup/nestjs-rabbitmq';
 
 function sb() {
   return createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
@@ -11,6 +12,7 @@ function sb() {
 
 @Injectable()
 export class ArService {
+  constructor(private readonly amqp: AmqpConnection) {}
   private db = sb();
 
   //Tạo giao dịch VNPay + trả URL thanh toán
@@ -223,6 +225,17 @@ export class ArService {
           .eq('id', intent.data.id);
       }
 
+      try {
+        await this.amqp.publish('order_payment', 'order.paymentSucceeded', {
+          invoice_id: inv_id,
+          provider: 'vnpay',
+          provider_txn: String(txnNo),
+          amount_cents: Math.round(amountVnd * 100),
+        });
+        console.log('[AR] Published order.paymentSucceeded for invoice', inv_id);
+      } catch (e) {
+        console.error('[AR] Failed to publish order.paymentSucceeded:', e);
+      }
       return {
         success: true,
         code,
