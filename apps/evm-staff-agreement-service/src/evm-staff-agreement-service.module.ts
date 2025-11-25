@@ -15,24 +15,26 @@
 // })
 // export class EvmAgreementModule {}
 // evm-staff-agreement.module.ts
+// apps/evm-staff-agreement-service/src/app.module.ts
 import { Module } from '@nestjs/common';
-import { HttpModule } from '@nestjs/axios';
 import { ConfigModule } from '@nestjs/config';
-import { EvmStaffAgreementServiceService } from './evm-staff-agreement-service.service';
+import { HttpModule } from '@nestjs/axios';
 import { EvmStaffAgreementController } from './evm-staff-agreement-service.controller';
+import { EvmStaffAgreementServiceService } from './evm-staff-agreement-service.service';
+import { NotificationService } from './notification/notification.service';
+
 @Module({
   imports: [
-    HttpModule.register({
-      timeout: 10000, // 10 giây
-      maxRedirects: 5,
-    }),
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: ['apps/evm-staff-agreement-service/.env', '.env'],
     }),
+    HttpModule,
   ],
   controllers: [EvmStaffAgreementController],
-  providers: [EvmStaffAgreementServiceService],
-  exports: [EvmStaffAgreementServiceService],
+  providers: [
+    EvmStaffAgreementServiceService,
+    NotificationService, // ← Add here
+  ],
 })
 export class EvmStaffAgreementModule {}
