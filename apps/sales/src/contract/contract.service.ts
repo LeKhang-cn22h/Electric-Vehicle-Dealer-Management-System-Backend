@@ -28,16 +28,15 @@ export class ContractsService {
   }
   private async generateContractNumber(): Promise<string> {
     const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
-
-    const dateStr = now.toISOString().slice(0, 10); // YYYY-MM-DD
-    const date = dateStr.replace(/-/g, ''); // YYYYMMDD
-    const prefix = `CT-${date}-`;
-
+    const date = now.toISOString().slice(0, 10).replace(/-/g, ''); // YYYYMMDD
+    console.log(`${date}`);
+    // Lấy tất cả contract của ngày hôm nay
     const { count, error } = await this.supabase
       .schema('sales')
       .from('contracts')
-      .select('id', { count: 'exact', head: true })
-      .like('contract_number', `${prefix}%`);
+      .select('*', { count: 'exact', head: true })
+      .gte('created_at', `${now.toISOString().slice(0, 10)}T00:00:00+07:00`)
+      .lte('created_at', `${now.toISOString().slice(0, 10)}T23:59:59+07:00`);
 
     if (error) {
       console.error('[generateContractNumber] Supabase error:', error);
@@ -45,8 +44,8 @@ export class ContractsService {
     }
 
     const nextNumber = ((count || 0) + 1).toString().padStart(4, '0');
-
-    return `${prefix}${nextNumber}`;
+    console.log(`CT-${date}-${nextNumber}`);
+    return `CT-${date}-${nextNumber}`;
   }
 
   async create(dto: CreateContractDto): Promise<Contract> {

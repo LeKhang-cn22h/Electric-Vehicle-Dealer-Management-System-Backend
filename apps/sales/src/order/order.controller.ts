@@ -2,6 +2,7 @@ import { Controller, Get, Post, Param, Patch, Delete, Body } from '@nestjs/commo
 import { OrderService } from './order.service';
 import { Order } from './entity/order.entity';
 import { CreateOrderDto } from './dto/create-order.dto';
+import { UpdateOrderInvoiceDto } from './dto/update-order-invoice.dto';
 
 @Controller('orders')
 export class OrderController {
@@ -28,12 +29,26 @@ export class OrderController {
   //Cập nhật đơn hàng
   @Patch(':id')
   async update(@Param('id') id: string, @Body() updateData: Partial<Order>): Promise<any> {
-    return this.orderService.update(id, updateData);
+    return this.orderService.update_invoiceID(id, updateData);
   }
 
   //Xoá đơn hàng
   @Delete(':id')
   async remove(@Param('id') id: string): Promise<void> {
     return this.orderService.remove(id);
+  }
+
+  @Patch(':id/invoice')
+  async updateInvoiceId(@Param('id') id: string, @Body() body: UpdateOrderInvoiceDto) {
+    const { invoiceId } = body;
+
+    const updated = await this.orderService.update_invoiceID(id, {
+      invoiceId: invoiceId,
+    });
+
+    return {
+      message: 'Invoice ID updated successfully',
+      order: updated,
+    };
   }
 }

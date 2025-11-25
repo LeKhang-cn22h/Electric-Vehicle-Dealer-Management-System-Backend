@@ -16,4 +16,5 @@ export class Order {
   status: 'pending' | 'confirmed' | 'delivering' | 'completed' | 'cancelled';
   createdAt: Date;
   updatedAt: Date;
+  invoiceId?: string | null;
 }
