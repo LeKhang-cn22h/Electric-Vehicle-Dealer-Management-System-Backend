@@ -28,16 +28,15 @@ export class ContractsService {
   }
   private async generateContractNumber(): Promise<string> {
     const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
-
-    const dateStr = now.toISOString().slice(0, 10); // YYYY-MM-DD
-    const date = dateStr.replace(/-/g, ''); // YYYYMMDD
-    const prefix = `CT-${date}-`;
-
+    const date = now.toISOString().slice(0, 10).replace(/-/g, ''); // YYYYMMDD
+    console.log(`${date}`);
+    // Lấy tất cả contract của ngày hôm nay
     const { count, error } = await this.supabase
       .schema('sales')
       .from('contracts')
-      .select('id', { count: 'exact', head: true })
-      .like('contract_number', `${prefix}%`);
+      .select('*', { count: 'exact', head: true })
+      .gte('created_at', `${now.toISOString().slice(0, 10)}T00:00:00+07:00`)
+      .lte('created_at', `${now.toISOString().slice(0, 10)}T23:59:59+07:00`);
 
     if (error) {
       console.error('[generateContractNumber] Supabase error:', error);
@@ -45,71 +44,67 @@ export class ContractsService {
     }
 
     const nextNumber = ((count || 0) + 1).toString().padStart(4, '0');
-
-    return `${prefix}${nextNumber}`;
+    console.log(`CT-${date}-${nextNumber}`);
+    return `CT-${date}-${nextNumber}`;
   }
 
   async create(dto: CreateContractDto): Promise<Contract> {
-    const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
+    try {
+      const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
 
-    // Lấy Order từ DB
-    const { data: order, error: orderError } = await this.supabase
-      .schema('sales')
-      .from('orders')
-      .select('*')
-      .eq('id', dto.orderId)
-      .single();
+      // Lấy Order từ DB
+      const { data: order, error: orderError } = await this.supabase
+        .schema('sales')
+        .from('orders')
+        .select('*')
+        .eq('id', dto.orderId)
+        .single();
 
-    if (orderError || !order) throw new NotFoundException('Order not found');
+      if (orderError || !order) throw new NotFoundException('Order not found');
 
-    // Tạo contractNumber tự động
-    const contractNumber = await this.generateContractNumber();
+      // Tạo contractNumber tự động
+      const contractNumber = await this.generateContractNumber();
 
-    const newContract: Contract = {
-      id: uuid(),
-      orderId: dto.orderId,
-      contractNumber,
-      dealerId: dto.dealerId,
-      contractValue: order.total_amount,
-      startDate: dto.startDate ? new Date(dto.startDate) : now,
-      endDate: dto.endDate ? new Date(dto.endDate) : null,
-      createdAt: now,
-      updatedAt: now,
-    };
+      const newContract: Contract = {
+        id: uuid(),
+        orderId: dto.orderId,
+        contractNumber,
+        dealerId: dto.dealerId,
+        contractValue: order.total_amount,
+        startDate: dto.startDate ? new Date(dto.startDate) : now,
+        endDate: dto.endDate ? new Date(dto.endDate) : null,
+        createdAt: now,
+        updatedAt: now,
+      };
 
-    // Insert vào DB
-    const { error } = await this.supabase
-      .schema('sales')
-      .from('contracts')
-      .insert({
-        id: newContract.id,
-        order_id: newContract.orderId,
-        contract_number: newContract.contractNumber,
-        dealer_id: newContract.dealerId,
-        description: newContract.description,
-        contract_value: newContract.contractValue,
-        start_date: newContract.startDate.toISOString(),
-        end_date: newContract.endDate?.toISOString() || null,
-        created_at: now.toISOString(),
-        updated_at: now.toISOString(),
-      });
-    // Chỉ xác nhận đơn hàng, không đụng vào các field payment
-    const { data: updatedOrder, error: updateOrderError } = await this.supabase
-      .schema('sales')
-      .from('orders')
-      .update({ status: 'confirmed', updated_at: now.toISOString() })
-      .eq('id', newContract.orderId)
-      .select('*')
-      .single();
+      console.log('newContract', newContract);
 
-    if (updateOrderError) {
-      console.error('[ContractsService] Cannot confirm order:', updateOrderError);
-      throw new Error('Cannot confirm order');
+      // Insert vào DB
+      const { error } = await this.supabase
+        .schema('sales')
+        .from('contracts')
+        .insert({
+          id: newContract.id,
+          order_id: newContract.orderId,
+          contract_number: newContract.contractNumber,
+          dealer_id: newContract.dealerId,
+          description: newContract.description,
+          contract_value: newContract.contractValue,
+          start_date: newContract.startDate.toISOString(),
+          end_date: newContract.endDate?.toISOString() || null,
+          created_at: now.toISOString(),
+          updated_at: now.toISOString(),
+        });
+
+      if (error) throw new Error(error.message);
+
+      const response = await this.orderService.update(newContract.orderId, { status: 'confirmed' });
+      console.log('Đã update', response);
+
+      return newContract;
+    } catch (error) {
+      throw new Error(error.message);
     }
-
-    console.log('Đã confirm order', updatedOrder);
-
-    return newContract;
   }
 
   async findAll(): Promise<Contract[]> {
