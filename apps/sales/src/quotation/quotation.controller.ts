@@ -2,6 +2,7 @@ import { Controller, Get, Post, Body, Param, Delete, Patch, Query } from '@nestj
 import { QuotationService } from './quotation.service';
 import { CreateQuotationDto } from './dto/create-quotation.dto';
 import { Quotation } from './entity/quotation.entity';
+import { UpdateQuotationDto } from './dto/update-quotation.dto';
 
 @Controller('quotations')
 export class QuotationController {
@@ -28,7 +29,7 @@ export class QuotationController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() dto: Partial<Quotation>) {
+  update(@Param('id') id: string, @Body() dto: Partial<UpdateQuotationDto>) {
     return this.quotationService.update(id, dto);
   }
 
