@@ -1,102 +1,4 @@
-// import { Controller, Get, Post, Body, Param, Headers } from '@nestjs/common';
-// import { EvmStaffAgreementServiceService } from './evm-staff-agreement-service.service';
-
-// @Controller('contract-requests')
-// export class ContractRequestController {
-//   constructor(private readonly agreementService: EvmStaffAgreementServiceService) {}
-
-//   @Get()
-//   async getAllRequests() {
-//     return this.agreementService.getContractRequests();
-//   }
-
-//   @Post()
-//   async createRequest(
-//     @Body() body: { dealer_name: string; address: string; phone: string; email: string },
-//   ) {
-//     return this.agreementService.createContractRequest(body);
-//   }
-
-//   @Post('contract-requests/:id/approve')
-//   approveRequest(
-//     @Param('id') id: string,
-//     @Body() body: { sales_target: number; order_limit: number },
-//     @Headers('authorization') auth: string,
-//   ) {
-//     return this.service.approveRequestAndCreateContract(
-//       Number(id),
-//       body.sales_target,
-//       body.order_limit,
-//       auth,
-//     );
-//   }
-// }
-// evm-staff-agreement.controller.ts
-// import {
-//   Controller,
-//   Post,
-//   Get,
-//   Param,
-//   Body,
-//   Headers,
-//   BadRequestException,
-//   ParseIntPipe,
-// } from '@nestjs/common';
-// import { EvmStaffAgreementServiceService } from './evm-staff-agreement-service.service';
-
-// @Controller('contract-requests')
-// export class EvmStaffAgreementController {
-//   constructor(private readonly evmStaffService: EvmStaffAgreementServiceService) {}
-
-//   @Get()
-//   async getContractRequests(@Headers('authorization') auth: string) {
-//     if (!auth) {
-//       throw new BadRequestException('Missing Authorization header');
-//     }
-//     return this.evmStaffService.getContractRequests();
-//   }
-
-//   @Post()
-//   async createContractRequest(
-//     @Body()
-//     body: {
-//       dealer_name: string;
-//       address: string;
-//       phone: string;
-//       email: string;
-//     },
-//     @Headers('authorization') auth: string,
-//   ) {
-//     if (!auth) {
-//       throw new BadRequestException('Missing Authorization header');
-//     }
-//     return this.evmStaffService.createContractRequest(body);
-//   }
-
-//   @Post(':id/approve')
-//   async approveRequest(
-//     @Param('id', ParseIntPipe) id: number,
-//     @Body()
-//     body: {
-//       sales_target: number;
-//       order_limit: number;
-//     },
-//     @Headers('authorization') auth: string,
-//   ) {
-//     if (!auth) {
-//       throw new BadRequestException('Missing Authorization header');
-//     }
-
-//     return this.evmStaffService.approveRequestAndCreateContract(
-//       id,
-//       body.sales_target,
-//       body.order_limit,
-//       auth, // ← Truyền token để gọi Gateway
-//     );
-//   }
-// }
-
-// evm-staff-agreement.controller.ts
+// apps/evm-staff-agreement-service/src/evm-staff-agreement.controller.ts
 import {
   Controller,
   Post,
@@ -105,17 +7,19 @@ import {
   Body,
   Headers,
   BadRequestException,
-  ParseIntPipe,
+  HttpException,
+  HttpStatus,
+  Logger,
 } from '@nestjs/common';
 import { EvmStaffAgreementServiceService } from './evm-staff-agreement-service.service';
-import { CreateDealerDto } from './DTO/createdealer.dto';
-import { HttpException, HttpStatus } from '@nestjs/common';
 
-@Controller('contract-requests')
+@Controller()
 export class EvmStaffAgreementController {
+  private readonly logger = new Logger(EvmStaffAgreementController.name);
+
   constructor(private readonly evmStaffService: EvmStaffAgreementServiceService) {}
 
-  @Get()
+  @Get('contract-requests')
   async getContractRequests(@Headers('authorization') auth: string) {
     if (!auth) {
       throw new BadRequestException('Missing Authorization header');
@@ -123,7 +27,10 @@ export class EvmStaffAgreementController {
     return this.evmStaffService.getContractRequests();
   }
 
-  @Post()
+  /**
+   * ✅ TẠO CONTRACT REQUEST với FCM token
+   */
+  @Post('contract-requests')
   async createContractRequest(
     @Body()
     body: {
@@ -131,33 +38,32 @@ export class EvmStaffAgreementController {
       address: string;
       phone: string;
       email: string;
+      user_id?: string;
+      fcm_token?: string;
+      device_info?: any;
     },
     @Headers('authorization') auth: string,
   ) {
+    this.logger.log('📥 Creating contract request');
+    this.logger.log('User ID:', body.user_id);
+    this.logger.log('FCM Token:', body.fcm_token?.substring(0, 30) + '...');
+
     if (!auth) {
       throw new BadRequestException('Missing Authorization header');
     }
+
     return this.evmStaffService.createContractRequest(body);
   }
 
-  // @Post(':id/approve')
-  // async approveRequest(
-  //   @Param('id', ParseIntPipe) id: number,
-  //   @Headers('authorization') auth: string,
-  // ) {
-  //   if (!auth) {
-  //     throw new BadRequestException('Missing Authorization header');
-  //   }
+  /**
+   * ✅ APPROVE CONTRACT - Tạo dealer và gửi FCM notification
+   */
+  @Post('contract-requests/:id/approve-and-create-dealer')
+  async approveAndCreateDealer(@Param('id') id: string, @Headers('authorization') auth: string) {
+    this.logger.log('=== APPROVE CONTRACT REQUEST ===');
+    this.logger.log(`Contract ID: ${id}`);
+    this.logger.log(`Auth header: ${auth ? 'EXISTS' : 'MISSING'}`);
 
-  //   // KHÔNG CẦN body nữa, chỉ cần ID và token
-  //   return this.evmStaffService.approveRequestAndCreateDealer(id, auth);
-  // }
-  //tạo mới v2
-  @Post(':id/approve-and-create-dealer')
-  async approveAndCreateDealer(
-    @Param('id') id: string,
-    @Headers('authorization') auth: string,
-  ): Promise<CreateDealerDto> {
     if (!auth) {
       throw new HttpException('Missing Authorization header', HttpStatus.BAD_REQUEST);
     }
@@ -167,9 +73,17 @@ export class EvmStaffAgreementController {
       throw new HttpException('Invalid contract request ID', HttpStatus.BAD_REQUEST);
     }
 
-    // Gọi service, trả về CreateDealerDto (hoặc bạn có thể trả về kết quả khác)
-    const createDealerDto = await this.evmStaffService.createDealerAndContract(numericId, auth);
+    try {
+      const result = await this.evmStaffService.createDealerAndContract(numericId, auth);
 
-    return createDealerDto;
+      this.logger.log('✅ Contract approved successfully');
+      return result;
+    } catch (error) {
+      this.logger.error('❌ Error approving contract:', error);
+      throw new HttpException(
+        error.message || 'Failed to approve contract',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
   }
 }
