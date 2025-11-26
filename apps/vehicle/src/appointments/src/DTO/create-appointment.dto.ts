@@ -7,5 +7,5 @@ export class CreateAppointmentDto {
 
   @IsOptional()
   @IsString()
-  status?: string; // default 'pending'
+  status?: string;
 }
