@@ -295,7 +295,7 @@ export class EvmStaffAgreementServiceService {
         throw new Error('Request already approved');
       }
 
-      this.logger.log('✅ Contract request found:', {
+      this.logger.log('Contract request found:', {
         id: request.id,
         dealer_name: request.dealer_name,
         email: request.email,
@@ -304,7 +304,7 @@ export class EvmStaffAgreementServiceService {
       });
 
       // 2. Tạo dealer account qua Gateway
-      this.logger.log('👤 Creating dealer account...');
+      this.logger.log(' Creating dealer account...');
 
       // ✅ FIX: Gọi đúng function tạo password
       const generatedPassword = this.generateDefaultPassword();
@@ -335,7 +335,27 @@ export class EvmStaffAgreementServiceService {
         },
       );
 
+      this.logger.log(
+        'Dealer account response:',
+        JSON.stringify(createDealerResponse.data, null, 2),
+      );
       const dealerAccount = createDealerResponse.data;
+
+      console.log('Dealer account:', dealerAccount);
+
+      // Kiểm tra dealerAccount có tồn tại không
+      if (!dealerAccount) {
+        this.logger.error('Dealer account is undefined or null');
+      } else {
+        this.logger.log('Dealer account exists:', dealerAccount);
+        // Kiểm tra trường id và email cụ thể
+        if (!dealerAccount.id) {
+          this.logger.warn('Dealer account ID is missing');
+        }
+        if (!dealerAccount.email) {
+          this.logger.warn('Dealer account email is missing');
+        }
+      }
       this.logger.log('✅ Dealer account created:', {
         dealer_id: dealerAccount.id,
         email: dealerAccount.email,
@@ -353,7 +373,7 @@ export class EvmStaffAgreementServiceService {
           address: request.address ?? '',
           phone: request.phone ?? '',
           email: request.email,
-          // user_id: dealerAccount.id,
+          user_id: request.user_id,
           // fcm_token: request.fcm_token, // nếu bạn muốn lưu id user dealer bên hệ thống auth
         })
         .select()

@@ -162,7 +162,6 @@ export class DealerCoordinationService implements OnModuleInit {
     if (error) throw new Error(`Failed to get vehicle requests: ${error.message}`);
     return data || [];
   }
-  // dealer-coordination.service.ts
 
   // Thêm 2 methods này nếu chưa có
   async getAllVehicleRequests(): Promise<any[]> {
