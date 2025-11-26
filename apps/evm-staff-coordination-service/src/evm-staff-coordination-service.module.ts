@@ -38,6 +38,10 @@ import { EvmStaffCoordinationController } from './evm-staff-coordination-service
         inject: [ConfigService],
       },
     ]),
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: './apps/evm-staff-coordination-service/.env',
+    }),
   ],
   controllers: [EvmStaffCoordinationController],
   providers: [EvmStaffCoordinationService],

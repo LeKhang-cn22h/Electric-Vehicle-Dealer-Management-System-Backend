@@ -165,4 +165,9 @@ export class ServiceClients {
     const url = process.env.EVM_STAFF_AGREEMENT_SERVICE_URL || 'http://localhost:3004';
     return this.base(url);
   }
+
+  inventory(): ServiceClient {
+    const url = process.env.INVENTORY_BASE_URL || 'http://localhost:4700';
+    return this.base(url);
+  }
 }
