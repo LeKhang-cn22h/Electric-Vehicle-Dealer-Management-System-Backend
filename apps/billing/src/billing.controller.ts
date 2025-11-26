@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Get,
@@ -13,6 +14,7 @@ import {
 import { BillingService } from './billing.service';
 import { CreateBillDto } from './dtos/create-bill.dto';
 import { ListBillsDto } from './dtos/list-bills.dto';
+import { PayInstallmentDto } from './dtos/PayInstallmentDto';
 
 @Controller('bills')
 @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
@@ -48,5 +50,23 @@ export class BillingController {
   @Get()
   list(@Query() q: ListBillsDto) {
     return this.svc.list(q);
+  }
+
+  @Post('installments/pay')
+  async payInstallment(@Body() body: { invoiceId: string; sequence: number }) {
+    console.log('[Controller] Body:', body);
+    const { invoiceId, sequence } = body;
+
+    if (!invoiceId || sequence == null) {
+      throw new BadRequestException('Thiếu invoiceId hoặc sequence');
+    }
+
+    return this.svc.payInstallment(invoiceId, sequence);
+  }
+
+  @Post(':id/installments/ensure')
+  async ensureInstallments(@Param('id') invoiceId: string) {
+    await this.svc['ensureInstallmentSchedule'](invoiceId);
+    return { ok: true, message: 'Lịch trả góp đã được đảm bảo tồn tại.' };
   }
 }
