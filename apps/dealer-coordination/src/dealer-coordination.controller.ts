@@ -1,17 +1,21 @@
-import { Body, Controller, Post, Get, Query } from '@nestjs/common';
+// dealer-coordination.controller.ts
+import { Body, Controller, Post, Get, Query, Headers } from '@nestjs/common';
 import { DealerCoordinationService } from './dealer-coordination.service';
-import { CreateVehicleRequestDto } from '../../dealer-coordination/src/dto/create-vehicle-request.dto';
+import { CreateVehicleRequestDto } from './dto/create-vehicle-request.dto';
 
 @Controller('dealer-coordination')
 export class DealerCoordinationController {
   constructor(private readonly dealerService: DealerCoordinationService) {}
 
   // ===========================
-  // CREATE REQUEST (NEW DTO)
+  // CREATE REQUEST
   // ===========================
   @Post('requests')
-  async createRequest(@Body() body: CreateVehicleRequestDto) {
-    const result = await this.dealerService.createVehicleRequest(body);
+  async createRequest(
+    @Body() body: CreateVehicleRequestDto,
+    @Headers('authorization') auth: string,
+  ) {
+    const result = await this.dealerService.createVehicleRequest(body, auth);
 
     return {
       message: 'Request created successfully',

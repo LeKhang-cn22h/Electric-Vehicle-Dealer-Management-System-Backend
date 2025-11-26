@@ -194,13 +194,7 @@ import { Injectable, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { ClientProxy, ClientProxyFactory, Transport } from '@nestjs/microservices';
-
-interface VehicleItem {
-  vehicle_id: string;
-  vehicle_model: string;
-  quantity: number;
-  note?: string;
-}
+import { CreateVehicleRequestDto } from '../../dealer-coordination/src/dto/create-vehicle-request.dto';
 
 @Injectable()
 export class DealerCoordinationService implements OnModuleInit {
@@ -224,71 +218,44 @@ export class DealerCoordinationService implements OnModuleInit {
     });
   }
 
-  async createVehicleRequest(
-    dealer_id: string,
-    dealer_name: string,
-    request_type: string,
-    vehicles: VehicleItem[],
-  ): Promise<any> {
-    // 1. Tạo request cha
-    const { data: request, error: reqError } = await this.supabase
+  // ======================
+  // CREATE REQUEST (NEW)
+  // ======================
+  async createVehicleRequest(dto: CreateVehicleRequestDto): Promise<any> {
+    const { dealer_name, address, quantity } = dto;
+
+    // INSERT request cha
+    const { data: request, error } = await this.supabase
       .schema('evm_coordination')
       .from('vehicle_requests')
       .insert({
-        dealer_id,
         dealer_name,
-        request_type,
+        address,
+        quantity,
       })
       .select()
       .single();
 
-    if (reqError) {
-      throw new Error(`Failed to create vehicle request: ${reqError.message}`);
+    if (error) {
+      throw new Error(`Failed to create vehicle request: ${error.message}`);
     }
 
-    // 2. Validate vehicle model
-    for (const v of vehicles) {
-      if (!v.vehicle_model || v.vehicle_model.trim() === '') {
-        throw new Error('vehicle_model is required for every vehicle item.');
-      }
-    }
+    // Emit event đến các service khác (nếu cần)
+    this.client.emit('vehicle_request_created', request);
 
-    // 3. Insert items
-    const itemsToInsert = vehicles.map((v) => ({
-      request_id: request.id,
-      vehicle_id: v.vehicle_id,
-      vehicle_model: v.vehicle_model,
-      quantity: v.quantity,
-      note: v.note || null,
-    }));
-
-    const { error: itemsError } = await this.supabase
-      .schema('evm_coordination')
-      .from('vehicle_request_items')
-      .insert(itemsToInsert);
-
-    if (itemsError) {
-      throw new Error(`Failed to create vehicle request items: ${itemsError.message}`);
-    }
-
-    // 4. Emit RMQ event
-    this.client.emit('vehicle_request_created', {
-      request,
-      items: itemsToInsert,
-    });
-
-    return { request, items: itemsToInsert };
+    return { request };
   }
 
-  // --- QUERY ---
-  async getVehicleRequestsByDealerId(dealer_id: string): Promise<any[]> {
+  // ======================
+  // QUERY
+  // ======================
+  async getAllVehicleRequests(): Promise<any[]> {
     const { data, error } = await this.supabase
       .schema('evm_coordination')
       .from('vehicle_requests')
-      .select('*')
-      .eq('dealer_id', dealer_id);
+      .select('*');
 
-    if (error) throw new Error(`Failed to get vehicle requests: ${error.message}`);
+    if (error) throw new Error(`Failed to get all vehicle requests: ${error.message}`);
     return data || [];
   }
 
@@ -300,16 +267,6 @@ export class DealerCoordinationService implements OnModuleInit {
       .ilike('dealer_name', dealer_name || '%');
 
     if (error) throw new Error(`Failed to get vehicle requests: ${error.message}`);
-    return data || [];
-  }
-
-  async getAllVehicleRequests(): Promise<any[]> {
-    const { data, error } = await this.supabase
-      .schema('evm_coordination')
-      .from('vehicle_requests')
-      .select('*');
-
-    if (error) throw new Error(`Failed to get all vehicle requests: ${error.message}`);
     return data || [];
   }
 }
