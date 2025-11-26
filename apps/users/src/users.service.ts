@@ -4,6 +4,7 @@ import * as dotenv from 'dotenv';
 import * as path from 'path';
 import { UpdateProfileDto } from './dtos/UpdateProfile.dto';
 import { CreateDealerDto } from './dtos/CreateDealerDto';
+import { RabbitRPC } from '@golevelup/nestjs-rabbitmq';
 
 const envPath = path.resolve(process.cwd(), 'apps/users/.env');
 dotenv.config({ path: envPath });
@@ -25,10 +26,28 @@ function createAnon() {
   });
 }
 
+function createSV() {
+  const url = process.env.SUPABASE_URL!;
+  const anon = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+  return createClient(url, anon);
+}
+
 @Injectable()
 export class UsersService {
   private admin = createAdmin();
   private sb = createAnon();
+  private sv = createSV();
+
+  @RabbitRPC({
+    exchange: 'get_user', // Exchange để nhận message
+    routingKey: 'quotaion.user', // Routing key để filter message
+    queue: 'quotaion_request_user', // Queue để message tồn tại nếu consumer offline
+  })
+  public async quotationRequestUser(msg: { id: string }) {
+    console.log('Received user request:', msg);
+    const user = await this.getUserId(msg.id);
+    return user;
+  }
 
   async getRoleId(code: string) {
     const { data, error } = await this.admin
@@ -42,6 +61,27 @@ export class UsersService {
     }
 
     return data.id;
+  }
+
+  async getUserId(id: string): Promise<any> {
+    console.log('id:', id);
+    const { data, error } = await this.sv.auth.admin.getUserById(id);
+    if (error) {
+      console.error('Lỗi:', error);
+      return null;
+    }
+
+    const user = data.user;
+
+    return {
+      id: user.id,
+      email: user.email,
+      role: user.user_metadata?.role ?? null,
+      dealer_id: user.user_metadata?.dealer_id ?? null,
+      full_name: user.user_metadata?.full_name ?? null,
+      phone: user.user_metadata?.phone ?? null,
+      created_at: user.created_at,
+    };
   }
 
   async updateProfile(token: string, dto: UpdateProfileDto, avatar?: Express.Multer.File) {

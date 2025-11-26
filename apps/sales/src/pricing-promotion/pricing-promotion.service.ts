@@ -41,6 +41,16 @@ export class PricingPromotionService {
     return list; // đúng format Array<{ vehicleId, price }>
   }
 
+  @RabbitRPC({
+    exchange: 'vehicle_listPrice',
+    routingKey: 'vehicle.listPrice',
+    queue: 'vehicle_listPrice',
+  })
+  public async getListPrice() {
+    const list = await this.findAllPrices();
+    return list;
+  }
+
   private async getPrice(vehicleId: string): Promise<number> {
     const { data, error } = await this.supabase
       .schema('sales')
@@ -90,25 +100,22 @@ export class PricingPromotionService {
       productId: dto.productId,
       basePrice: dto.basePrice,
       discountedPrice: dto.discountedPrice,
-      startDate: new Date(dto.startDate),
-      endDate: dto.endDate ? new Date(dto.endDate) : null,
       createdAt: now,
       updatedAt: now,
+      wholesalePrice: dto.wholesalePrice,
+      quantity: dto.quantity,
     };
 
-    const { error } = await this.supabase
-      .schema('sales')
-      .from('prices')
-      .insert({
-        id: newPrice.id,
-        product_id: newPrice.productId,
-        base_price: newPrice.basePrice,
-        discounted_price: newPrice.discountedPrice,
-        start_date: newPrice.startDate.toISOString(),
-        end_date: newPrice.endDate ? newPrice.endDate.toISOString() : null,
-        created_at: now.toISOString(),
-        updated_at: now.toISOString(),
-      });
+    const { error } = await this.supabase.schema('sales').from('prices').insert({
+      id: newPrice.id,
+      product_id: newPrice.productId,
+      base_price: newPrice.basePrice,
+      discounted_price: newPrice.discountedPrice,
+      created_at: now.toISOString(),
+      updated_at: now.toISOString(),
+      wholesale_price: newPrice.wholesalePrice,
+      quantity: newPrice.quantity,
+    });
 
     if (error) throw new Error(error.message);
 
@@ -145,8 +152,7 @@ export class PricingPromotionService {
         product_id: dto.productId,
         base_price: dto.basePrice,
         discounted_price: dto.discountedPrice,
-        start_date: dto.startDate,
-        end_date: dto.endDate,
+        wholesale_price: dto.wholesalePrice,
         updated_at: now.toISOString(),
       })
       .eq('id', id)
@@ -176,8 +182,8 @@ export class PricingPromotionService {
       productId: row.product_id,
       basePrice: row.base_price,
       discountedPrice: row.discounted_price,
-      startDate: new Date(row.start_date),
-      endDate: new Date(row.end_date),
+      wholesalePrice: row.wholesale_price,
+      quantity: row.quantity,
       createdAt: new Date(row.created_at),
       updatedAt: new Date(row.updated_at),
     };

@@ -73,6 +73,11 @@ export class vehicleNewController {
     return this.vehicleService.getAllModels();
   }
 
+  @Get('noPrice')
+  async getListVehicleWithNoPrice() {
+    return this.vehicleService.getListVehicleWithNoPrice();
+  }
+
   @Get(':id')
   async findOne(@Param('id') id: string) {
     const vehicleId = Number(id);

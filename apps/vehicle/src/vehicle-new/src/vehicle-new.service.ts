@@ -40,6 +40,7 @@ export class vehicleNewService {
     const vehicle = await this.findOne(vehicleId);
     return { ...vehicle, price: response.price };
   }
+
   async getListVehicleWithListPrice(vehicleIds: number[]) {
     // 1) Gọi RPC lấy list giá
     const priceList = await this.amqpConnection.request<
@@ -69,6 +70,15 @@ export class vehicleNewService {
     console.log('Merged result:', result);
 
     return result;
+  }
+
+  async getListPrice(): Promise<any[]> {
+    return this.amqpConnection.request<any[]>({
+      exchange: 'vehicle_listPrice',
+      routingKey: 'vehicle.listPrice',
+      payload: {},
+      timeout: 160000,
+    });
   }
 
   @RabbitRPC({
@@ -102,6 +112,18 @@ export class vehicleNewService {
     console.log('Received vehicle request:', msg);
     if (!msg.id) return null;
     return await this.getVehicleWithPrice(msg.id);
+  }
+
+  async getListVehicleWithNoPrice(): Promise<any> {
+    const { data, error } = await this.supabase.schema('product').from('vehicle').select('*');
+    if (error) throw new Error(error.message);
+    const listPrice = await this.getListPrice();
+    console.log(listPrice);
+    const listPriceVehicleId = listPrice.map((price) => price.productId);
+    console.log('listPriceVehicleId', listPriceVehicleId);
+    const res = data.filter((vehicle) => !listPriceVehicleId.includes(vehicle.id));
+
+    return res;
   }
 
   // ===========================

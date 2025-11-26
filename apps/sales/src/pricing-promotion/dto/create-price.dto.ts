@@ -1,19 +1,22 @@
-import { IsNumber, IsUUID, IsString, IsDateString, IsOptional } from 'class-validator';
+import { IsNumber, IsUUID, IsString, IsDateString, IsOptional, Min } from 'class-validator';
 
 export class CreatePriceDto {
   @IsString()
   productId: string;
 
   @IsNumber()
+  @Min(0)
   basePrice: number;
 
   @IsNumber()
+  @Min(0)
   discountedPrice: number;
 
-  @IsDateString()
-  startDate: string;
+  @IsNumber()
+  @Min(0)
+  wholesalePrice: number;
 
-  @IsOptional()
-  @IsDateString()
-  endDate?: string | null;
+  @IsNumber()
+  @Min(0)
+  quantity: number;
 }

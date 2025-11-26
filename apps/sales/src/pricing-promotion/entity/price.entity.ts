@@ -3,8 +3,8 @@ export class Price {
   productId: string;
   basePrice: number;
   discountedPrice: number;
-  startDate: Date;
-  endDate: Date | null;
   createdAt: Date;
   updatedAt: Date;
+  wholesalePrice: number;
+  quantity: number;
 }
