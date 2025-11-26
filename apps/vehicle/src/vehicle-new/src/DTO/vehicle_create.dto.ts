@@ -88,10 +88,6 @@ export class VehicleCreateDto {
   @IsOptional()
   @IsString()
   version?: string;
-
-  @IsOptional()
-  @IsNumber()
-  quantity: number = 0;
   // ---- Relations ----
   @IsOptional()
   @IsArray()

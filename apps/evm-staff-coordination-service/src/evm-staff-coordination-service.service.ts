@@ -1,181 +1,295 @@
-import { Inject, Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { ClientProxy } from '@nestjs/microservices';
-
-interface VehicleResponseItem {
-  request_item_id: string;
-  response_status: string;
-  response_note?: string;
-}
+// src/evm-staff-coordination-service.service.ts
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { SupabaseService } from './supabase/supabase.service'; // Import từ supabase service có sẵn
+import { CreateVehicleRequestDto } from './dto/create-vehicle-request.dto';
+import { ProcessVehicleRequestDto } from './dto/process-vehicle-request.dto';
 
 @Injectable()
 export class EvmStaffCoordinationService {
-  private readonly supabase: SupabaseClient;
+  constructor(private readonly supabaseService: SupabaseService) {}
 
-  constructor(
-    private configService: ConfigService,
-    @Inject('RABBITMQ_SERVICE') private readonly client: ClientProxy,
-  ) {
-    const supabaseUrl = this.configService.get<string>('SUPABASE_URL');
-    const supabaseKey = this.configService.get<string>('SUPABASE_SERVICE_ROLE_KEY');
-    this.supabase = createClient(supabaseUrl!, supabaseKey!);
+  // Lấy Supabase client
+  private getClient() {
+    return this.supabaseService.getClient();
   }
 
-  /**
-   * Lưu lịch sử phối hợp vào Supabase
-   */
-  async saveCoordinationHistory(dto: {
-    dealer_id: string;
-    vehicle_id: string;
-    quantity: number;
-    note?: string;
-    request_type: string;
-    approved: boolean;
-  }): Promise<any> {
-    const { data, error } = await this.supabase
-      .from('evm_coordination.staff_coordination_history')
+  // Tạo yêu cầu mới (dealer gửi)
+  async createVehicleRequest(createDto: CreateVehicleRequestDto, userId: string) {
+    const { data, error } = await this.getClient()
+      .from('vehicle_requests')
       .insert([
         {
-          dealer_id: dto.dealer_id,
-          vehicle_id: dto.vehicle_id,
-          quantity: dto.quantity,
-          note: dto.note,
-          request_type: dto.request_type,
-          approved: dto.approved,
+          dealer_name: createDto.dealer_name,
+          email: createDto.email,
+          address: createDto.address,
+          quantity: createDto.quantity,
+          status: 'pending',
+          user_id: userId,
           created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
         },
-      ]);
+      ])
+      .select();
 
     if (error) {
-      throw new Error(`Failed to save coordination history: ${error.message}`);
+      console.error('Supabase error:', error);
+      throw new BadRequestException(`Failed to create request: ${error.message}`);
     }
+
+    return data[0];
+  }
+
+  // Lấy danh sách yêu cầu cho hãng xem
+  async getVehicleRequests(filters?: {
+    status?: string;
+    dealer_name?: string;
+    page?: number;
+    limit?: number;
+  }) {
+    const { status, dealer_name, page = 1, limit = 10 } = filters || {};
+
+    let query = this.getClient().from('vehicle_requests').select('*', { count: 'exact' });
+
+    // Áp dụng filters
+    if (status) {
+      query = query.eq('status', status);
+    }
+    if (dealer_name) {
+      query = query.ilike('dealer_name', `%${dealer_name}%`);
+    }
+
+    // Phân trang
+    const from = (page - 1) * limit;
+    const to = from + limit - 1;
+
+    const { data, error, count } = await query
+      .order('created_at', { ascending: false })
+      .range(from, to);
+
+    if (error) {
+      console.error('Supabase error:', error);
+      throw new BadRequestException(`Failed to fetch requests: ${error.message}`);
+    }
+
+    return {
+      data: data || [],
+      pagination: {
+        page,
+        limit,
+        total: count || 0,
+        totalPages: Math.ceil((count || 0) / limit),
+      },
+    };
+  }
+
+  // Hãng xử lý yêu cầu
+  async processVehicleRequest(processDto: ProcessVehicleRequestDto) {
+    const { id, status, notes, assigned_staff_id, estimated_delivery_date } = processDto;
+
+    // Kiểm tra yêu cầu tồn tại
+    const { data: existingRequest, error: fetchError } = await this.getClient()
+      .from('vehicle_requests')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (fetchError || !existingRequest) {
+      throw new NotFoundException('Vehicle request not found');
+    }
+
+    // Validate status
+    const validStatuses = ['approved', 'rejected', 'processing', 'pending'];
+    if (!validStatuses.includes(status)) {
+      throw new BadRequestException('Invalid status');
+    }
+
+    // Cập nhật trạng thái và thông tin xử lý
+    const updateData: any = {
+      status,
+      updated_at: new Date().toISOString(),
+    };
+
+    if (notes) updateData.notes = notes;
+    if (assigned_staff_id) updateData.assigned_staff_id = assigned_staff_id;
+    if (estimated_delivery_date) updateData.estimated_delivery_date = estimated_delivery_date;
+
+    const { data, error } = await this.getClient()
+      .from('vehicle_requests')
+      .update(updateData)
+      .eq('id', id)
+      .select();
+
+    if (error) {
+      console.error('Supabase error:', error);
+      throw new BadRequestException(`Failed to process request: ${error.message}`);
+    }
+
+    // Gửi notification khi trạng thái thay đổi
+    await this.sendStatusNotification(data[0]);
+
+    return data[0];
+  }
+
+  // Lấy chi tiết yêu cầu
+  async getVehicleRequestById(id: number) {
+    const { data, error } = await this.getClient()
+      .from('vehicle_requests')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error) {
+      throw new NotFoundException('Vehicle request not found');
+    }
+
     return data;
   }
 
-  /**
-   * Tạo phản hồi tổng kèm các item chi tiết cho một request
-   */
-  async createVehicleResponse(
-    request_id: string,
-    staff_id: string,
-    staff_name: string,
-    response_status: string,
-    response_note: string | null,
-    items: VehicleResponseItem[],
-  ): Promise<any> {
-    // 1. Tạo phản hồi tổng
-    const { data: response, error: respError } = await this.supabase
-      .from('evm_coordination.vehicle_dispatch_responses')
-      .insert({
-        request_id,
-        staff_id,
-        staff_name,
-        response_status,
-        response_note,
-      })
-      .select('*')
-      .single();
+  // Thống kê cho dashboard hãng
+  async getRequestStats() {
+    const { data, error } = await this.getClient()
+      .from('vehicle_requests')
+      .select('status, quantity');
 
-    if (respError) throw new Error(`Failed to create vehicle response: ${respError.message}`);
+    if (error) {
+      console.error('Supabase error:', error);
+      throw new BadRequestException(`Failed to get stats: ${error.message}`);
+    }
 
-    // 2. Tạo các item chi tiết phản hồi
-    const itemsToInsert = items.map((item) => ({
-      response_id: response.id,
-      request_item_id: item.request_item_id,
-      response_status: item.response_status,
-      response_note: item.response_note || null,
-    }));
+    const stats = {
+      total: data.length,
+      total_vehicles: data.reduce((sum, item) => sum + item.quantity, 0),
+      pending: data.filter((item) => item.status === 'pending').length,
+      approved: data.filter((item) => item.status === 'approved').length,
+      rejected: data.filter((item) => item.status === 'rejected').length,
+      processing: data.filter((item) => item.status === 'processing').length,
+    };
 
-    const { error: itemsError } = await this.supabase
-      .from('evm_coordination.vehicle_dispatch_response_items')
-      .insert(itemsToInsert);
-
-    if (itemsError) throw new Error(`Failed to create response items: ${itemsError.message}`);
-
-    // 3. Gửi message qua RabbitMQ thông báo đã tạo phản hồi mới
-    await this.client
-      .emit('vehicle_response_created', {
-        response,
-        items: itemsToInsert,
-      })
-      .toPromise();
-
-    return { response, items: itemsToInsert };
+    return stats;
   }
 
-  /**
-   * Cập nhật trạng thái phản hồi tổng và lưu lịch sử
-   */
-  async updateResponseStatus(
-    response_id: string,
-    new_status: string,
-    note?: string,
-    action_by = 'system',
-  ): Promise<any> {
-    // Lấy trạng thái cũ
-    const { data: existing, error: getErr } = await this.supabase
-      .from('evm_coordination.vehicle_dispatch_responses')
-      .select('response_status')
-      .eq('id', response_id)
-      .single();
+  // Cập nhật yêu cầu
+  async updateVehicleRequest(id: number, updateData: Partial<CreateVehicleRequestDto>) {
+    const { data, error } = await this.getClient()
+      .from('vehicle_requests')
+      .update({
+        ...updateData,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', id)
+      .select();
 
-    if (getErr) throw new Error(`Failed to get existing response: ${getErr.message}`);
+    if (error) {
+      console.error('Supabase error:', error);
+      throw new BadRequestException(`Failed to update request: ${error.message}`);
+    }
 
-    const old_status = existing.response_status;
-
-    // Cập nhật trạng thái mới
-    const { data: updated, error: updErr } = await this.supabase
-      .from('evm_coordination.vehicle_dispatch_responses')
-      .update({ response_status: new_status })
-      .eq('id', response_id)
-      .select('*')
-      .single();
-
-    if (updErr) throw new Error(`Failed to update response status: ${updErr.message}`);
-
-    // Lưu lịch sử thay đổi trạng thái
-    const { error: histErr } = await this.supabase
-      .from('evm_coordination.vehicle_dispatch_response_history')
-      .insert({
-        response_id,
-        action_by,
-        old_status,
-        new_status,
-        note: note || null,
-      });
-
-    if (histErr) throw new Error(`Failed to save response history: ${histErr.message}`);
-
-    return updated;
+    return data[0];
   }
 
-  /**
-   * Lấy phản hồi tổng, lịch sử, và các item chi tiết theo response_id
-   */
-  async getResponseByIdWithDetails(response_id: string): Promise<any> {
-    const { data: response, error: respErr } = await this.supabase
-      .from('evm_coordination.vehicle_dispatch_responses')
+  // Xóa yêu cầu
+  async deleteVehicleRequest(id: number) {
+    const { error } = await this.getClient().from('vehicle_requests').delete().eq('id', id);
+
+    if (error) {
+      console.error('Supabase error:', error);
+      throw new BadRequestException(`Failed to delete request: ${error.message}`);
+    }
+
+    return { message: 'Request deleted successfully' };
+  }
+
+  // Tìm kiếm yêu cầu theo email dealer
+  async searchVehicleRequestsByEmail(email: string) {
+    const { data, error } = await this.getClient()
+      .from('vehicle_requests')
       .select('*')
-      .eq('id', response_id)
-      .single();
+      .ilike('email', `%${email}%`)
+      .order('created_at', { ascending: false });
 
-    if (respErr) throw new Error(`Failed to get response: ${respErr.message}`);
+    if (error) {
+      console.error('Supabase error:', error);
+      throw new BadRequestException(`Failed to search requests: ${error.message}`);
+    }
 
-    const { data: history, error: histErr } = await this.supabase
-      .from('evm_coordination.vehicle_dispatch_response_history')
-      .select('*')
-      .eq('response_id', response_id);
+    return data;
+  }
 
-    if (histErr) throw new Error(`Failed to get response history: ${histErr.message}`);
+  // Lấy yêu cầu theo user_id
+  async getVehicleRequestsByUserId(
+    userId: string,
+    filters?: {
+      status?: string;
+      page?: number;
+      limit?: number;
+    },
+  ) {
+    const { status, page = 1, limit = 10 } = filters || {};
 
-    const { data: items, error: itemsErr } = await this.supabase
-      .from('evm_coordination.vehicle_dispatch_response_items')
-      .select('*')
-      .eq('response_id', response_id);
+    let query = this.getClient()
+      .from('vehicle_requests')
+      .select('*', { count: 'exact' })
+      .eq('user_id', userId);
 
-    if (itemsErr) throw new Error(`Failed to get response items: ${itemsErr.message}`);
+    if (status) {
+      query = query.eq('status', status);
+    }
 
-    return { response, history, items };
+    const from = (page - 1) * limit;
+    const to = from + limit - 1;
+
+    const { data, error, count } = await query
+      .order('created_at', { ascending: false })
+      .range(from, to);
+
+    if (error) {
+      console.error('Supabase error:', error);
+      throw new BadRequestException(`Failed to fetch user requests: ${error.message}`);
+    }
+
+    return {
+      data: data || [],
+      pagination: {
+        page,
+        limit,
+        total: count || 0,
+        totalPages: Math.ceil((count || 0) / limit),
+      },
+    };
+  }
+
+  // Gửi notification khi trạng thái thay đổi
+  private async sendStatusNotification(request: any) {
+    // Implement notification logic (email, push notification, etc.)
+    console.log(`Status updated for request ${request.id}: ${request.status}`);
+    console.log(`Dealer: ${request.dealer_name}, Email: ${request.email}`);
+
+    // TODO: Integrate with your email service or notification service
+    // await this.emailService.sendStatusUpdate(request);
+  }
+
+  // Health check để kiểm tra kết nối Supabase
+  async healthCheck() {
+    try {
+      const { error } = await this.getClient().from('vehicle_requests').select('count').limit(1);
+
+      if (error) {
+        return {
+          status: 'error',
+          message: `Supabase connection error: ${error.message}`,
+        };
+      }
+
+      return {
+        status: 'ok',
+        message: 'Service and database are connected successfully',
+        timestamp: new Date().toISOString(),
+      };
+    } catch (error) {
+      return {
+        status: 'error',
+        message: `Health check failed: ${error.message}`,
+      };
+    }
   }
 }

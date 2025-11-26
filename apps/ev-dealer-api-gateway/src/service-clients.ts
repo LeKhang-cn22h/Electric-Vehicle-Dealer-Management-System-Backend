@@ -135,10 +135,11 @@ export class ServiceClients {
     const url = process.env.CUSTOMER_SERVICE_URL || 'http://localhost:4404';
     return this.base(url);
   }
-  evmStaffCoordination(): ServiceClient {
+  staffCoordination(): ServiceClient {
     const url = process.env.EVM_STAFF_COORDINATION_SERVICE_URL || 'http://localhost:3002';
     return this.base(url);
   }
+
   dealerAgreement(): ServiceClient {
     const url = process.env.DEALER_AGREEMENT_SERVICE_URL || 'http://localhost:3003';
     return this.base(url);
@@ -163,6 +164,11 @@ export class ServiceClients {
   }
   evmStaffAgreement(): ServiceClient {
     const url = process.env.EVM_STAFF_AGREEMENT_SERVICE_URL || 'http://localhost:3004';
+    return this.base(url);
+  }
+
+  inventory(): ServiceClient {
+    const url = process.env.INVENTORY_BASE_URL || 'http://localhost:4700';
     return this.base(url);
   }
 }

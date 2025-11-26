@@ -20,7 +20,7 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./apps/electric-vehicle-dealer-management-system-backend/apps/evm-staff-coordination/electric-vehicle-dealer-management-system-backend/test/jest-e2e.json",
-    "start:all": "concurrently -n gateway,auth,users,dealer-coordination,billing,vehicle,customer,evm-coordination,dealer-agreement,sales,ar,evm-staff-agreement-service -c blue,green,black,yellow,red,magenta,orange,cyan,gray,white,purple \"npm:start:gateway\" \"npm:start:auth\" \"npm:start:users\" \"npm:start:dealer-coordination\" \"npm:start:billing\" \"npm:start:vehicle\" \"npm:start:customer\" \"npm:start:evm-coordination\" \"npm:start:dealer-agreement\" \"npm:start:sales\" \"npm:start:ar\" \"npm:start:evm-staff-agreement-service\"",
+    "start:all": "concurrently -n gateway,auth,users,dealer-coordination,billing,vehicle,customer,evm-coordination,dealer-agreement,sales,ar,evm-staff-agreement-service,inventory -c blue,green,black,yellow,red,magenta,orange,cyan,gray,white,purple,blue \"npm:start:gateway\" \"npm:start:auth\" \"npm:start:users\" \"npm:start:dealer-coordination\" \"npm:start:billing\" \"npm:start:vehicle\" \"npm:start:customer\" \"npm:start:evm-coordination\" \"npm:start:dealer-agreement\" \"npm:start:sales\" \"npm:start:ar\" \"npm:start:evm-staff-agreement-service\" \"npm:start:inventory\"",
     "start:auth": "cross-env PORT=4100 nest start auth --watch",
     "start:gateway": "cross-env PORT=4000 nest start ev-dealer-api-gateway --watch",
     "start:users": "cross-env PORT=4200 nest start users --watch",
@@ -32,7 +32,8 @@
     "start:ar": "cross-env PORT=4400 nest start ar --watch",
     "start:dealer-agreement": "cross-env PORT=3003 nest start -p tsconfig.build.json dealer-agreement",
     "start:evm-staff-agreement-service": "cross-env PORT=3004 nest start evm-staff-agreement-service --watch",
-    "start:dealer-coordination": "cross-env PORT=3001 nest start dealer-coordination --watch"
+    "start:dealer-coordination": "cross-env PORT=3001 nest start dealer-coordination --watch",
+    "start:inventory": "cross-env PORT=4700 nest start inventory --watch"
   },
   "dependencies": {
     "@golevelup/nestjs-rabbitmq": "^6.0.2",

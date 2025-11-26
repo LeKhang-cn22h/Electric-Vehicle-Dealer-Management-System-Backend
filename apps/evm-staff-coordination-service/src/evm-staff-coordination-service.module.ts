@@ -18,7 +18,8 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { EvmStaffCoordinationService } from './evm-staff-coordination-service.service';
-import { EvmStaffCoordinationController } from './evm-staff-coordination-service.controller';
+import { EvmStaffCoordinationServiceController } from './evm-staff-coordination-service.controller';
+import { SupabaseModule } from './supabase/supabase.module';
 
 @Module({
   imports: [
@@ -38,8 +39,9 @@ import { EvmStaffCoordinationController } from './evm-staff-coordination-service
         inject: [ConfigService],
       },
     ]),
+    SupabaseModule,
   ],
-  controllers: [EvmStaffCoordinationController],
+  controllers: [EvmStaffCoordinationServiceController],
   providers: [EvmStaffCoordinationService],
   exports: [EvmStaffCoordinationService],
 })
