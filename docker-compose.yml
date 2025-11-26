@@ -71,6 +71,7 @@ services:
       AUTH_SERVICE_URL: http://auth:4100
       AR_SERVICE_URL: http://ar:4400
       BILLING_SERVICE_URL: http://billing:4300
+      SALES_SERVICE_URL: http://sales:4007
       REDIS_HOST: redis
       REDIS_PORT: 6379
     depends_on:
@@ -80,6 +81,7 @@ services:
       - users
       - ar
       - billing
+      - sales
       - rabbitmq
       - redis
     networks:
@@ -146,6 +148,21 @@ services:
       - SUPABASE_URL=https://iaucwkjbbrzxuayvecjw.supabase.co
       - SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlhdWN3a2piYnJ6eHVheXZlY2p3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIwODg4MjAsImV4cCI6MjA3NzY2NDgyMH0.VogEJZeLubwtayzAX8Dy79xR_5QeOYnx0JFHd2FZuBg
       - SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlhdWN3a2piYnJ6eHVheXZlY2p3Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MjA4ODgyMCwiZXhwIjoyMDc3NjY0ODIwfQ.OVEmaiCHFqcb3F9rhga3PtYb1C5EKxjgDOFRIWAucsI
+
+    networks:
+      - micro-net
+
+  sales:
+    build:
+      context: .
+      dockerfile: apps/sales/dockerfile
+    ports:
+      - '4007:4007'
+    environment:
+      SUPABASE_URL: https://iaucwkjbbrzxuayvecjw.supabase.co
+      SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlhdWN3a2piYnJ6eHVheXZlY2p3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIwODg4MjAsImV4cCI6MjA3NzY2NDgyMH0.VogEJZeLubwtayzAX8Dy79xR_5QeOYnx0JFHd2FZuBg
+      SUPABASE_SERVICE_ROLE_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlhdWN3a2piYnJ6eHVheXZlY2p3Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MjA4ODgyMCwiZXhwIjoyMDc3NjY0ODIwfQ.OVEmaiCHFqcb3F9rhga3PtYb1C5EKxjgDOFRIWAucsI
+      RABBITMQ_URI: amqp://guest:guest@rabbitmq:5672
 
     networks:
       - micro-net

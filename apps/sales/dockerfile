@@ -1,0 +1,30 @@
+# Stage 1: build
+FROM node:20-alpine AS builder
+WORKDIR /app
+
+# Copy root package.json và package-lock.json
+COPY ../../package*.json ./  
+
+# Cài dependencies (cho cả root)
+RUN npm install
+
+# Copy chỉ source của customer service
+COPY . ./apps/sales
+
+WORKDIR /app/apps/sales
+
+# Build project
+RUN npm run build
+
+# Stage 2: run
+FROM node:20-alpine
+WORKDIR /app
+
+# Copy node_modules và build output
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/apps/sales/dist ./dist
+COPY --from=builder /app/apps/sales/package*.json ./
+
+ENV NODE_ENV=production
+EXPOSE 4007
+CMD ["node", "dist/main.js"]

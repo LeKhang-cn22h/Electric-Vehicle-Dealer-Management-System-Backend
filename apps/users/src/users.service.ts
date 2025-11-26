@@ -40,10 +40,21 @@ export class UsersService {
 
   @RabbitRPC({
     exchange: 'get_user', // Exchange để nhận message
-    routingKey: 'quotaion.user', // Routing key để filter message
-    queue: 'quotaion_request_user', // Queue để message tồn tại nếu consumer offline
+    routingKey: 'quotation.user', // Routing key để filter message
+    queue: 'quotation_request_user', // Queue để message tồn tại nếu consumer offline
   })
   public async quotationRequestUser(msg: { id: string }) {
+    console.log('Received user request:', msg);
+    const user = await this.getUserId(msg.id);
+    return user;
+  }
+
+  @RabbitRPC({
+    exchange: 'contract_user', // Exchange để nhận message
+    routingKey: 'contract.user', // Routing key để filter message
+    queue: 'quotaion_request_user', // Queue để message tồn tại nếu consumer offline
+  })
+  public async contractRequestUser(msg: { id: string }) {
     console.log('Received user request:', msg);
     const user = await this.getUserId(msg.id);
     return user;

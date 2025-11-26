@@ -26,6 +26,15 @@ export class ContractsService {
     });
     return response;
   }
+  async getUserId(id: string) {
+    const response = await this.amqpConnection.request<{ user: any }>({
+      exchange: 'contract_user',
+      routingKey: 'contract.user',
+      payload: { id },
+      timeout: 18000,
+    });
+    return response;
+  }
   private async generateContractNumber(): Promise<string> {
     const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
     const date = now.toISOString().slice(0, 10).replace(/-/g, ''); // YYYYMMDD
@@ -161,6 +170,12 @@ export class ContractsService {
         async (promo_id) => await this.pricingPromotionService.findOnePromotion(promo_id),
       ),
     );
+    //     const contractWithCreator = await Promise.all(
+    //   contract.map(async (quote) => ({
+    //     ...quote,
+    //     creator: await this.getUserId(quote.created_by),
+    //   })),
+    // );
     // 4. Lấy thông tin customer
     const { data: customer, error: cError } = await this.supabase
       .schema('customer')
@@ -169,6 +184,13 @@ export class ContractsService {
       .eq('id', quotation.customer_id)
       .single();
 
+    // let res = contractWithCreator.map((row) =>
+    //   this.mapRow({
+    //     ...row,
+    //     items: itemsByQuotation[row.id] || [],
+    //     customer: row.customer,
+    //   }),
+    // );
     return {
       ...this.mapRow(contract),
       order: order,

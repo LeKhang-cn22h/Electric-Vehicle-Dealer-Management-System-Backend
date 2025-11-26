@@ -20,6 +20,10 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
             name: 'get_user',
             type: 'direct',
           },
+          {
+            name: 'contract_user',
+            type: 'direct',
+          },
         ],
         uri: configService.get<string>('RABBITMQ_URI'), // đọc từ env
         connectionInitOptions: { wait: false },

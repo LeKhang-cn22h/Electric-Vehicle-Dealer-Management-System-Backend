@@ -40,7 +40,7 @@ export class QuotationService {
   async getUserId(id: string) {
     const response = await this.amqpConnection.request<{ user: any }>({
       exchange: 'get_user',
-      routingKey: 'quotaion.user',
+      routingKey: 'quotation.user',
       payload: { id },
       timeout: 18000,
     });
@@ -239,12 +239,16 @@ export class QuotationService {
       ),
     );
     console.log('promotions', promotions);
+
+    const creator = await this.getUserId(quotation.created_by);
+
     const quotationDetail = this.mapRowToQuotation({
       ...quotation,
       items: items, // thêm field items vào object quotation
       customer: customer,
       promotions: promotions,
       vehicle: vehicle,
+      creator: creator,
     });
     console.log('quotationDetail', quotationDetail);
     //Gộp items vào data và gọi hàm mapRowToQuotation

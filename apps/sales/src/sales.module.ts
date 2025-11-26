@@ -33,6 +33,10 @@ import { OrderService } from './order/order.service';
             name: 'vehicle_listPrice',
             type: 'direct',
           },
+          {
+            name: 'contract_user',
+            type: 'direct',
+          },
         ],
         uri: configService.get<string>('RABBITMQ_URI'), // đọc từ env
         connectionInitOptions: { wait: false },

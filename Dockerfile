@@ -20,6 +20,6 @@ RUN npm install --production
 
 COPY --from=builder /app/dist ./dist
 
-EXPOSE 40001
+EXPOSE 4000
 
 CMD ["node", "dist/main"]
