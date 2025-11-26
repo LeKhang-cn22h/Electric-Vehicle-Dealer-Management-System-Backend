@@ -1,40 +1,34 @@
 import * as crypto from 'crypto';
 import * as qs from 'qs';
 
-// sort + encode giống đúng demo VNPay
+// Hàm sắp xếp và encode (Dùng cho chiều TẠO URL thanh toán)
 export function vnpaySortObject(obj: Record<string, any>) {
   const sorted: Record<string, any> = {};
   const keys = Object.keys(obj).sort();
-
   keys.forEach((key) => {
-    // encode value, đổi %20 => +
+    // encodeURIComponent giữ nguyên các ký tự: A-Z a-z 0-9 - _ . ! ~ * ' ( )
+    // VNPay yêu cầu replace %20 thành +
     sorted[key] = encodeURIComponent(String(obj[key])).replace(/%20/g, '+');
   });
-
   return sorted;
 }
 
-export function vnpaySign(params: Record<string, any>, secret: string) {
-  // luôn sort + encode trước khi ký
+// Tạo URL thanh toán (Giữ nguyên logic cũ của bạn vì nó đang chạy ok)
+export function makeVnpUrl(vnpBaseUrl: string, params: Record<string, any>, hashSecret: string) {
   const sorted = vnpaySortObject(params);
   const signData = qs.stringify(sorted, { encode: false });
+  const vnp_SecureHash = crypto
+    .createHmac('sha512', hashSecret)
+    .update(Buffer.from(signData, 'utf-8'))
+    .digest('hex');
 
-  console.log('VNPAY signData =', signData);
-
-  return crypto.createHmac('sha512', secret).update(Buffer.from(signData, 'utf-8')).digest('hex');
+  const fullQuery = qs.stringify({ ...sorted, vnp_SecureHash }, { encode: false });
+  return `${vnpBaseUrl}?${fullQuery}`;
 }
 
-export function buildVnpCreateParams(input: {
-  tmnCode: string;
-  amountVnd: number; // VND
-  orderId: string;
-  orderInfo: string;
-  returnUrl: string;
-  ipnUrl?: string;
-  locale?: 'vn' | 'en';
-  bankCode?: string;
-  clientIp: string;
-}) {
+export function buildVnpCreateParams(input: any) {
+  // ... (Giữ nguyên code cũ của bạn đoạn này) ...
+  // Copy lại đoạn buildVnpCreateParams từ code cũ của bạn vào đây
   const now = new Date();
   const pad = (n: number) => n.toString().padStart(2, '0');
   const y = now.getFullYear();
@@ -61,47 +55,52 @@ export function buildVnpCreateParams(input: {
   };
 
   if (input.bankCode) base['vnp_BankCode'] = input.bankCode;
-  if (input.ipnUrl) base['vnp_IpnUrl'] = input.ipnUrl; // đúng tên param
+  if (input.ipnUrl) base['vnp_IpnUrl'] = input.ipnUrl;
 
-  return base; // trả về raw
+  return base;
 }
 
-export function makeVnpUrl(vnpBaseUrl: string, params: Record<string, any>, hashSecret: string) {
-  // sort + encode
-  const sorted = vnpaySortObject(params);
-  const signData = qs.stringify(sorted, { encode: false });
+// Hàm Verify (Viết lại thủ công để debug chính xác)
+export function verifyVnpReturn(query: Record<string, any>, secret: string) {
+  let vnp_Params = { ...query };
+  const secureHash = vnp_Params['vnp_SecureHash'];
 
-  const vnp_SecureHash = crypto
-    .createHmac('sha512', hashSecret)
+  // Xóa 2 tham số này trước khi ký
+  delete vnp_Params['vnp_SecureHash'];
+  delete vnp_Params['vnp_SecureHashType'];
+
+  // Sắp xếp key a-z
+  const sortedKeys = Object.keys(vnp_Params).sort();
+
+  // Tự build signData thủ công thay vì dùng qs
+  // Để đảm bảo thứ tự và format chính xác tuyệt đối
+  const signData = sortedKeys
+    .map((key) => {
+      // Lấy value (đảm bảo là string)
+      const val = String(vnp_Params[key]);
+      // Encode đúng chuẩn VNPay
+      const encodedVal = encodeURIComponent(val).replace(/%20/g, '+');
+      return `${key}=${encodedVal}`;
+    })
+    .join('&');
+
+  // Tính toán hash
+  const signed = crypto
+    .createHmac('sha512', secret)
     .update(Buffer.from(signData, 'utf-8'))
     .digest('hex');
 
-  const fullQuery = qs.stringify(
-    {
-      ...sorted,
-      vnp_SecureHash,
-    },
-    { encode: false }, // vì value đã encode rồi
-  );
+  // --- LOG DEBUG QUAN TRỌNG ---
+  // Xem log này ở Terminal để so sánh
+  if (secureHash !== signed) {
+    console.log('--- VNPAY VERIFY FAILURE ---');
+    console.log('1. Received Query:', JSON.stringify(query));
+    console.log('2. String to Sign:', signData);
+    console.log('3. My Hash       :', signed);
+    console.log('4. VNP Hash      :', secureHash);
+    console.log('5. Secret Length :', secret.length);
+    console.log('----------------------------');
+  }
 
-  return `${vnpBaseUrl}?${fullQuery}`;
-}
-
-// Verify callback/IPN
-export function verifyVnpReturn(query: Record<string, any>, secret: string) {
-  const receivedHash = (query['vnp_SecureHash'] || '').toString().toLowerCase();
-  const toSign = { ...query };
-  delete toSign['vnp_SecureHash'];
-  delete toSign['vnp_SecureHashType'];
-
-  const sorted = vnpaySortObject(toSign);
-  const signData = qs.stringify(sorted, { encode: false });
-
-  const calc = crypto
-    .createHmac('sha512', secret)
-    .update(Buffer.from(signData, 'utf-8'))
-    .digest('hex')
-    .toLowerCase();
-
-  return receivedHash === calc;
+  return secureHash === signed;
 }

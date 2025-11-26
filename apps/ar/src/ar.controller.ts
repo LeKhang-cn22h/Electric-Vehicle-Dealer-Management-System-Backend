@@ -10,9 +10,14 @@ export class ArController {
     return this.svc.createVnpayPayment(b.inv_id, req, b.locale, b.bank_code);
   }
 
+  // @Get('return')
+  // vnpReturn(@Query() q: any) {
+  //   return this.svc.handleVnpReturn(q);
+  // }
+
   @Get('return')
-  vnpReturn(@Query() q: any) {
-    return this.svc.handleVnpReturn(q);
+  async vnpayReturn(@Query() query: any) {
+    return this.svc.handleVnpReturn(query);
   }
 
   @Get('ipn')

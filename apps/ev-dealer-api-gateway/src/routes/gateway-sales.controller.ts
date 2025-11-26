@@ -184,7 +184,6 @@ export class GatewaySalesController {
       authorization: auth,
     });
   }
-
   // ------------------------------
   // ORDERS
   // ------------------------------
@@ -234,6 +233,17 @@ export class GatewaySalesController {
   @HttpCode(HttpStatus.NO_CONTENT)
   deleteOrder(@Param('id', ParseUUIDPipe) id: string, @Headers('authorization') auth: string) {
     return this.c.sales().delete(`/orders/${id}`, {
+      authorization: auth,
+    });
+  }
+
+  @Patch('orders/:id/invoice')
+  attachInvoice(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: { invoiceId: string },
+    @Headers('authorization') auth: string,
+  ) {
+    return this.c.sales().patch(`/orders/${id}/invoice`, body, {
       authorization: auth,
     });
   }

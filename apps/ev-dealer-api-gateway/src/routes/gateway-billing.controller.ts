@@ -64,8 +64,28 @@ export class GatewayBillingController {
 
   @Patch('/bills/:id/paid')
   async markPaid(@Param('id') id: string) {
+    const res$ = this.http.patch(`${this.billingURL}/bills/${id}/paid`, {});
+    const res = await firstValueFrom(res$);
+    return res.data;
+  }
+
+  @Patch('/bills/:id/void')
+  async voidBill(@Param('id') id: string) {
     try {
-      const res$ = this.http.patch(`${this.billingURL}/bills/${id}/paid`, {});
+      const res$ = this.http.patch(`${this.billingURL}/bills/${id}/void`, {});
+      const res = await firstValueFrom(res$);
+      return res.data;
+    } catch (err: any) {
+      throw new HttpException(
+        err?.response?.data || 'Billing service error',
+        err?.response?.status || 500,
+      );
+    }
+  }
+  @Post('/installments/pay')
+  async payInstallment(@Body() body: { invoiceId: string; sequence: number }) {
+    try {
+      const res$ = this.http.post(`${this.billingURL}/bills/installments/pay`, body);
       const res = await firstValueFrom(res$);
       return res.data;
     } catch (err: any) {
@@ -76,10 +96,10 @@ export class GatewayBillingController {
     }
   }
 
-  @Patch('/bills/:id/void')
-  async voidBill(@Param('id') id: string) {
+  @Post('/bills/:id/installments/ensure')
+  async ensureInstallments(@Param('id') invoiceId: string) {
     try {
-      const res$ = this.http.patch(`${this.billingURL}/bills/${id}/void`, {});
+      const res$ = this.http.post(`${this.billingURL}/bills/${invoiceId}/installments/ensure`, {});
       const res = await firstValueFrom(res$);
       return res.data;
     } catch (err: any) {

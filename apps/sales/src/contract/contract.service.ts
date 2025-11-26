@@ -26,76 +26,85 @@ export class ContractsService {
     });
     return response;
   }
-  // Generate code kiểu: CT-2025-00001
   private async generateContractNumber(): Promise<string> {
     const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
     const date = now.toISOString().slice(0, 10).replace(/-/g, ''); // YYYYMMDD
-
+    console.log(`${date}`);
     // Lấy tất cả contract của ngày hôm nay
-    const { data, error } = await this.supabase
+    const { count, error } = await this.supabase
       .schema('sales')
       .from('contracts')
-      .select('id', { count: 'exact', head: true })
+      .select('*', { count: 'exact', head: true })
       .gte('created_at', `${now.toISOString().slice(0, 10)}T00:00:00+07:00`)
       .lte('created_at', `${now.toISOString().slice(0, 10)}T23:59:59+07:00`);
 
-    if (error) throw new Error('Cannot generate contract number');
+    if (error) {
+      console.error('[generateContractNumber] Supabase error:', error);
+      throw new Error('Cannot generate contract number');
+    }
 
-    const nextNumber = ((data?.length || 0) + 1).toString().padStart(4, '0');
-
+    const nextNumber = ((count || 0) + 1).toString().padStart(4, '0');
+    console.log(`CT-${date}-${nextNumber}`);
     return `CT-${date}-${nextNumber}`;
   }
 
   async create(dto: CreateContractDto): Promise<Contract> {
-    const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
+    try {
+      const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
 
-    // Lấy Order từ DB
-    const { data: order, error: orderError } = await this.supabase
-      .schema('sales')
-      .from('orders')
-      .select('*')
-      .eq('id', dto.orderId)
-      .single();
+      // Lấy Order từ DB
+      const { data: order, error: orderError } = await this.supabase
+        .schema('sales')
+        .from('orders')
+        .select('*')
+        .eq('id', dto.orderId)
+        .single();
 
-    if (orderError || !order) throw new NotFoundException('Order not found');
+      if (orderError || !order) throw new NotFoundException('Order not found');
 
-    // Tạo contractNumber tự động
-    const contractNumber = await this.generateContractNumber();
+      // Tạo contractNumber tự động
+      const contractNumber = await this.generateContractNumber();
 
-    const newContract: Contract = {
-      id: uuid(),
-      orderId: dto.orderId,
-      contractNumber,
-      dealerId: order.dealer_id,
-      contractValue: order.total_amount,
-      startDate: dto.startDate ? new Date(dto.startDate) : now,
-      endDate: dto.endDate ? new Date(dto.endDate) : null,
-      createdAt: now,
-      updatedAt: now,
-    };
+      const newContract: Contract = {
+        id: uuid(),
+        orderId: dto.orderId,
+        contractNumber,
+        dealerId: dto.dealerId,
+        contractValue: order.total_amount,
+        startDate: dto.startDate ? new Date(dto.startDate) : now,
+        endDate: dto.endDate ? new Date(dto.endDate) : null,
+        createdAt: now,
+        updatedAt: now,
+      };
 
-    // Insert vào DB
-    const { error } = await this.supabase
-      .schema('sales')
-      .from('contracts')
-      .insert({
-        id: newContract.id,
-        order_id: newContract.orderId,
-        contract_number: newContract.contractNumber,
-        dealer_id: newContract.dealerId,
-        description: newContract.description,
-        contract_value: newContract.contractValue,
-        start_date: newContract.startDate.toISOString(),
-        end_date: newContract.endDate?.toISOString() || null,
-        created_at: now.toISOString(),
-        updated_at: now.toISOString(),
-      });
+      console.log('newContract', newContract);
 
-    const response = await this.orderService.update(newContract.orderId, { status: 'confirmed' });
-    console.log('Đã update', response);
-    if (error) throw new Error(error.message);
+      // Insert vào DB
+      const { error } = await this.supabase
+        .schema('sales')
+        .from('contracts')
+        .insert({
+          id: newContract.id,
+          order_id: newContract.orderId,
+          contract_number: newContract.contractNumber,
+          dealer_id: newContract.dealerId,
+          description: newContract.description,
+          contract_value: newContract.contractValue,
+          start_date: newContract.startDate.toISOString(),
+          end_date: newContract.endDate?.toISOString() || null,
+          created_at: now.toISOString(),
+          updated_at: now.toISOString(),
+        });
 
-    return newContract;
+      if (error) throw new Error(error.message);
+
+      const response = await this.orderService.update(newContract.orderId, { status: 'confirmed' });
+      console.log('Đã update', response);
+
+      return newContract;
+    } catch (error) {
+      throw new Error(error.message);
+    }
   }
 
   async findAll(): Promise<Contract[]> {

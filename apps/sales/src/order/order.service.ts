@@ -2,11 +2,9 @@ import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { v4 as uuid } from 'uuid';
 import { Order } from './entity/order.entity';
-import { QuotationService } from '../quotation/quotation.service';
 import { CreateOrderDto } from './dto/create-order.dto';
-import { Quotation } from '../quotation/entity/quotation.entity';
 import { PricingPromotionService } from '../pricing-promotion/pricing-promotion.service';
-import { AmqpConnection } from '@golevelup/nestjs-rabbitmq';
+import { AmqpConnection, RabbitSubscribe } from '@golevelup/nestjs-rabbitmq';
 
 @Injectable()
 export class OrderService {
@@ -16,6 +14,41 @@ export class OrderService {
     private readonly pricingPromotionService: PricingPromotionService,
     private readonly amqpConnection: AmqpConnection,
   ) {}
+
+  @RabbitSubscribe({
+    exchange: 'order_payment',
+    routingKey: 'order.paymentSucceeded',
+    queue: 'sales.order.paymentSucceeded',
+  })
+  async handleOrderPaymentSucceeded(msg: {
+    invoice_id: string;
+    provider: string;
+    provider_txn: string;
+    amount_cents: number;
+  }) {
+    if (!msg.invoice_id) {
+    }
+
+    const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
+    const { data, error } = await this.supabase
+      .schema('sales')
+      .from('orders')
+      .update({
+        payment_status: 'paid',
+        updated_at: now.toISOString(),
+      })
+      .eq('invoice_id', msg.invoice_id)
+      .select('id')
+      .maybeSingle();
+
+    if (error) {
+      return;
+    }
+    if (!data) {
+      return;
+    }
+  }
+
   async getVehicleId(id: number) {
     const response = await this.amqpConnection.request<{ vehicle: any }>({
       exchange: 'order_vehicle',
@@ -281,6 +314,45 @@ export class OrderService {
     return this.mapRowToOrder(data);
   }
 
+  async update_invoiceID(id: string, updateData: Partial<Order>): Promise<Order> {
+    const updatedAt = new Date(
+      new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }),
+    );
+    const payload: any = {
+      updated_at: updatedAt.toISOString(),
+    };
+    if (updateData.invoiceId !== undefined) {
+      payload.invoice_id = updateData.invoiceId;
+    }
+
+    const { data, error } = await this.supabase
+      .schema('sales')
+      .from('orders')
+      .update({
+        quotation_id: updateData.quotationId,
+        created_by: updateData.createdBy,
+        total_amount: updateData.totalAmount,
+        status: updateData.status,
+
+        payment_method: updateData.paymentMethod,
+        payment_status: updateData.paymentStatus,
+        payment_amount: updateData.paymentAmount,
+        invoice_id: updateData.invoiceId,
+
+        bank: updateData.bank,
+        term: updateData.term,
+        downPayment: updateData.downPayment,
+
+        updated_at: updatedAt.toISOString(),
+      })
+      .eq('id', id)
+      .select('*')
+      .single();
+
+    if (error) throw new Error(`Supabase update error: ${error.message}`);
+    return this.mapRowToOrder(data);
+  }
+
   //Xoá đơn hàng
   async remove(id: string): Promise<any> {
     const { data, error } = await this.supabase
@@ -294,7 +366,6 @@ export class OrderService {
     if (!data || data.length === 0) {
       throw new NotFoundException(`Không tìm thấy đơn hàng có id = ${id}`);
     }
-
     return { message: `Xóa thành công đơn hàng ${id}` };
   }
 
@@ -307,13 +378,14 @@ export class OrderService {
 
       totalAmount: row.total_amount,
 
-      paymentMethod: row.paymentMethod,
-      paymentStatus: row.paymentStatus,
-      paymentAmount: row.paymentAmount,
+      paymentMethod: row.payment_method,
+      paymentStatus: row.payment_status,
+      paymentAmount: row.payment_amount,
 
       bank: row.bank,
       term: row.term,
-      downPayment: row.downPayment,
+      downPayment: row.down_payment,
+      invoiceId: row.invoice_id ?? null,
 
       status: row.status,
       createdAt: new Date(row.created_at),

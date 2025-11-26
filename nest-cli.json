@@ -2,12 +2,9 @@
   "$schema": "https://json.schemastore.org/nest-cli",
   "collection": "@nestjs/schematics",
   "compilerOptions": {
-    "deleteOutDir": true,
-    "tsConfigPath": "apps/ev-dealer-api-gateway/tsconfig.app.json"
+    "deleteOutDir": true
   },
   "monorepo": true,
-  "entryFile": "main",
-  "sourceRoot": "apps",
   "projects": {
     "ar": {
       "type": "application",
@@ -54,6 +51,15 @@
         "tsConfigPath": "libs/contracts/tsconfig.lib.json"
       }
     },
+    "coordination-request": {
+      "type": "application",
+      "root": "apps/coordination-request",
+      "entryFile": "main",
+      "sourceRoot": "apps/coordination-request/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/coordination-request/tsconfig.app.json"
+      }
+    },
     "customer": {
       "type": "application",
       "root": "apps/customer",
@@ -61,15 +67,6 @@
       "sourceRoot": "apps/customer/src",
       "compilerOptions": {
         "tsConfigPath": "apps/customer/tsconfig.app.json"
-      }
-    },
-    "deale-coordination": {
-      "type": "application",
-      "root": "apps/deale-coordination",
-      "entryFile": "main",
-      "sourceRoot": "apps/deale-coordination/src",
-      "compilerOptions": {
-        "tsConfigPath": "apps/deale-coordination/tsconfig.app.json"
       }
     },
     "dealer-agreement": {
@@ -81,6 +78,34 @@
         "tsConfigPath": "apps/dealer-agreement/tsconfig.app.json"
       }
     },
+    "dealer-coordination": {
+      "type": "application",
+      "root": "apps/dealer-coordination",
+      "entryFile": "main",
+      "sourceRoot": "apps/dealer-coordination/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/dealer-coordination/tsconfig.app.json"
+      }
+    },
+    "dealer-service-coordination": {
+      "type": "application",
+      "root": "apps/dealer-service-coordination",
+      "entryFile": "main",
+      "sourceRoot": "apps/dealer-service-coordination/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/dealer-service-coordination/tsconfig.app.json"
+      }
+    },
+    "ev-dealer-api-gateway": {
+      "type": "application",
+      "root": "apps/ev-dealer-api-gateway",
+      "entryFile": "main",
+      "sourceRoot": "apps/ev-dealer-api-gateway/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/ev-dealer-api-gateway/tsconfig.app.json",
+        "webpack": true
+      }
+    },
     "evm-staff-agreement-service": {
       "type": "application",
       "root": "apps/evm-staff-agreement-service",
@@ -90,15 +115,6 @@
         "tsConfigPath": "apps/evm-staff-agreement-service/tsconfig.app.json"
       }
     },
-    "ev-dealer-api-gateway": {
-      "type": "application",
-      "root": "apps/ev-dealer-api-gateway",
-      "entryFile": "main",
-      "sourceRoot": "apps/ev-dealer-api-gateway/src",
-      "compilerOptions": {
-        "tsConfigPath": "apps/ev-dealer-api-gateway/tsconfig.app.json"
-      }
-    },
     "evm-staff-coordination-service": {
       "type": "application",
       "root": "apps/evm-staff-coordination-service",
@@ -106,6 +122,15 @@
       "sourceRoot": "apps/evm-staff-coordination-service/src",
       "compilerOptions": {
         "tsConfigPath": "apps/evm-staff-coordination-service/tsconfig.app.json"
+      }
+    },
+    "inventory": {
+      "type": "application",
+      "root": "apps/inventory",
+      "entryFile": "main",
+      "sourceRoot": "apps/inventory/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/inventory/tsconfig.app.json"
       }
     },
     "product-service": {

@@ -34,6 +34,11 @@ export class UsersController {
     return token;
   }
 
+  @Post('me/me')
+  me(@Body('id') id: string) {
+    return this.usersService.getUserId(id);
+  }
+
   @Put('profile')
   @UseInterceptors(FileInterceptor('avatar'))
   async updateProfile(

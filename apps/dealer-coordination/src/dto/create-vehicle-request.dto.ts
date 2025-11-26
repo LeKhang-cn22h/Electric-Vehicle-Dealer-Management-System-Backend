@@ -13,8 +13,8 @@ export class VehicleItemDto {
 
 // DTO tổng cho một yêu cầu (từ một đại lý)
 export class CreateVehicleRequestDto {
-  dealer_id: string = '';
   dealer_name: string = '';
-  request_type: string = '';
-  vehicles!: VehicleItemDto[]; // MẢNG các xe trong một yêu cầu
+  email: string = '';
+  address: string = '';
+  quantity: number = 0;
 }

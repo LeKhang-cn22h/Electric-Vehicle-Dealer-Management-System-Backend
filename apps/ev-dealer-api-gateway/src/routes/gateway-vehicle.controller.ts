@@ -131,6 +131,20 @@ export class GatewayVehicleController {
       throw new InternalServerErrorException('Failed to fetch vehicle models');
     }
   }
+
+  @Get('noPrice')
+  async getListVehicleWithNoPrice() {
+    try {
+      this.logger.log('Getting all vehicle no create price');
+      const result = await this.c.vehicle().get('/vehicle/noPrice');
+      this.logger.log(`Success, got ${result.length || 0} noPrice`);
+      return result;
+    } catch (error) {
+      this.logger.error(' Error getting models no price:', error.message);
+      throw new InternalServerErrorException('Failed to fetch vehicle models no price');
+    }
+  }
+
   //lấy xe cụ thể
   @Get(':id')
   async findOne(@Param('id') id: string) {

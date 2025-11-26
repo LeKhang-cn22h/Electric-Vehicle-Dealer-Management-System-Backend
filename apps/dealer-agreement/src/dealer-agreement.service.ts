@@ -1,6 +1,7 @@
-// src/dealer-agreement/dealer-agreement.service.ts
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient, User } from '@supabase/supabase-js';
+
+import { Request } from 'express';
 
 export interface CreateContractRequestDto {
   dealer_name: string;
@@ -22,20 +23,52 @@ export class DealerAgreementService {
     }
 
     this.supabase = createClient(supabaseUrl, supabaseServiceRoleKey, {
-      auth: { persistSession: false }, // không dùng session (service)
+      auth: { persistSession: false },
     });
   }
 
-  async createContractRequest(dto: CreateContractRequestDto): Promise<void> {
+  // Hàm lấy user từ request dựa trên token Authorization Bearer
+  async getUserFromRequest(req: Request): Promise<User | null> {
+    try {
+      const authHeader = req.headers['authorization'];
+      if (!authHeader || typeof authHeader !== 'string' || authHeader.trim() === '') {
+        return null;
+      }
+      let token = authHeader.trim();
+      if (token.toLowerCase().startsWith('bearer ')) {
+        token = token.slice(7).trim();
+      }
+      if (!token) throw new Error('Invalid token');
+
+      const { data, error } = await this.supabase.auth.getUser(token);
+      if (error || !data?.user) throw new Error('Invalid token');
+
+      return data.user;
+    } catch {
+      throw new InternalServerErrorException('Invalid or missing token');
+    }
+  }
+
+  // Tạo request với thông tin user lấy được từ token
+  async createContractRequest(req: Request, dto: CreateContractRequestDto): Promise<void> {
+    // Lấy user
+    const user = await this.getUserFromRequest(req);
+    if (!user) {
+      throw new InternalServerErrorException('Unauthorized: user not found');
+    }
+
     const { error } = await this.supabase
-      .schema('evm_agreement') // gọi schema
-      .from('contract_requests') // gọi bảng kèm schema
+      .schema('evm_agreement')
+      .from('contract_requests')
       .insert([
         {
           dealer_name: dto.dealer_name,
           address: dto.address,
           phone: dto.phone,
           email: dto.email,
+          user_uid: user.id,
+          created_at: new Date().toISOString(),
+          status: 'pending',
         },
       ]);
 

@@ -9,8 +9,8 @@ export class CreateOrderDto {
   createdBy: string;
 
   // Payment
-  @IsEnum(['cash', 'bank_transfer'])
-  paymentMethod: 'cash' | 'bank_transfer';
+  @IsEnum(['cash', 'bank_transfer', 'installment'])
+  paymentMethod: 'cash' | 'bank_transfer' | 'installment';
 
   @IsEnum(['unpaid', 'paid', 'partial'])
   paymentStatus: 'unpaid' | 'paid' | 'partial';
