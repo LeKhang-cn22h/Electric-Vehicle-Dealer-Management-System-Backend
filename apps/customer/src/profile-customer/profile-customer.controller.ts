@@ -50,7 +50,7 @@ export class ProfileCustomerController {
 
     return this.profileService.remove(profileId);
   }
-  //thêm liên kết hồ sơ @Post('auto-link')
+  @Post('auto-link')
   async autoLink(@Body() body: any) {
     const { email, phone, uid } = body;
 
