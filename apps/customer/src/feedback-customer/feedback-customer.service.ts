@@ -11,17 +11,17 @@ export class FeedbackCustomerService {
     this.supabase = this.supabaseService.getClient();
   }
   async createFeedback(req, createFeedbackDto: CreateFeedbackDto) {
-    // 1️⃣ Lấy user từ JWT trong header
+    //  Lấy user từ JWT trong header
     const user = await this.supabaseService.getUserFromRequest(req);
     if (!user) throw new Error('Unauthorized: Token missing or invalid');
 
-    // 2️⃣ Gắn uid từ Supabase
+    //  Gắn uid từ Supabase
     const feedbackData = {
       ...createFeedbackDto,
       customer_uid: user.id,
     };
 
-    // 3️⃣ Lưu feedback
+    // Lưu feedback
     const { data, error } = await this.supabase
       .schema('customer')
       .from('feedback')
@@ -40,7 +40,7 @@ export class FeedbackCustomerService {
       .from('feedback')
       .select(
         `
-        *,
+        *
       `,
       )
       .order('created_at', { ascending: false });
@@ -53,6 +53,7 @@ export class FeedbackCustomerService {
 
     return data;
   }
+  // Lấy feedbacks của customer đang đăng nhập
   async findAllFeedbacksCustomer(req) {
     const user = await this.supabaseService.getUserFromRequest(req);
     if (!user) throw new Error('Unauthorized: Token missing or invalid');
@@ -60,15 +61,16 @@ export class FeedbackCustomerService {
     const query = this.supabase
       .schema('customer')
       .from('feedback')
-      .select('title, status, created_at')
+      .select('id, title, status, created_at')
       .order('created_at', { ascending: false })
-      .eq('customer_uid', user.id);
+      .eq('customer_uid', user.id)
+      .neq('status', 'Hidden');
     const { data, error } = await query;
 
     if (error) {
       throw new Error(`Failed to fetch feedbacks: ${error.message}`);
     }
-    console.log('🔍 Data from Supabase:', JSON.stringify(data, null, 2));
+    console.log(' Data from Supabase:', JSON.stringify(data, null, 2));
     return data;
   }
 
@@ -78,8 +80,7 @@ export class FeedbackCustomerService {
       .from('feedback')
       .select(
         `
-        *
-      `,
+        *`,
       )
       .eq('id', id)
       .single();
