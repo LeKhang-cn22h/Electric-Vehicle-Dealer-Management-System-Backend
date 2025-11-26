@@ -1,6 +1,6 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { createClient, SupabaseClient, User } from '@supabase/supabase-js';
-import { create } from 'axios';
+
 import { Request } from 'express';
 
 export interface CreateContractRequestDto {

@@ -31,7 +31,8 @@
     "start:evm-coordination": "cross-env PORT=3002 nest start evm-staff-coordination-service --watch",
     "start:ar": "cross-env PORT=4400 nest start ar --watch",
     "start:dealer-agreement": "cross-env PORT=3003 nest start -p tsconfig.build.json dealer-agreement",
-    "start:evm-staff-agreement-service": "cross-env PORT=3004 nest start evm-staff-agreement-service --watch"
+    "start:evm-staff-agreement-service": "cross-env PORT=3004 nest start evm-staff-agreement-service --watch",
+    "start:dealer-coordination": "cross-env PORT=3001 nest start dealer-coordination --watch"
   },
   "dependencies": {
     "@golevelup/nestjs-rabbitmq": "^6.0.2",

@@ -68,62 +68,62 @@
 //   /**
 //    * Tạo dealer account qua Gateway
 //    */
-//   private async createDealerViaGateway(
-//     dealerInfo: {
-//       dealer_name: string;
-//       address: string;
-//       phone: string;
-//       email: string;
-//     },
-//     authToken: string,
-//   ) {
-//     try {
-//       this.logger.log(`Creating dealer account for: ${dealerInfo.email}`);
+// private async createDealerViaGateway(
+//   dealerInfo: {
+//     dealer_name: string;
+//     address: string;
+//     phone: string;
+//     email: string;
+//   },
+//   authToken: string,
+// ) {
+//   try {
+//     this.logger.log(`Creating dealer account for: ${dealerInfo.email}`);
 
-//       // Tạo password tự động
-//       const generatedPassword = this.generateDefaultPassword();
+//     // Tạo password tự động
+//     const generatedPassword = this.generateDefaultPassword();
 
-//       const payload = {
-//         dealer_name: dealerInfo.dealer_name,
-//         email: dealerInfo.email,
-//         phone: dealerInfo.phone,
-//         address: dealerInfo.address,
-//         password: generatedPassword,
-//       };
+//     const payload = {
+//       dealer_name: dealerInfo.dealer_name,
+//       email: dealerInfo.email,
+//       phone: dealerInfo.phone,
+//       address: dealerInfo.address,
+//       password: generatedPassword,
+//     };
 
-//       this.logger.log('Payload sent to Gateway:', JSON.stringify(payload));
+//     this.logger.log('Payload sent to Gateway:', JSON.stringify(payload));
 
-//       const response = await firstValueFrom(
-//         this.httpService
-//           .post(`${this.gatewayUrl}/users/dealers`, payload, {
-//             headers: {
-//               authorization: authToken,
-//               'Content-Type': 'application/json',
-//             },
-//           })
-//           .pipe(
-//             catchError((error: AxiosError) => {
-//               this.logger.error('Error from Users Service:', JSON.stringify(error.response?.data));
-//               throw new HttpException(
-//                 error.response?.data || 'Failed to create dealer account',
-//                 error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR,
-//               );
-//             }),
-//           ),
-//       );
+//     const response = await firstValueFrom(
+//       this.httpService
+//         .post(`${this.gatewayUrl}/users/dealers`, payload, {
+//           headers: {
+//             authorization: authToken,
+//             'Content-Type': 'application/json',
+//           },
+//         })
+//         .pipe(
+//           catchError((error: AxiosError) => {
+//             this.logger.error('Error from Users Service:', JSON.stringify(error.response?.data));
+//             throw new HttpException(
+//               error.response?.data || 'Failed to create dealer account',
+//               error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR,
+//             );
+//           }),
+//         ),
+//     );
 
-//       this.logger.log(`Dealer created successfully. ID: ${response.data.id}`);
-//       this.logger.log(`Generated password: ${generatedPassword}`);
+//     this.logger.log(`Dealer created successfully. ID: ${response.data.id}`);
+//     this.logger.log(`Generated password: ${generatedPassword}`);
 
-//       return {
-//         ...response.data,
-//         temporaryPassword: generatedPassword,
-//       };
-//     } catch (error) {
-//       this.logger.error('Failed to create dealer account:', error);
-//       throw error;
-//     }
+//     return {
+//       ...response.data,
+//       temporaryPassword: generatedPassword,
+//     };
+//   } catch (error) {
+//     this.logger.error('Failed to create dealer account:', error);
+//     throw error;
 //   }
+// }
 
 //   /**
 //    * Tạo password ngẫu nhiên
@@ -137,38 +137,38 @@
 //     return password;
 //   }
 
-//   async createDealerAndContract(id: number, adminAuthToken: string): Promise<CreateDealerDto> {
-//     // 1. Lấy thông tin contract request
-//     const { data: request, error } = await this.supabase
-//       .schema('evm_agreement')
-//       .from('contract_requests')
-//       .select('*')
-//       .eq('id', id)
-//       .single();
+// async createDealerAndContract(id: number, adminAuthToken: string): Promise<CreateDealerDto> {
+//   // 1. Lấy thông tin contract request
+//   const { data: request, error } = await this.supabase
+//     .schema('evm_agreement')
+//     .from('contract_requests')
+//     .select('*')
+//     .eq('id', id)
+//     .single();
 
-//     if (error || !request) {
-//       this.logger.error(`Contract request ${id} not found`);
-//       throw new HttpException('Request not found', HttpStatus.NOT_FOUND);
-//     }
-
-//     if (request.status === 'approved') {
-//       throw new HttpException('Request already approved', HttpStatus.BAD_REQUEST);
-//     }
-
-//     // 2. Map dữ liệu từ contract_request sang CreateDealerDto
-//     const createDealerDto: CreateDealerDto = {
-//       name: request.dealer_name,
-//       phone: request.phone ?? '',
-//       address: request.address ?? '',
-//       status: 'active', // hoặc lấy từ request.status nếu phù hợp
-//       user_email: request.email,
-//       user_password: this.generateTemporaryPassword(), // cần tạo hàm tạo password tạm thời hoặc lấy từ đâu đó
-//       user_full_name: request.dealer_name, // hoặc có thể để undefined nếu không có dữ liệu
-//       user_phone: request.phone ?? '',
-//     };
-
-//     return createDealerDto;
+//   if (error || !request) {
+//     this.logger.error(`Contract request ${id} not found`);
+//     throw new HttpException('Request not found', HttpStatus.NOT_FOUND);
 //   }
+
+//   if (request.status === 'approved') {
+//     throw new HttpException('Request already approved', HttpStatus.BAD_REQUEST);
+//   }
+
+//   // 2. Map dữ liệu từ contract_request sang CreateDealerDto
+//   const createDealerDto: CreateDealerDto = {
+//     name: request.dealer_name,
+//     phone: request.phone ?? '',
+//     address: request.address ?? '',
+//     status: 'active', // hoặc lấy từ request.status nếu phù hợp
+//     user_email: request.email,
+//     user_password: this.generateTemporaryPassword(), // cần tạo hàm tạo password tạm thời hoặc lấy từ đâu đó
+//     user_full_name: request.dealer_name, // hoặc có thể để undefined nếu không có dữ liệu
+//     user_phone: request.phone ?? '',
+//   };
+
+//   return createDealerDto;
+// }
 
 //   // Ví dụ hàm tạo mật khẩu tạm thời
 //   private generateTemporaryPassword(): string {
@@ -176,6 +176,7 @@
 //   }
 // }
 // evm-staff-agreement-service.service.ts
+// apps/evm-staff-agreement-service/src/evm-staff-agreement-service.service.ts
 // apps/evm-staff-agreement-service/src/evm-staff-agreement-service.service.ts
 // apps/evm-staff-agreement-service/src/evm-staff-agreement-service.service.ts
 import { Injectable, Logger } from '@nestjs/common';
@@ -206,6 +207,19 @@ export class EvmStaffAgreementServiceService {
     this.supabase = createClient(supabaseUrl, supabaseKey);
   }
 
+  // ✅ THÊM: Function tạo password ngẫu nhiên
+  // private generateDefaultPassword(): string {
+  //   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%';
+  //   let password = '';
+  //   for (let i = 0; i < 12; i++) {
+  //     password += chars.charAt(Math.floor(Math.random() * chars.length));
+  //   }
+  //   return password;
+  // }
+  private generateDefaultPassword(): string {
+    return '12345678';
+  }
+
   async getContractRequests() {
     const { data, error } = await this.supabase
       .schema('evm_agreement')
@@ -220,9 +234,6 @@ export class EvmStaffAgreementServiceService {
     return data;
   }
 
-  /**
-   * ✅ TẠO CONTRACT REQUEST với FCM token
-   */
   async createContractRequest(payload: {
     dealer_name: string;
     address: string;
@@ -233,8 +244,6 @@ export class EvmStaffAgreementServiceService {
     device_info?: any;
   }) {
     this.logger.log('📝 Creating contract request');
-    this.logger.log('User ID:', payload.user_id);
-    this.logger.log('FCM Token:', payload.fcm_token?.substring(0, 30) + '...');
 
     const { data, error } = await this.supabase
       .schema('evm_agreement')
@@ -252,25 +261,16 @@ export class EvmStaffAgreementServiceService {
       .select();
 
     if (error) {
-      this.logger.error('❌ Insert error:', error);
+      this.logger.error(' Insert error:', error);
       throw error;
     }
 
-    this.logger.log('✅ Contract request created');
+    this.logger.log('Contract request created');
     return data[0];
   }
 
-  private generateDefaultPassword(): string {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%';
-    let password = '';
-    for (let i = 0; i < 12; i++) {
-      password += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return password;
-  }
-
   /**
-   * ✅ APPROVE CONTRACT và gửi notification
+   * ✅ APPROVE CONTRACT - Tạo dealer qua Gateway và gửi FCM notification
    */
   async createDealerAndContract(requestId: number, auth: string) {
     try {
@@ -291,6 +291,10 @@ export class EvmStaffAgreementServiceService {
         throw new Error('Contract request not found');
       }
 
+      if (request.status === 'approved') {
+        throw new Error('Request already approved');
+      }
+
       this.logger.log('✅ Contract request found:', {
         id: request.id,
         dealer_name: request.dealer_name,
@@ -299,18 +303,26 @@ export class EvmStaffAgreementServiceService {
         has_fcm_token: !!request.fcm_token,
       });
 
-      // 2. Tạo dealer account
+      // 2. Tạo dealer account qua Gateway
       this.logger.log('👤 Creating dealer account...');
 
+      // ✅ FIX: Gọi đúng function tạo password
       const generatedPassword = this.generateDefaultPassword();
 
+      // ✅ FIX: Map đúng field theo CreateDealerDto
       const dealerPayload = {
-        email: request.email,
-        dealer_name: request.dealer_name,
-        phone: request.phone,
-        address: request.address,
-        password: generatedPassword,
+        name: request.dealer_name,
+        phone: request.phone ?? '',
+        address: request.address ?? '',
+        status: 'active',
+        user_email: request.email,
+        user_password: generatedPassword,
+        user_full_name: request.dealer_name,
+        user_phone: request.phone ?? '',
       };
+
+      this.logger.log(' Dealer payload:', JSON.stringify(dealerPayload, null, 2));
+      this.logger.log(` Gateway URL: ${this.gatewayUrl}/users/dealers`);
 
       const createDealerResponse = await this.httpService.axiosRef.post(
         `${this.gatewayUrl}/users/dealers`,
@@ -328,6 +340,31 @@ export class EvmStaffAgreementServiceService {
         dealer_id: dealerAccount.id,
         email: dealerAccount.email,
       });
+      console.log('dealerAccount.id =', dealerAccount.id);
+
+      // 2.5. Insert dealer vào bảng evm_agreement.dealers
+      this.logger.log('🗂 Inserting dealer into evm_agreement.dealers...');
+
+      const { data: dealerRow, error: dealerInsertError } = await this.supabase
+        .schema('evm_agreement')
+        .from('dealers')
+        .insert({
+          dealer_name: request.dealer_name,
+          address: request.address ?? '',
+          phone: request.phone ?? '',
+          email: request.email,
+          // user_id: dealerAccount.id,
+          // fcm_token: request.fcm_token, // nếu bạn muốn lưu id user dealer bên hệ thống auth
+        })
+        .select()
+        .single();
+
+      if (dealerInsertError) {
+        this.logger.error(' Failed to insert dealer:', dealerInsertError);
+        throw new Error('Failed to insert dealer into dealers table');
+      }
+
+      this.logger.log('✅ Dealer inserted into dealers table:', dealerRow);
 
       // 3. Update contract request status
       this.logger.log('📝 Updating contract request status...');
@@ -363,13 +400,13 @@ export class EvmStaffAgreementServiceService {
         .single();
 
       if (contractError) {
-        this.logger.error('❌ Failed to create contract:', contractError);
+        this.logger.error(' Failed to create contract:', contractError);
         throw new Error('Failed to create contract');
       }
 
-      this.logger.log('✅ Contract created:', { contract_id: contract.id });
+      this.logger.log(' Contract created:', { contract_id: contract.id });
 
-      // 5. ✅ GỬI FCM NOTIFICATION
+      // 5. GỬI FCM NOTIFICATION
       if (request.fcm_token) {
         this.logger.log('🔔 Sending FCM notification...');
         this.logger.log(`FCM Token: ${request.fcm_token.substring(0, 30)}...`);
@@ -378,13 +415,16 @@ export class EvmStaffAgreementServiceService {
           const notificationResult = await this.notificationService.sendDirectly(
             request.fcm_token,
             '🎉 Yêu cầu hợp đồng đã được phê duyệt!',
-            `Yêu cầu hợp đồng cho ${request.dealer_name} đã được phê duyệt.`,
+            `Chào mừng ${request.dealer_name}! Tài khoản đại lý của bạn đã được tạo.`,
             {
-              type: 'CONTRACT_APPROVED',
+              type: 'Yêu cầu đã được chấp nhận',
               contractId: String(contract.id),
               dealerId: String(dealerAccount.id),
               dealerEmail: request.email,
               dealerTempPassword: generatedPassword,
+              dealerName: request.dealer_name,
+              dealerPhone: request.phone,
+              dealerAddress: request.address,
               timestamp: new Date().toISOString(),
             },
           );
@@ -408,12 +448,12 @@ export class EvmStaffAgreementServiceService {
         contract,
         dealer: dealerAccount,
         credentials: {
-          email: dealerAccount.email,
+          email: request.email,
           temporaryPassword: generatedPassword,
         },
       };
     } catch (error) {
-      this.logger.error('❌ FATAL ERROR:', error);
+      this.logger.error(' FATAL ERROR:', error);
       this.logger.error('Error message:', error.message);
 
       if (error.response) {

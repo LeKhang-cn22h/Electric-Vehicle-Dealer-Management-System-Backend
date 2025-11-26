@@ -2,12 +2,9 @@
   "$schema": "https://json.schemastore.org/nest-cli",
   "collection": "@nestjs/schematics",
   "compilerOptions": {
-    "deleteOutDir": true,
-    "tsConfigPath": "apps/ev-dealer-api-gateway/tsconfig.app.json"
+    "deleteOutDir": true
   },
   "monorepo": true,
-  "entryFile": "main",
-  "sourceRoot": "apps",
   "projects": {
     "ar": {
       "type": "application",
@@ -72,15 +69,6 @@
         "tsConfigPath": "apps/customer/tsconfig.app.json"
       }
     },
-    "deale-coordination": {
-      "type": "application",
-      "root": "apps/deale-coordination",
-      "entryFile": "main",
-      "sourceRoot": "apps/deale-coordination/src",
-      "compilerOptions": {
-        "tsConfigPath": "apps/deale-coordination/tsconfig.app.json"
-      }
-    },
     "dealer-agreement": {
       "type": "application",
       "root": "apps/dealer-agreement",
@@ -90,13 +78,32 @@
         "tsConfigPath": "apps/dealer-agreement/tsconfig.app.json"
       }
     },
+    "dealer-coordination": {
+      "type": "application",
+      "root": "apps/dealer-coordination",
+      "entryFile": "main",
+      "sourceRoot": "apps/dealer-coordination/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/dealer-coordination/tsconfig.app.json"
+      }
+    },
+    "dealer-service-coordination": {
+      "type": "application",
+      "root": "apps/dealer-service-coordination",
+      "entryFile": "main",
+      "sourceRoot": "apps/dealer-service-coordination/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/dealer-service-coordination/tsconfig.app.json"
+      }
+    },
     "ev-dealer-api-gateway": {
       "type": "application",
       "root": "apps/ev-dealer-api-gateway",
       "entryFile": "main",
       "sourceRoot": "apps/ev-dealer-api-gateway/src",
       "compilerOptions": {
-        "tsConfigPath": "apps/ev-dealer-api-gateway/tsconfig.app.json"
+        "tsConfigPath": "apps/ev-dealer-api-gateway/tsconfig.app.json",
+        "webpack": true
       }
     },
     "evm-staff-agreement-service": {

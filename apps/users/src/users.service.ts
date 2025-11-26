@@ -241,7 +241,7 @@ export class UsersService {
         throw new BadRequestException(`Email ${dto.user_email} đã được sử dụng`);
       }
 
-      // 2Tạo dealer trong schema `users`
+      // Tạo dealer trong schema `users`
       const { data: dealerData, error: dealerErr } = await this.admin
         .from('dealers')
         .insert({

@@ -97,18 +97,8 @@
 // }
 
 // evm-staff-agreement.controller.ts
-import {
-  Controller,
-  Post,
-  Get,
-  Param,
-  Body,
-  Headers,
-  BadRequestException,
-  ParseIntPipe,
-} from '@nestjs/common';
+import { Controller, Post, Get, Param, Body, Headers, BadRequestException } from '@nestjs/common';
 import { EvmStaffAgreementServiceService } from './evm-staff-agreement-service.service';
-import { CreateDealerDto } from './DTO/createdealer.dto';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { Logger } from '@nestjs/common';
 
@@ -125,6 +115,9 @@ export class EvmStaffAgreementController {
     return this.evmStaffService.getContractRequests();
   }
 
+  /**
+   * ✅ TẠO CONTRACT REQUEST (chưa approve)
+   */
   @Post()
   async createContractRequest(
     @Body()
@@ -147,13 +140,14 @@ export class EvmStaffAgreementController {
       throw new BadRequestException('Missing Authorization header');
     }
 
+    // ✅ Gọi đúng function: createContractRequest (chỉ lưu vào DB)
     return this.evmStaffService.createContractRequest(body);
   }
 
   /**
    * ✅ APPROVE CONTRACT - Tạo dealer và gửi FCM notification
    */
-  @Post('contract-requests/:id/approve-and-create-dealer')
+  @Post(':id/approve-and-create-dealer')
   async approveAndCreateDealer(@Param('id') id: string, @Headers('authorization') auth: string) {
     this.logger.log('=== APPROVE CONTRACT REQUEST ===');
     this.logger.log(`Contract ID: ${id}`);
@@ -169,12 +163,13 @@ export class EvmStaffAgreementController {
     }
 
     try {
+      // ✅ Gọi đúng function: createDealerAndContract (approve + tạo dealer)
       const result = await this.evmStaffService.createDealerAndContract(numericId, auth);
 
-      this.logger.log('✅ Contract approved successfully');
+      this.logger.log('Contract approved successfully');
       return result;
     } catch (error) {
-      this.logger.error('❌ Error approving contract:', error);
+      this.logger.error('Error approving contract:', error);
       throw new HttpException(
         error.message || 'Failed to approve contract',
         HttpStatus.INTERNAL_SERVER_ERROR,
