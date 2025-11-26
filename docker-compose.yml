@@ -120,6 +120,7 @@ services:
     ports:
       - '4400:4400'
     environment:
+      - RABBITMQ_URI=amqp://guest:guest@rabbitmq:5672
       - SUPABASE_URL=https://iaucwkjbbrzxuayvecjw.supabase.co
       - SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlhdWN3a2piYnJ6eHVheXZlY2p3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIwODg4MjAsImV4cCI6MjA3NzY2NDgyMH0.VogEJZeLubwtayzAX8Dy79xR_5QeOYnx0JFHd2FZuBg
       - SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlhdWN3a2piYnJ6eHVheXZlY2p3Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MjA4ODgyMCwiZXhwIjoyMDc3NjY0ODIwfQ.OVEmaiCHFqcb3F9rhga3PtYb1C5EKxjgDOFRIWAucsI
@@ -141,6 +142,7 @@ services:
     ports:
       - '4300:4300'
     environment:
+      - RABBITMQ_URI=amqp://guest:guest@rabbitmq:5672
       - SUPABASE_URL=https://iaucwkjbbrzxuayvecjw.supabase.co
       - SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlhdWN3a2piYnJ6eHVheXZlY2p3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIwODg4MjAsImV4cCI6MjA3NzY2NDgyMH0.VogEJZeLubwtayzAX8Dy79xR_5QeOYnx0JFHd2FZuBg
       - SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlhdWN3a2piYnJ6eHVheXZlY2p3Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MjA4ODgyMCwiZXhwIjoyMDc3NjY0ODIwfQ.OVEmaiCHFqcb3F9rhga3PtYb1C5EKxjgDOFRIWAucsI
