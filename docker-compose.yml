@@ -3,7 +3,7 @@ version: '3.8'
 services:
   customer-service:
     build:
-      context: ./ # root project
+      context: ./
       dockerfile: apps/customer/Dockerfile
     container_name: customer-service
     environment:
@@ -12,6 +12,7 @@ services:
       SUPABASE_URL: https://iaucwkjbbrzxuayvecjw.supabase.co
       SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlhdWN3a2piYnJ6eHVheXZlY2p3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIwODg4MjAsImV4cCI6MjA3NzY2NDgyMH0.VogEJZeLubwtayzAX8Dy79xR_5QeOYnx0JFHd2FZuBg
       SUPABASE_SERVICE_ROLE_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlhdWN3a2piYnJ6eHVheXZlY2p3Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MjA4ODgyMCwiZXhwIjoyMDc3NjY0ODIwfQ.OVEmaiCHFqcb3F9rhga3PtYb1C5EKxjgDOFRIWAucsI
+
       APP_URL: http://localhost:3000
     depends_on:
       - rabbitmq
@@ -30,6 +31,7 @@ services:
       SUPABASE_URL: https://iaucwkjbbrzxuayvecjw.supabase.co
       SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlhdWN3a2piYnJ6eHVheXZlY2p3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIwODg4MjAsImV4cCI6MjA3NzY2NDgyMH0.VogEJZeLubwtayzAX8Dy79xR_5QeOYnx0JFHd2FZuBg
       SUPABASE_SERVICE_ROLE_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlhdWN3a2piYnJ6eHVheXZlY2p3Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MjA4ODgyMCwiZXhwIjoyMDc3NjY0ODIwfQ.OVEmaiCHFqcb3F9rhga3PtYb1C5EKxjgDOFRIWAucsI
+
       APP_URL: http://localhost:3000
     depends_on:
       - rabbitmq
@@ -61,15 +63,14 @@ services:
       context: .
       dockerfile: apps/ev-dealer-api-gateway/Dockerfile
     ports:
-      - '4000:4000' # chỉ expose port gateway ra ngoài
+      - '4000:4000'
     environment:
       PRODUCT_SERVICE_URL: http://vehicle-service:4001
       CUSTOMER_SERVICE_URL: http://customer-service:4404
       USERS_SERVICE_URL: http://users:4200
       AUTH_SERVICE_URL: http://auth:4100
-      AR_SERVICE_URL: http://localhost:4400
-      BILLING_SERVICE_URL: http://localhost:4300
-
+      AR_SERVICE_URL: http://ar:4400
+      BILLING_SERVICE_URL: http://billing:4300
       REDIS_HOST: redis
       REDIS_PORT: 6379
     depends_on:
@@ -84,57 +85,68 @@ services:
     networks:
       - micro-net
 
-    users:
-      build:
-        context: .
-        dockerfile: apps/users/Dockerfile
-      ports:
-        - '4200:4200'
-      environment:
-        - SUPABASE_URL=https://iaucwkjbbrzxuayvecjw.supabase.co
-        - SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlhdWN3a2piYnJ6eHVheXZlY2p3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIwODg4MjAsImV4cCI6MjA3NzY2NDgyMH0.VogEJZeLubwtayzAX8Dy79xR_5QeOYnx0JFHd2FZuBg
-        - SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlhdWN3a2piYnJ6eHVheXZlY2p3Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MjA4ODgyMCwiZXhwIjoyMDc3NjY0ODIwfQ.OVEmaiCHFqcb3F9rhga3PtYb1C5EKxjgDOFRIWAucsI
+  users:
+    build:
+      context: .
+      dockerfile: apps/users/Dockerfile
+    ports:
+      - '4200:4200'
+    environment:
+      SUPABASE_URL: https://iaucwkjbbrzxuayvecjw.supabase.co
+      SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlhdWN3a2piYnJ6eHVheXZlY2p3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIwODg4MjAsImV4cCI6MjA3NzY2NDgyMH0.VogEJZeLubwtayzAX8Dy79xR_5QeOYnx0JFHd2FZuBg
+      SUPABASE_SERVICE_ROLE_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlhdWN3a2piYnJ6eHVheXZlY2p3Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MjA4ODgyMCwiZXhwIjoyMDc3NjY0ODIwfQ.OVEmaiCHFqcb3F9rhga3PtYb1C5EKxjgDOFRIWAucsI
 
-    auth:
-      build:
-        context: .
-        dockerfile: apps/auth/Dockerfile
-      ports:
-        - '4100:4100'
-      environment:
-        - SUPABASE_URL=https://iaucwkjbbrzxuayvecjw.supabase.co
-        - SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlhdWN3a2piYnJ6eHVheXZlY2p3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIwODg4MjAsImV4cCI6MjA3NzY2NDgyMH0.VogEJZeLubwtayzAX8Dy79xR_5QeOYnx0JFHd2FZuBg
-        - SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlhdWN3a2piYnJ6eHVheXZlY2p3Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MjA4ODgyMCwiZXhwIjoyMDc3NjY0ODIwfQ.OVEmaiCHFqcb3F9rhga3PtYb1C5EKxjgDOFRIWAucsI
+    networks:
+      - micro-net
 
-    ar:
-      build:
-        context: .
-        dockerfile: apps/ar/Dockerfile
-      ports:
-        - '4400:4400'
-      environment:
-        - SUPABASE_URL=https://iaucwkjbbrzxuayvecjw.supabase.co
-        - SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlhdWN3a2piYnJ6eHVheXZlY2p3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIwODg4MjAsImV4cCI6MjA3NzY2NDgyMH0.VogEJZeLubwtayzAX8Dy79xR_5QeOYnx0JFHd2FZuBg
-        - SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlhdWN3a2piYnJ6eHVheXZlY2p3Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MjA4ODgyMCwiZXhwIjoyMDc3NjY0ODIwfQ.OVEmaiCHFqcb3F9rhga3PtYb1C5EKxjgDOFRIWAucsI
-        - VNP_TMNCODE=3RMHOXAY
-        - VNP_HASHSECRET=YBJFASJ557EFPYCCHPQFVHT13F4G7Z0D
-        - VNP_URL=https://sandbox.vnpayment.vn/paymentv2/vpcpay.html
-        - VNP_RETURN_URL=http://localhost:3000/payments/vnpay/return
-        - VNP_IPN_URL=http://localhost:4000/webhooks/vnpay
-        - VNP_API_URL=https://sandbox.vnpayment.vn/merchant_webapi/api/transaction
-        - VNP_CURR_CODE=VND
-        - VNP_LOCALE=vn
+  auth:
+    build:
+      context: .
+      dockerfile: apps/auth/Dockerfile
+    ports:
+      - '4100:4100'
+    environment:
+      SUPABASE_URL: https://iaucwkjbbrzxuayvecjw.supabase.co
+      SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlhdWN3a2piYnJ6eHVheXZlY2p3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIwODg4MjAsImV4cCI6MjA3NzY2NDgyMH0.VogEJZeLubwtayzAX8Dy79xR_5QeOYnx0JFHd2FZuBg
+      SUPABASE_SERVICE_ROLE_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlhdWN3a2piYnJ6eHVheXZlY2p3Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MjA4ODgyMCwiZXhwIjoyMDc3NjY0ODIwfQ.OVEmaiCHFqcb3F9rhga3PtYb1C5EKxjgDOFRIWAucsI
 
-    billing:
-      build:
-        context: .
-        dockerfile: apps/billing/Dockerfile
-      ports:
-        - '4300:4300'
-      environment:
-        - SUPABASE_URL=https://iaucwkjbbrzxuayvecjw.supabase.co
-        - SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlhdWN3a2piYnJ6eHVheXZlY2p3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIwODg4MjAsImV4cCI6MjA3NzY2NDgyMH0.VogEJZeLubwtayzAX8Dy79xR_5QeOYnx0JFHd2FZuBg
-        - SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlhdWN3a2piYnJ6eHVheXZlY2p3Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MjA4ODgyMCwiZXhwIjoyMDc3NjY0ODIwfQ.OVEmaiCHFqcb3F9rhga3PtYb1C5EKxjgDOFRIWAucsI
+    networks:
+      - micro-net
+
+  ar:
+    build:
+      context: .
+      dockerfile: apps/ar/Dockerfile
+    ports:
+      - '4400:4400'
+    environment:
+      - SUPABASE_URL=https://iaucwkjbbrzxuayvecjw.supabase.co
+      - SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlhdWN3a2piYnJ6eHVheXZlY2p3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIwODg4MjAsImV4cCI6MjA3NzY2NDgyMH0.VogEJZeLubwtayzAX8Dy79xR_5QeOYnx0JFHd2FZuBg
+      - SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlhdWN3a2piYnJ6eHVheXZlY2p3Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MjA4ODgyMCwiZXhwIjoyMDc3NjY0ODIwfQ.OVEmaiCHFqcb3F9rhga3PtYb1C5EKxjgDOFRIWAucsI
+      - VNP_TMNCODE=3RMHOXAY
+      - VNP_HASHSECRET=YBJFASJ557EFPYCCHPQFVHT13F4G7Z0D
+      - VNP_URL=https://sandbox.vnpayment.vn/paymentv2/vpcpay.html
+      - VNP_RETURN_URL=http://localhost:3000/payments/vnpay/return
+      - VNP_IPN_URL=http://localhost:4000/webhooks/vnpay
+      - VNP_API_URL=https://sandbox.vnpayment.vn/merchant_webapi/api/transaction
+      - VNP_CURR_CODE=VND
+      - VNP_LOCALE=vn
+    networks:
+      - micro-net
+
+  billing:
+    build:
+      context: .
+      dockerfile: apps/billing/Dockerfile
+    ports:
+      - '4300:4300'
+    environment:
+      - SUPABASE_URL=https://iaucwkjbbrzxuayvecjw.supabase.co
+      - SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlhdWN3a2piYnJ6eHVheXZlY2p3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIwODg4MjAsImV4cCI6MjA3NzY2NDgyMH0.VogEJZeLubwtayzAX8Dy79xR_5QeOYnx0JFHd2FZuBg
+      - SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlhdWN3a2piYnJ6eHVheXZlY2p3Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MjA4ODgyMCwiZXhwIjoyMDc3NjY0ODIwfQ.OVEmaiCHFqcb3F9rhga3PtYb1C5EKxjgDOFRIWAucsI
+
+    networks:
+      - micro-net
 
 networks:
   micro-net:
