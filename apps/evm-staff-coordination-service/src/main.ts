@@ -1,5 +1,5 @@
 import { NestFactory } from '@nestjs/core';
-import { EvmStaffCoordinationServiceModule } from './evm-staff-coordination-service.module';
+import { EvmStaffCoordinationModule } from './evm-staff-coordination-service.module';
 
 // async function bootstrap() {
 //   const app = await NestFactory.create(EvmStaffCoordinationModule);
@@ -8,7 +8,7 @@ import { EvmStaffCoordinationServiceModule } from './evm-staff-coordination-serv
 // bootstrap();
 async function bootstrap() {
   const port = process.env.PORT ?? 3002;
-  const app = await NestFactory.create(EvmStaffCoordinationServiceModule);
+  const app = await NestFactory.create(EvmStaffCoordinationModule);
   await app.listen(port);
   console.log(`EvmStaffCoordinationService running on port ${port}`);
 }

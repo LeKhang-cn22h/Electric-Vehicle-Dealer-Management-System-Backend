@@ -4,8 +4,14 @@ import * as dotenv from 'dotenv';
 import { CreateVehicleUnitDTO, VehicleCreateDto } from './DTO/vehicle_create.dto';
 import { VehicleUpdateDto } from './DTO/vehicle_update.dto';
 import { AmqpConnection, RabbitRPC } from '@golevelup/nestjs-rabbitmq';
-import { NotFoundError } from 'rxjs';
-
+import {
+  CreateVehicleUnitDto,
+  UpdateVehicleUnitDto,
+  DeployToWarehouseDto,
+  DeployMultipleUnitsDto,
+  FilterVehicleUnitsDto,
+  PayVehicleDto,
+} from './DTO/vehicle-unit.dto';
 dotenv.config();
 
 interface SearchFilters {
@@ -40,35 +46,96 @@ export class vehicleNewService {
     const vehicle = await this.findOne(vehicleId);
     return { ...vehicle, price: response.price };
   }
+
   async getListVehicleWithListPrice(vehicleIds: number[]) {
-    // 1) Gọi RPC lấy list giá
+    console.log('[VehicleService] Getting vehicles with prices for IDs:', vehicleIds);
+
+    // 1) Gọi RPC lấy list giá - 1 request cho tất cả IDs
     const priceList = await this.amqpConnection.request<
       Array<{ vehicleId: number; price: number }>
     >({
       exchange: 'vehicle_exchange',
       routingKey: 'listprice.request',
-      payload: { vehicleIds },
+      payload: { vehicleIds }, // Gửi MẢNG IDs
       timeout: 10000,
     });
 
     console.log('priceList:', priceList);
 
-    // 2) Lấy danh sách xe trong DB lọc theo vehicleIds
-    const vehiclesResponse = await this.findAll();
-    const filteredVehicles = vehiclesResponse.data.filter((v) => vehicleIds.includes(v.id));
+    // 2) TỐI ƯU: Chỉ query NHỮNG XE CẦN THIẾT
+    const { data: vehicles, error } = await this.supabase
+      .schema('product')
+      .from('vehicle')
+      .select(
+        `
+      id,
+      name,
+      status,
+      model,
+      year,
+      transmission,
+      mileage,
+      images(path, is_main)
+    `,
+      )
+      .in('id', vehicleIds) // ← CHỈ lấy xe có ID trong mảng
+      .order('id', { ascending: true });
+
+    if (error) {
+      console.error('[VehicleService] Query error:', error);
+      throw new BadRequestException(error.message);
+    }
+
+    console.log(`[VehicleService] Found ${vehicles?.length || 0} vehicles from DB`);
 
     // 3) Map giá theo vehicleId
     const priceMap = new Map(priceList.map((p) => [p.vehicleId, p.price]));
 
-    // 4) Merge giá vào dữ liệu xe
-    const result = filteredVehicles.map((vehicle) => ({
-      ...vehicle,
-      price: priceMap.get(vehicle.id) ?? null,
-    }));
+    // 4) Merge giá vào dữ liệu xe + xử lý ảnh
+    const result = vehicles.map((vehicle) => {
+      // Xử lý ảnh chính
+      let mainImage: { path: string; is_main?: boolean } | null = null;
+
+      if (vehicle.images) {
+        if (Array.isArray(vehicle.images)) {
+          mainImage = vehicle.images.find((img) => img?.is_main) || vehicle.images[0];
+        } else if (vehicle.images.path) {
+          mainImage = vehicle.images;
+        }
+      }
+
+      let imageUrl = 'https://via.placeholder.com/400x300?text=No+Image';
+      if (mainImage?.path) {
+        const { data: urlData } = this.supabase.storage
+          .from('Vehicle')
+          .getPublicUrl(mainImage.path);
+        imageUrl = urlData.publicUrl;
+      }
+
+      return {
+        id: vehicle.id,
+        name: vehicle.name,
+        status: vehicle.status || 'còn hàng',
+        model: vehicle.model,
+        year: vehicle.year,
+        transmission: vehicle.transmission,
+        mileage: vehicle.mileage,
+        imageUrl,
+        price: priceMap.get(vehicle.id) ?? null,
+      };
+    });
 
     console.log('Merged result:', result);
-
     return result;
+  }
+
+  async getListPrice(): Promise<any[]> {
+    return this.amqpConnection.request<any[]>({
+      exchange: 'vehicle_listPrice',
+      routingKey: 'vehicle.listPrice',
+      payload: {},
+      timeout: 160000,
+    });
   }
 
   @RabbitRPC({
@@ -102,6 +169,18 @@ export class vehicleNewService {
     console.log('Received vehicle request:', msg);
     if (!msg.id) return null;
     return await this.getVehicleWithPrice(msg.id);
+  }
+
+  async getListVehicleWithNoPrice(): Promise<any> {
+    const { data, error } = await this.supabase.schema('product').from('vehicle').select('*');
+    if (error) throw new Error(error.message);
+    const listPrice = await this.getListPrice();
+    console.log(listPrice);
+    const listPriceVehicleId = listPrice.map((price) => price.productId);
+    console.log('listPriceVehicleId', listPriceVehicleId);
+    const res = data.filter((vehicle) => !listPriceVehicleId.includes(vehicle.id));
+
+    return res;
   }
 
   // ===========================
@@ -809,30 +888,42 @@ export class vehicleNewService {
       };
     });
   }
-  // tạo xe thực
-  async createVehicleUnit(dto: CreateVehicleUnitDTO) {
+
+  // ============================================
+  // VEHICLE UNIT
+  // ============================================
+  //HÀM TẠO XE ĐƠN VỊ
+  async createVehicleUnit(dto: CreateVehicleUnitDto) {
     console.log('[VehicleService] Creating vehicle unit...', dto);
-    const { vehicle_id, vin, color, status = 'availabel' } = dto;
+    const { vehicle_id, vin, color, status = 'available' } = dto;
+
+    // 1. Kiểm tra vehicle tồn tại
     const { data: vehicle, error: vehicleErr } = await this.supabase
       .schema('product')
       .from('vehicle')
-      .select('id')
+      .select('id, name')
       .eq('id', vehicle_id)
       .single();
+
     if (vehicleErr || !vehicle) {
-      throw new BadRequestException('Vehicle khong ton tai');
+      throw new BadRequestException('Vehicle không tồn tại');
     }
+
     console.log('[VehicleService] Vehicle exists:', vehicle.name);
-    //Kiem tra VIN trung
+
+    // 2. Kiểm tra VIN trùng
     const { data: vinCheck } = await this.supabase
       .schema('product')
       .from('vehicle_unit')
       .select('id')
       .eq('vin', vin)
       .maybeSingle();
+
     if (vinCheck) {
       throw new BadRequestException('VIN đã tồn tại trong kho');
     }
+
+    // 3. Tạo vehicle unit
     const { data, error } = await this.supabase
       .schema('product')
       .from('vehicle_unit')
@@ -858,29 +949,466 @@ export class vehicleNewService {
       unit: data,
     };
   }
-  async PayVehicle(vin: string) {
+
+  // ============================================
+  // VEHICLE UNIT - GET ALL
+  // ============================================
+  //LẤY TẤT CẢ VEHICLE UNIT VỚI BỘ LỌC
+  async getAllVehicleUnits(filters?: FilterVehicleUnitsDto) {
+    let query = this.supabase
+      .schema('product')
+      .from('vehicle_unit')
+      .select(
+        `
+        *,
+        vehicle:vehicle_id (
+          id,
+          name,
+          model,
+          version,
+          year
+        )
+      `,
+      )
+      .order('created_at', { ascending: false });
+
+    // Apply filters
+    if (filters?.vehicle_id) {
+      query = query.eq('vehicle_id', filters.vehicle_id);
+    }
+    if (filters?.status) {
+      query = query.eq('status', filters.status);
+    }
+    if (filters?.warehouse_id !== undefined) {
+      if (filters.warehouse_id === null) {
+        query = query.is('warehouse_id', null);
+      } else {
+        query = query.eq('warehouse_id', filters.warehouse_id);
+      }
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      throw new BadRequestException(error.message);
+    }
+
+    return {
+      success: true,
+      data,
+      total: data?.length || 0,
+    };
+  }
+  //lấy vehicle unit theo nhóm vehicle id
+  async getGroupUnit(vehicleId: number) {
     const { data, error } = await this.supabase
       .schema('product')
       .from('vehicle_unit')
-      .select('id')
-      .update({
-        status: 'pay',
-      })
-      .eq('vin', vin)
-      .single();
-    const { dataQ: currentData } = await this.supabase
-      .from('vehice')
-      .select('quantity')
-      .eq('id', data.id)
+      .select('*')
+      .eq('vehicle_id', vehicleId)
+      .order('id', { ascending: true }); // sắp xếp theo id nếu muốn
+
+    if (error) {
+      throw new BadRequestException(error.message);
+    }
+
+    return {
+      success: true,
+      vehicle_id: vehicleId,
+      units: data,
+      total: data?.length || 0,
+    };
+  }
+  // ============================================
+  // VEHICLE UNIT - GET ONE
+  // ============================================
+  // HÀM LẤY THÔNG TIN VEHICLE UNIT THEO ID
+  async getVehicleUnitById(id: number) {
+    const { data, error } = await this.supabase
+      .schema('product')
+      .from('vehicle_unit')
+      .select(
+        `
+        *,
+        vehicle:vehicle_id (
+          id,
+          name,
+          model,
+          version,
+          year,
+          fuel_type,
+          transmission,
+          engine,
+          seats
+        )
+      `,
+      )
+      .eq('id', id)
       .single();
 
-    if (currentData) {
-      const { error } = await this.supabase
-        .from('vehicle')
-        .update({ quantity: currentData.quantity - 1 })
-        .eq('id', data.id);
-      if (error) throw new NotFoundException('khong tim thay ma vin');
-      return data;
+    if (error || !data) {
+      throw new NotFoundException(`Vehicle unit với ID ${id} không tồn tại`);
     }
+
+    return {
+      success: true,
+      data,
+    };
+  }
+  // HÀM LẤY THÔNG TIN VEHICLE UNIT THEO VIN
+  async getVehicleUnitByVIN(vin: string) {
+    const { data, error } = await this.supabase
+      .schema('product')
+      .from('vehicle_unit')
+      .select(
+        `
+        *,
+        vehicle:vehicle_id (
+          id,
+          name,
+          model,
+          version,
+          year
+        )
+      `,
+      )
+      .eq('vin', vin)
+      .single();
+
+    if (error || !data) {
+      throw new NotFoundException(`Vehicle unit với VIN ${vin} không tồn tại`);
+    }
+
+    return {
+      success: true,
+      data,
+    };
+  }
+
+  // ============================================
+  // VEHICLE UNIT - UPDATE
+  // ============================================
+  // HÀM DÙNG ĐỂ CẬP NHẬT THÔNG TIN VEHCLE UNIT
+  async updateVehicleUnit(id: number, dto: UpdateVehicleUnitDto) {
+    // 1. Kiểm tra unit tồn tại
+    await this.getVehicleUnitById(id);
+
+    // 2. Nếu update VIN, kiểm tra trùng
+    if (dto.vin) {
+      const { data: vinCheck } = await this.supabase
+        .schema('product')
+        .from('vehicle_unit')
+        .select('id')
+        .eq('vin', dto.vin)
+        .neq('id', id)
+        .maybeSingle();
+
+      if (vinCheck) {
+        throw new BadRequestException('VIN đã tồn tại trong hệ thống');
+      }
+    }
+
+    // 3. Update
+    const { data, error } = await this.supabase
+      .schema('product')
+      .from('vehicle_unit')
+      .update(dto)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      throw new BadRequestException(error.message);
+    }
+
+    return {
+      success: true,
+      message: 'Cập nhật vehicle unit thành công',
+      data,
+    };
+  }
+
+  // ============================================
+  // VEHICLE UNIT - DELETE
+  // ============================================
+  //HÀM DÙNG ĐỂ XÓA VEHICLE UNIT
+  async deleteVehicleUnit(id: number) {
+    const unit = await this.getVehicleUnitById(id);
+
+    if (unit.data.status === 'sold' || unit.data.status === 'paid') {
+      throw new BadRequestException('Không thể xóa xe đã bán hoặc đã thanh toán');
+    }
+
+    if (unit.data.warehouse_id) {
+      throw new BadRequestException('Không thể xóa xe đã được điều phối xuống kho');
+    }
+
+    const { error } = await this.supabase
+      .schema('product')
+      .from('vehicle_unit')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      throw new BadRequestException(error.message);
+    }
+
+    return {
+      success: true,
+      message: 'Xóa vehicle unit thành công',
+    };
+  }
+
+  // ============================================
+  // COUNT UNDEPLOYED UNITS
+  // ============================================
+  //HÀM DÙNG ĐỂ ĐẾM SỐ LƯỢNG XE CHƯA ĐƯỢC ĐIỀU PHỐI
+  async countUndeployedUnits(vehicleId: number) {
+    const { count, error } = await this.supabase
+      .schema('product')
+      .from('vehicle_unit')
+      .select('*', { count: 'exact', head: true })
+      .eq('vehicle_id', vehicleId)
+      .is('warehouse_id', null)
+      .in('status', ['available', 'reserved']);
+
+    if (error) {
+      throw new BadRequestException(error.message);
+    }
+
+    return {
+      success: true,
+      vehicle_id: vehicleId,
+      undeployed_count: count || 0,
+    };
+  }
+  // HÀM ĐẾM SỐ LƯỢNG XE ĐƠN VỊ CHƯA ĐƯỢC ĐIỀU PHỐI THEO NHÓM VEHICLE
+  async countUnallocatedUnitsByVehicle(vehicleId: number) {
+    const { count, error } = await this.supabase
+      .schema('product')
+      .from('vehicle_unit')
+      .select('*', { count: 'exact', head: true })
+      .eq('vehicle_id', vehicleId)
+      .eq('status', 'available'); // chưa điều phối
+
+    if (error) {
+      throw new BadRequestException(error.message);
+    }
+
+    return {
+      success: true,
+      vehicle_id: vehicleId,
+      count,
+    };
+  }
+
+  // ============================================
+  // DEPLOY TO WAREHOUSE - SINGLE
+  // ============================================
+  //HÀM ĐIỀU PHỐI XE CUỐNG KHO
+  async deployUnitToWarehouse(unitId: number, warehouseId: number) {
+    const unit = await this.getVehicleUnitById(unitId);
+
+    if (unit.data.warehouse_id) {
+      throw new BadRequestException(`Xe này đã được điều phối xuống kho ${unit.data.warehouse_id}`);
+    }
+
+    if (unit.data.status !== 'available') {
+      throw new BadRequestException(
+        `Chỉ có thể điều phối xe có trạng thái 'available'. Trạng thái hiện tại: ${unit.data.status}`,
+      );
+    }
+
+    const { data, error } = await this.supabase
+      .schema('product')
+      .from('vehicle_unit')
+      .update({
+        warehouse_id: warehouseId,
+        status: 'deployed',
+      })
+      .eq('id', unitId)
+      .select()
+      .single();
+
+    if (error) {
+      throw new BadRequestException(error.message);
+    }
+
+    return {
+      success: true,
+      message: `Điều phối xe xuống kho ${warehouseId} thành công`,
+      data,
+    };
+  }
+
+  // ============================================
+  // DEPLOY TO WAREHOUSE - MULTIPLE
+  // ============================================
+  // HÀM ĐIỀU PHỐI NHIỀU XE XUỐNG KHO không quan tâm ids ngẫu nhiên chỉ dựa vào số lượng
+  async deployMultipleUnitsToWarehouse(dto: DeployMultipleUnitsDto) {
+    const { vehicle_id, warehouse_id, quantity } = dto;
+
+    const { data: availableUnits, error: fetchError } = await this.supabase
+      .schema('product')
+      .from('vehicle_unit')
+      .select('id, vin')
+      .eq('vehicle_id', vehicle_id)
+      .eq('status', 'available')
+      .is('warehouse_id', null)
+      .limit(quantity);
+
+    if (fetchError) {
+      throw new BadRequestException(fetchError.message);
+    }
+
+    if (!availableUnits || availableUnits.length === 0) {
+      throw new BadRequestException('Không có xe nào sẵn sàng để điều phối');
+    }
+
+    if (availableUnits.length < quantity) {
+      throw new BadRequestException(
+        `Chỉ có ${availableUnits.length} xe sẵn sàng, không đủ ${quantity} xe`,
+      );
+    }
+
+    const unitIds = availableUnits.map((u) => u.id);
+
+    const { data, error: updateError } = await this.supabase
+      .schema('product')
+      .from('vehicle_unit')
+      .update({
+        warehouse_id,
+        status: 'deployed',
+      })
+      .in('id', unitIds)
+      .select();
+
+    if (updateError) {
+      throw new BadRequestException(updateError.message);
+    }
+
+    return {
+      success: true,
+      message: `Điều phối ${data.length} xe xuống kho ${warehouse_id} thành công`,
+      deployed_units: data,
+    };
+  }
+
+  // ============================================
+  // DEPLOY TO WAREHOUSE - BATCH
+  // ============================================
+  //HÀM ĐIỀU PHỐI NHIỀU XE XUỐNG KHO THEO DANH SÁCH ID quan tâm ids
+  async deployUnitsToWarehouse(dto: DeployToWarehouseDto) {
+    const { vehicle_unit_ids, warehouse_id } = dto;
+
+    const { data: units, error: fetchError } = await this.supabase
+      .schema('product')
+      .from('vehicle_unit')
+      .select('id, vin, warehouse_id, status')
+      .in('id', vehicle_unit_ids);
+
+    if (fetchError) {
+      throw new BadRequestException(fetchError.message);
+    }
+
+    if (units.length !== vehicle_unit_ids.length) {
+      throw new BadRequestException('Một số vehicle units không tồn tại');
+    }
+
+    const alreadyDeployed = units.filter((u) => u.warehouse_id !== null);
+    if (alreadyDeployed.length > 0) {
+      throw new BadRequestException(
+        `Các xe sau đã được điều phối: ${alreadyDeployed.map((u) => u.vin).join(', ')}`,
+      );
+    }
+
+    const unavailable = units.filter((u) => u.status !== 'available');
+    if (unavailable.length > 0) {
+      throw new BadRequestException(
+        `Các xe sau không ở trạng thái 'available': ${unavailable.map((u) => u.vin).join(', ')}`,
+      );
+    }
+
+    const { data, error: updateError } = await this.supabase
+      .schema('product')
+      .from('vehicle_unit')
+      .update({
+        warehouse_id,
+        status: 'deployed',
+      })
+      .in('id', vehicle_unit_ids)
+      .select();
+
+    if (updateError) {
+      throw new BadRequestException(updateError.message);
+    }
+
+    return {
+      success: true,
+      message: `Điều phối ${data.length} xe xuống kho ${warehouse_id} thành công`,
+      deployed_units: data,
+    };
+  }
+
+  // ============================================
+  // PAY VEHICLE
+  // ============================================
+  // HÀM THANH TOÁN XE KHI BÁN 1 CHIẾC XE
+  async payVehicle(dto: PayVehicleDto) {
+    const { vin } = dto;
+
+    const unit = await this.getVehicleUnitByVIN(vin);
+
+    if (unit.data.status === 'sold' || unit.data.status === 'paid') {
+      throw new BadRequestException('Xe này đã được bán');
+    }
+
+    const { data, error } = await this.supabase
+      .schema('product')
+      .from('vehicle_unit')
+      .update({
+        status: 'sold',
+      })
+      .eq('vin', vin)
+      .select()
+      .single();
+
+    if (error) {
+      throw new BadRequestException(error.message);
+    }
+
+    return {
+      success: true,
+      message: 'Thanh toán xe thành công',
+      data,
+    };
+  }
+  // ============================================
+  // GET AVAILABLE UNITS
+  // ============================================
+  // HÀM LẤY DANH SÁCH XE ĐƠN VỊ CÒN TỒN THEO NHÓM VEHICLE
+  async getAvailableUnitsByVehicle(vehicleId: number, warehouseId?: number) {
+    let query = this.supabase
+      .schema('product')
+      .from('vehicle_unit')
+      .select('*')
+      .eq('vehicle_id', vehicleId)
+      .eq('status', 'available');
+
+    if (warehouseId) {
+      query = query.eq('warehouse_id', warehouseId);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      throw new BadRequestException(error.message);
+    }
+
+    return {
+      success: true,
+      data,
+      total: data?.length || 0,
+    };
   }
 }

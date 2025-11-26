@@ -19,6 +19,10 @@ import { RabbitMQModule } from '@golevelup/nestjs-rabbitmq';
             name: 'quotation_vehicle',
             type: 'direct',
           },
+          {
+            name: 'get_user',
+            type: 'direct',
+          },
         ],
         uri: configService.get<string>('RABBITMQ_URI'), // đọc từ env
         connectionInitOptions: { wait: false },

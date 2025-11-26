@@ -26,6 +26,10 @@ import { vehicleNewModule } from './vehicle-new/src/vehicle-new.module';
           name: 'contract_vehicle',
           type: 'direct',
         },
+        {
+          name: 'vehicle_listPrice',
+          type: 'direct',
+        },
       ],
       uri: process.env.RABBITMQ_URI,
       connectionInitOptions: { wait: false },

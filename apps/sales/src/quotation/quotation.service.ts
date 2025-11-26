@@ -37,6 +37,16 @@ export class QuotationService {
     return response;
   }
 
+  async getUserId(id: string) {
+    const response = await this.amqpConnection.request<{ user: any }>({
+      exchange: 'get_user',
+      routingKey: 'quotaion.user',
+      payload: { id },
+      timeout: 18000,
+    });
+    return response;
+  }
+
   //Tạo báo giá
   async create(createQuote: CreateQuotationDto): Promise<any> {
     try {
@@ -273,6 +283,7 @@ export class QuotationService {
       },
       {} as Record<string, any[]>,
     );
+
     const quotationsWithCustomer = await Promise.all(
       quotations.map(async (quote) => ({
         ...quote,
@@ -280,14 +291,23 @@ export class QuotationService {
       })),
     );
     console.log('quotationsWithCustomer', quotationsWithCustomer);
-    const res = quotationsWithCustomer.map((row) =>
+
+    const quotationsWithCreator = await Promise.all(
+      quotationsWithCustomer.map(async (quote) => ({
+        ...quote,
+        creator: await this.getUserId(quote.created_by),
+      })),
+    );
+    console.log('quotationsWithCreator', quotationsWithCreator);
+
+    let res = quotationsWithCreator.map((row) =>
       this.mapRowToQuotation({
         ...row,
         items: itemsByQuotation[row.id] || [],
         customer: row.customer,
       }),
     );
-    console.log('res', res);
+    // console.log('res', res);
     //Trả về danh sách Quotation (gộp items tương ứng)
     return res;
   }
@@ -383,6 +403,7 @@ export class QuotationService {
       id: row.id,
       customerId: row.customer_id,
       customer: row.customer || null,
+      creator: row.creator || null,
       vehicles: row.vehicle || null,
       promotions: row.promotions || null,
       createdBy: row.created_by,

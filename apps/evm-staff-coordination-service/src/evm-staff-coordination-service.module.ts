@@ -3,34 +3,46 @@
 // import { EvmStaffCoordinationService } from './evm-staff-coordination-service.service';
 // import { EvmStaffCoordinationController } from './evm-staff-coordination-service.controller';
 // @Module({
-// imports: [
-//   ConfigModule.forRoot({
-//     isGlobal: true, // giúp ConfigService dùng được mọi nơi mà không cần import lại
-//     envFilePath: '.env', // nếu file nằm ở thư mục gốc service, hoặc khai báo đúng đường dẫn
-//   }),
-// ],
+//   imports: [
+//     ConfigModule.forRoot({
+//       isGlobal: true, // giúp ConfigService dùng được mọi nơi mà không cần import lại
+//       envFilePath: '.env', // nếu file nằm ở thư mục gốc service, hoặc khai báo đúng đường dẫn
+//     }),
+//   ],
 //   controllers: [EvmStaffCoordinationController],
 //   providers: [EvmStaffCoordinationService],
 //   exports: [EvmStaffCoordinationService],
 // })
 // export class EvmStaffCoordinationModule {}
-// src/evm-staff-coordination-service.module.ts
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
-import { EvmStaffCoordinationServiceController } from './evm-staff-coordination-service.controller';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ClientsModule, Transport } from '@nestjs/microservices';
 import { EvmStaffCoordinationService } from './evm-staff-coordination-service.service';
+import { EvmStaffCoordinationServiceController } from './evm-staff-coordination-service.controller';
 import { SupabaseModule } from './supabase/supabase.module';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({
-      isGlobal: true, // giúp ConfigService dùng được mọi nơi mà không cần import lại
-      envFilePath: '.env', // nếu file nằm ở thư mục gốc service, hoặc khai báo đúng đường dẫn
-    }),
+    ConfigModule.forRoot({ isGlobal: true, envFilePath: '.env' }),
+    ClientsModule.registerAsync([
+      {
+        name: 'RABBITMQ_SERVICE',
+        imports: [ConfigModule],
+        useFactory: (configService: ConfigService) => ({
+          transport: Transport.RMQ,
+          options: {
+            urls: [configService.get<string>('RABBITMQ_URL') || 'amqp://localhost:5672'],
+            queue: 'evm_staff_coordination_queue',
+            queueOptions: { durable: false },
+          },
+        }),
+        inject: [ConfigService],
+      },
+    ]),
     SupabaseModule,
   ],
   controllers: [EvmStaffCoordinationServiceController],
   providers: [EvmStaffCoordinationService],
   exports: [EvmStaffCoordinationService],
 })
-export class EvmStaffCoordinationServiceModule {}
+export class EvmStaffCoordinationModule {}

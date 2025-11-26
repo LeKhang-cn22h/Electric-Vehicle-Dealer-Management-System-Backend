@@ -184,7 +184,6 @@ export class GatewaySalesController {
       authorization: auth,
     });
   }
-
   // ------------------------------
   // ORDERS
   // ------------------------------

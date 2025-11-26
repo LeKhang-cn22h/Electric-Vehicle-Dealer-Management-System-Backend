@@ -15,6 +15,10 @@ import { PricingPromotionController } from './pricing-promotion.controller';
             name: 'vehicle_exchange',
             type: 'direct',
           },
+          {
+            name: 'vehicle_listPrice',
+            type: 'direct',
+          },
         ],
         uri: configService.get<string>('RABBITMQ_URI'), // đọc từ env
         connectionInitOptions: { wait: false },

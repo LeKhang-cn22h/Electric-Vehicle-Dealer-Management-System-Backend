@@ -13,6 +13,8 @@ import {
   UploadedFiles,
   BadRequestException,
   Headers,
+  Patch,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { ServiceClients } from '../service-clients';
 import { FilesInterceptor } from '@nestjs/platform-express';
@@ -129,6 +131,20 @@ export class GatewayVehicleController {
       throw new InternalServerErrorException('Failed to fetch vehicle models');
     }
   }
+
+  @Get('noPrice')
+  async getListVehicleWithNoPrice() {
+    try {
+      this.logger.log('Getting all vehicle no create price');
+      const result = await this.c.vehicle().get('/vehicle/noPrice');
+      this.logger.log(`Success, got ${result.length || 0} noPrice`);
+      return result;
+    } catch (error) {
+      this.logger.error(' Error getting models no price:', error.message);
+      throw new InternalServerErrorException('Failed to fetch vehicle models no price');
+    }
+  }
+
   //lấy xe cụ thể
   @Get(':id')
   async findOne(@Param('id') id: string) {
@@ -383,30 +399,9 @@ export class GatewayVehicleController {
       throw new InternalServerErrorException('Failed to fetch similar vehicles');
     }
   }
-  //tạo xe cụ thể
-  @Post('Vunit')
-  async createVehicleUnit(@Body() dto: any, @Headers('authorization') auth: string) {
-    try {
-      this.logger.log('Comparing vehicles');
-      this.logger.log(` Vehicle IDs: ${dto.vehicle_id}`);
-
-      const headers: Record<string, string> = {};
-      if (auth) {
-        headers.authorization = auth;
-      }
-
-      const result = await this.c.vehicle().post('/vehicle/VUnit', dto, headers);
-
-      this.logger.log('VehicleUNit create successful');
-      return result;
-    } catch (error) {
-      this.logger.error(' Error create unit vehicles:', error.message);
-      this.logger.error('Response:', error.response?.data);
-      throw new InternalServerErrorException('Failed to Unit vehicles');
-    }
-  }
   //gửi danh sách xe
   @Post('list')
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async findList(@Body('vehicleIds') vehicleIds: number[], @Headers('authorization') auth: string) {
     if (!vehicleIds || !Array.isArray(vehicleIds) || vehicleIds.length === 0) {
       throw new Error('vehicleIds phải là mảng và không được để trống');
@@ -425,7 +420,7 @@ export class GatewayVehicleController {
   @Post('appointments')
   async createAppointment(@Headers('authorization') auth: string, @Body() dto: any) {
     try {
-      this.logger.log(`Creating appointment for customer`);
+      this.logger.log('Creating appointment for customer');
 
       const headers: Record<string, string> = {};
       if (auth) {
@@ -433,15 +428,35 @@ export class GatewayVehicleController {
       }
 
       const result = await this.c.vehicle().post('/appointments', dto, headers);
-      this.logger.log('Appointment created successfully');
-      return result;
+      const responseData = result.data;
+
+      // KIỂM TRA SUCCESS FLAG TRƯỚC KHI LOG
+      if (!responseData.success) {
+        // Business logic error
+        const errorCode = responseData.errorCode || 'UNKNOWN';
+        this.logger.debug(` Business error: ${errorCode} - ${responseData.message}`);
+
+        // RETURN NGUYÊN RESPONSE - Frontend sẽ xử lý
+        return responseData;
+      }
+
+      // CHỈ LOG SUCCESS KHI THẬT SỰ THÀNH CÔNG
+      this.logger.log(`Appointment created - ID: ${responseData.data?.id}`);
+      return responseData;
     } catch (err: any) {
-      this.logger.error('Error creating appointment:', err.message);
-      this.logger.error('Response:', err.response?.data);
+      // CHỈ LOG ERROR CHO SERVER/NETWORK ERRORS
+      const statusCode = err.response?.status || 500;
+
+      if (statusCode >= 500) {
+        this.logger.error(`Server error (${statusCode}): ${err.message}`);
+        this.logger.error('Response:', err.response?.data);
+      } else {
+        this.logger.debug(`Client error (${statusCode}): ${err.message}`);
+      }
+
       throw new BadRequestException(err.response?.data?.message || err.message);
     }
   }
-
   // Lấy lịch sử đặt lái thử của khách hàng
   @Get('appointments/history/customer')
   async findAppointmentHistoryForCustomer(@Headers('authorization') auth: string) {
@@ -564,23 +579,20 @@ export class GatewayVehicleController {
   // ===========================
 
   // Khách xem slot available
-  @Get('test-drive-slots')
+  @Get('appointments/test-drive-slots/customer')
   async findAllSlotsForCustomer(@Headers('authorization') auth?: string) {
-    try {
-      this.logger.log('Fetching available test drive slots for customer');
+    this.logger.log('Fetching available test drive slots for customer');
 
-      const headers: Record<string, string> = {};
-      if (auth) {
-        headers.authorization = auth;
-      }
+    const headers: Record<string, string> = {};
+    if (auth) headers.authorization = auth;
 
-      const result = await this.c.vehicle().get('/appointments/test-drive-slots', headers);
-      this.logger.log(`Success, got ${result.data?.length || 0} available slots`);
-      return result;
-    } catch (err: any) {
-      this.logger.error('Error fetching slots:', err.message);
-      throw new InternalServerErrorException(err.response?.data?.message || err.message);
-    }
+    const result = await this.c.vehicle().get('/appointments/test-drive-slots/customer', headers);
+
+    // Xử lý cả 2 trường hợp: array trực tiếp hoặc wrapped trong .data
+    const slots = Array.isArray(result) ? result : result.data;
+
+    this.logger.log(`Success, got ${slots?.length || 0} available slots`);
+    return slots;
   }
 
   // Admin xem tất cả slot
@@ -668,6 +680,25 @@ export class GatewayVehicleController {
       throw new BadRequestException(err.response?.data?.message || err.message);
     }
   }
+  //mở lại slot đã đóng (admin)
+  @Patch('test-drive-slots/:id/reopen')
+  async reopenSlot(@Param('id') id: string, @Headers('authorization') auth: string) {
+    try {
+      this.logger.log(`Reopening test drive slot ID=${id}`);
+      const headers: Record<string, string> = {};
+      if (auth) {
+        headers.authorization = auth;
+      }
+      const result = await this.c
+        .vehicle()
+        .patch(`/appointments/test-drive-slots/${id}/reopen`, {}, headers);
+      this.logger.log(`Slot ${id} reopened successfully`);
+      return result;
+    } catch (err: any) {
+      this.logger.error(`Error reopening slot ${id}:`, err.message);
+      throw new BadRequestException(err.response?.data?.message || err.message);
+    }
+  }
 
   // Xóa/Ẩn slot
   @Delete('test-drive-slots/:id')
@@ -686,6 +717,346 @@ export class GatewayVehicleController {
     } catch (err: any) {
       this.logger.error(`Error hiding slot ${id}:`, err.message);
       throw new BadRequestException(err.response?.data?.message || err.message);
+    }
+  }
+
+  //VEHICLE UNITS
+
+  // Tạo vehicle unit
+  @Post('units')
+  async createVehicleUnit(@Body() dto: any, @Headers('authorization') auth: string) {
+    try {
+      this.logger.log('Creating vehicle unit');
+      const headers: Record<string, string> = {};
+      if (auth) {
+        headers.authorization = auth;
+      }
+      const result = await this.c.vehicle().post('/vehicle/units', dto, headers);
+
+      this.logger.log('Vehicle unit created successfully');
+      return result;
+    } catch (error) {
+      this.logger.error('Error creating vehicle unit:', error.message);
+      this.logger.error('Response:', error.response?.data);
+      throw new InternalServerErrorException('Failed to create vehicle unit');
+    }
+  }
+
+  // Lấy tất cả units (có filter)
+  @Get('units')
+  async getAllVehicleUnits(
+    @Query('vehicle_id') vehicle_id?: string,
+    @Query('status') status?: string,
+    @Query('warehouse_id') warehouse_id?: string,
+    @Headers('authorization') auth?: string,
+  ) {
+    try {
+      // LOG 1: Check giá trị nhận được
+      this.logger.log('=== RECEIVED QUERY PARAMS ===');
+      this.logger.log(`vehicle_id: "${vehicle_id}" (type: ${typeof vehicle_id})`);
+      this.logger.log(`status: "${status}" (type: ${typeof status})`);
+      this.logger.log(`warehouse_id: "${warehouse_id}" (type: ${typeof warehouse_id})`);
+
+      const headers: Record<string, string> = {};
+      if (auth) {
+        headers.authorization = auth;
+      }
+
+      const queryParams = new URLSearchParams();
+
+      if (vehicle_id && vehicle_id !== 'undefined') {
+        queryParams.append('vehicle_id', vehicle_id);
+      }
+      if (status && status !== 'undefined') {
+        queryParams.append('status', status);
+      }
+      if (warehouse_id && warehouse_id !== 'undefined') {
+        queryParams.append('warehouse_id', warehouse_id);
+      }
+
+      const queryString = queryParams.toString();
+      const url = `/vehicle/units${queryString ? '?' + queryString : ''}`;
+
+      // LOG 2: Check URL cuối cùng
+      this.logger.log('=== FINAL REQUEST ===');
+      this.logger.log(`URL: ${url}`);
+      this.logger.log(`Query String: ${queryString}`);
+
+      const result = await this.c.vehicle().get(url, headers);
+
+      this.logger.log('Vehicle units fetched successfully');
+      return result;
+    } catch (error) {
+      // LOG 3: Check lỗi chi tiết
+      this.logger.error('=== ERROR DETAILS ===');
+      this.logger.error(`Message: ${error.message}`);
+      this.logger.error(`Response: ${JSON.stringify(error.response?.data || {})}`);
+      throw new InternalServerErrorException('Failed to fetch vehicle units');
+    }
+  }
+
+  @Get('units/group/:id')
+  async getVehicleUnitsGroup(@Param('id') id: string, @Headers('authorization') auth?: string) {
+    try {
+      this.logger.log(`Fetching vehicle units group for vehicle ID: ${id}`);
+      const headers: Record<string, string> = {};
+      if (auth) {
+        headers.authorization = auth;
+      }
+      const result = await this.c.vehicle().get(`/vehicle/units/group/${id}`, headers);
+      this.logger.log('Vehicle units group fetched successfully');
+      return result;
+    } catch (error) {
+      this.logger.error(`Error fetching vehicle units group for ${id}:`, error.message);
+      throw new InternalServerErrorException('Failed to fetch vehicle units group');
+    }
+  }
+  // Lấy một unit theo VIN
+  @Get('units/vin/:vin')
+  async getUnitByVIN(@Param('vin') vin: string, @Headers('authorization') auth?: string) {
+    try {
+      this.logger.log(`Fetching vehicle unit with VIN: ${vin}`);
+      const headers: Record<string, string> = {};
+      if (auth) {
+        headers.authorization = auth;
+      }
+      const result = await this.c.vehicle().get(`/vehicle/units/vin/${vin}`, headers);
+
+      this.logger.log('Vehicle unit fetched successfully by VIN');
+      return result;
+    } catch (error) {
+      this.logger.error(`Error fetching vehicle unit by VIN ${vin}:`, error.message);
+      throw new InternalServerErrorException('Failed to fetch vehicle unit by VIN');
+    }
+  }
+
+  // Đếm số lượng xe chưa điều phối theo vehicleId
+  @Get('units/count/undeployed/:vehicleId')
+  async countUndeployed(
+    @Param('vehicleId', ParseIntPipe) vehicleId: number,
+    @Headers('authorization') auth?: string,
+  ) {
+    try {
+      this.logger.log(`Counting undeployed units for vehicle: ${vehicleId}`);
+      const headers: Record<string, string> = {};
+      if (auth) {
+        headers.authorization = auth;
+      }
+      const result = await this.c
+        .vehicle()
+        .get(`/vehicle/units/count/undeployed/${vehicleId}`, headers);
+
+      this.logger.log('Undeployed units counted successfully');
+      return result;
+    } catch (error) {
+      this.logger.error(`Error counting undeployed units:`, error.message);
+      throw new InternalServerErrorException('Failed to count undeployed units');
+    }
+  }
+
+  // Đếm số lượng xe chưa được phân kho (available)
+  @Get('units/count/unallocated/:vehicleId')
+  async countUnallocated(
+    @Param('vehicleId', ParseIntPipe) vehicleId: number,
+    @Headers('authorization') auth?: string,
+  ) {
+    try {
+      this.logger.log(`Counting unallocated units for vehicle: ${vehicleId}`);
+      const headers: Record<string, string> = {};
+      if (auth) {
+        headers.authorization = auth;
+      }
+      const result = await this.c
+        .vehicle()
+        .get(`/vehicle/units/count/unallocated/${vehicleId}`, headers);
+
+      this.logger.log('Unallocated units counted successfully');
+      return result;
+    } catch (error) {
+      this.logger.error(`Error counting unallocated units:`, error.message);
+      throw new InternalServerErrorException('Failed to count unallocated units');
+    }
+  }
+
+  // Điều phối 1 xe xuống kho
+  @Patch('units/deploy/single')
+  async deploySingle(
+    @Body('unit_id', ParseIntPipe) unitId: number,
+    @Body('warehouse_id', ParseIntPipe) warehouseId: number,
+    @Headers('authorization') auth: string,
+  ) {
+    try {
+      this.logger.log(`Deploying single unit ${unitId} to warehouse ${warehouseId}`);
+      const headers: Record<string, string> = {};
+      if (auth) {
+        headers.authorization = auth;
+      }
+      const result = await this.c
+        .vehicle()
+        .patch(
+          '/vehicle/units/deploy/single',
+          { unit_id: unitId, warehouse_id: warehouseId },
+          headers,
+        );
+
+      this.logger.log('Single unit deployed successfully');
+      return result;
+    } catch (error) {
+      this.logger.error('Error deploying single unit:', error.message);
+      this.logger.error('Response:', error.response?.data);
+      throw new InternalServerErrorException('Failed to deploy single unit');
+    }
+  }
+
+  // Điều phối nhiều xe theo số lượng
+  @Patch('units/deploy/multiple')
+  async deployMultiple(@Body() dto: any, @Headers('authorization') auth: string) {
+    try {
+      this.logger.log('Deploying multiple units');
+      const headers: Record<string, string> = {};
+      if (auth) {
+        headers.authorization = auth;
+      }
+      const result = await this.c.vehicle().patch('/vehicle/units/deploy/multiple', dto, headers);
+
+      this.logger.log('Multiple units deployed successfully');
+      return result;
+    } catch (error) {
+      this.logger.error('Error deploying multiple units:', error.message);
+      this.logger.error('Response:', error.response?.data);
+      throw new InternalServerErrorException('Failed to deploy multiple units');
+    }
+  }
+
+  // Điều phối theo danh sách ID
+  @Patch('units/deploy/batch')
+  async deployBatch(@Body() dto: any, @Headers('authorization') auth: string) {
+    try {
+      this.logger.log('Deploying batch units');
+      const headers: Record<string, string> = {};
+      if (auth) {
+        headers.authorization = auth;
+      }
+      const result = await this.c.vehicle().patch('/vehicle/units/deploy/batch', dto, headers);
+
+      this.logger.log('Batch units deployed successfully');
+      return result;
+    } catch (error) {
+      this.logger.error('Error deploying batch units:', error.message);
+      this.logger.error('Response:', error.response?.data);
+      throw new InternalServerErrorException('Failed to deploy batch units');
+    }
+  }
+
+  // Thanh toán xe bằng VIN
+  @Patch('units/pay')
+  async payVehicle(@Body('vin') vin: string, @Headers('authorization') auth: string) {
+    try {
+      this.logger.log(`Processing payment for vehicle VIN: ${vin}`);
+      const headers: Record<string, string> = {};
+      if (auth) {
+        headers.authorization = auth;
+      }
+      const result = await this.c.vehicle().patch('/vehicle/units/pay', { vin }, headers);
+
+      this.logger.log('Vehicle payment processed successfully');
+      return result;
+    } catch (error) {
+      this.logger.error('Error processing vehicle payment:', error.message);
+      this.logger.error('Response:', error.response?.data);
+      throw new InternalServerErrorException('Failed to process vehicle payment');
+    }
+  }
+
+  // Lấy danh sách xe available theo vehicleId (+ optional warehouse)
+  @Get('units/available/:vehicleId')
+  async getAvailableUnits(
+    @Param('vehicleId', ParseIntPipe) vehicleId: number,
+    @Query('warehouse_id') warehouse_id?: number,
+    @Headers('authorization') auth?: string,
+  ) {
+    try {
+      this.logger.log(`Fetching available units for vehicle: ${vehicleId}`);
+      const headers: Record<string, string> = {};
+      if (auth) {
+        headers.authorization = auth;
+      }
+
+      const url = warehouse_id
+        ? `/vehicle/units/available/${vehicleId}?warehouse_id=${warehouse_id}`
+        : `/vehicle/units/available/${vehicleId}`;
+
+      const result = await this.c.vehicle().get(url, headers);
+
+      this.logger.log('Available units fetched successfully');
+      return result;
+    } catch (error) {
+      this.logger.error('Error fetching available units:', error.message);
+      throw new InternalServerErrorException('Failed to fetch available units');
+    }
+  }
+  // Lấy một unit theo ID
+  @Get('units/:id')
+  async getUnitById(
+    @Param('id', ParseIntPipe) id: number,
+    @Headers('authorization') auth?: string,
+  ) {
+    try {
+      this.logger.log(`Fetching vehicle unit with ID: ${id}`);
+      const headers: Record<string, string> = {};
+      if (auth) {
+        headers.authorization = auth;
+      }
+      const result = await this.c.vehicle().get(`/vehicle/units/${id}`, headers);
+
+      this.logger.log('Vehicle unit fetched successfully');
+      return result;
+    } catch (error) {
+      this.logger.error(`Error fetching vehicle unit ${id}:`, error.message);
+      throw new InternalServerErrorException('Failed to fetch vehicle unit');
+    }
+  }
+
+  // Update unit
+  @Put('units/:id')
+  async updateUnit(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: any,
+    @Headers('authorization') auth: string,
+  ) {
+    try {
+      this.logger.log(`Updating vehicle unit with ID: ${id}`);
+      const headers: Record<string, string> = {};
+      if (auth) {
+        headers.authorization = auth;
+      }
+      const result = await this.c.vehicle().put(`/vehicle/units/${id}`, dto, headers);
+
+      this.logger.log('Vehicle unit updated successfully');
+      return result;
+    } catch (error) {
+      this.logger.error(`Error updating vehicle unit ${id}:`, error.message);
+      this.logger.error('Response:', error.response?.data);
+      throw new InternalServerErrorException('Failed to update vehicle unit');
+    }
+  }
+
+  // Xoá unit
+  @Delete('units/:id')
+  async deleteUnit(@Param('id', ParseIntPipe) id: number, @Headers('authorization') auth: string) {
+    try {
+      this.logger.log(`Deleting vehicle unit with ID: ${id}`);
+      const headers: Record<string, string> = {};
+      if (auth) {
+        headers.authorization = auth;
+      }
+      const result = await this.c.vehicle().delete(`/vehicle/units/${id}`, headers);
+
+      this.logger.log('Vehicle unit deleted successfully');
+      return result;
+    } catch (error) {
+      this.logger.error(`Error deleting vehicle unit ${id}:`, error.message);
+      throw new InternalServerErrorException('Failed to delete vehicle unit');
     }
   }
 }

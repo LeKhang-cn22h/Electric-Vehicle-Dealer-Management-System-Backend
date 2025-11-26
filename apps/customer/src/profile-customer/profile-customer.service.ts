@@ -137,7 +137,7 @@ export class ProfileCustomerService {
     }
 
     // 3. Nếu hồ sơ đã có UID thì không ghi đè
-    if (customer.account_uid) {
+    if (customer.uid) {
       return {
         found: true,
         linked: false,
@@ -150,7 +150,7 @@ export class ProfileCustomerService {
     const { data: updated, error: updateError } = await this.supabase
       .schema('customer')
       .from('customers')
-      .update({ account_uid: accountUid })
+      .update({ uid: accountUid })
       .eq('id', customer.id)
       .select()
       .single();

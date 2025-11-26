@@ -17,7 +17,7 @@
 //   }
 // }
 import { Controller, Post, Get, Body, Req, Param, ParseIntPipe } from '@nestjs/common';
-import { Request } from 'express';
+import type { Request } from 'express';
 import { DealerAgreementService } from './dealer-agreement.service';
 import { CreateContractRequestDto } from './dto/create-contract-request.dto';
 @Controller('dealer-agreement')
