@@ -27,4 +27,5 @@ COPY --from=builder /app/apps/customer/package*.json ./
 
 ENV NODE_ENV=production
 EXPOSE 4404
-CMD ["node", "dist/main.js"]
+CMD ["node", "dist/apps/customer/main.js"]
+
