@@ -7,7 +7,7 @@ import { GatewayDealerCoordinationController } from './routes/gateway-dealer-coo
 import { GatewayVehicleController } from './routes/gateway-vehicle.controller';
 import { GatewayCustomersController } from './routes/gateway-customers.controller';
 import { GatewayBillingController } from './routes/gateway-billing.controller';
-import { GatewayEvmStaffCoordinationController } from './routes/gateway-evm-staff-coordination.controller';
+import { GatewayStaffCoordinationController } from './routes/gateway-evm-staff-coordination.controller';
 import { GatewayARController } from './routes/gateway-ar.controller';
 import { GatewayRbacController } from './routes/gateway-rbac.controller';
 import { CommissionGatewayController } from './routes/gateway-commission.controller';
@@ -25,7 +25,7 @@ import { GatewayEvmStaffAgreementController } from './routes/gateway-evm-staff-a
     GatewayVehicleController,
     GatewayCustomersController,
     GatewayBillingController,
-    GatewayEvmStaffCoordinationController,
+    GatewayStaffCoordinationController,
     GatewayDealerAgreementController,
     GatewaySalesController,
     GatewayARController,
