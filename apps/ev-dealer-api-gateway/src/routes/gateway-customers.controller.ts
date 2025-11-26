@@ -282,7 +282,7 @@ export class GatewayCustomersController {
       this.logger.log(`Đang xóa phản hồi ID: ${id}`);
       this.logger.log(`- Auth header:`, auth ? 'Present' : 'Missing');
 
-      const result = await this.c.customer().put(`/feedback-customer/${id}`, undefined);
+      const result = await this.c.customer().put(`/feedback-customer/delete/${id}`, undefined);
       this.logger.log(`Thành công, đã xóa phản hồi ID: ${id}`);
       return result;
     } catch (error) {
