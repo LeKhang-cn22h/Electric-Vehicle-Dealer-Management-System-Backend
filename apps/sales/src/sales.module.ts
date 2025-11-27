@@ -26,6 +26,10 @@ import { OrderService } from './order/order.service';
             type: 'direct',
           },
           {
+            name: 'vehicle_exchange',
+            type: 'direct',
+          },
+          {
             name: 'get_user',
             type: 'direct',
           },
